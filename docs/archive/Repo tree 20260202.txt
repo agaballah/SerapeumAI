@@ -1,0 +1,748 @@
+PS C:\Users\ADWWA> tree D:\SerapeumAI /F
+Folder PATH listing for volume New Volume
+Volume serial number is 7E80-EC5E
+D:\SERAPEUMAI
+│   CHANGELOG.md
+│   config.yaml
+│   debug_lms_final.py
+│   debug_lms_models.py
+│   DEVELOPER_QUICK_REFERENCE.md
+│   final_test.txt
+│   LICENSE
+│   NOTICE
+│   PHASE3a_COMPLETION_SUMMARY.md
+│   probe_lms.py
+│   probe_lms_v2.py
+│   README.md
+│   requirements.txt
+│   run.py
+│   SerapeumAI.spec
+│   test_ingest.py
+│   test_lm_studio.ps1
+│   test_lm_studio_simple.py
+│   test_output.txt
+│   validate_ingestion.py
+│   validate_persona.py
+│   validate_rag.py
+│   validate_vision.py
+│   verify_integration.py
+│
+├───.github
+│   │   copilot-instructions.md
+│   │
+│   └───workflows
+│           build.yml
+│           lint.yml
+│           test.yml
+│
+├───.pytest_cache
+│   │   .gitignore
+│   │   CACHEDIR.TAG
+│   │   README.md
+│   │
+│   └───v
+│       └───cache
+│               lastfailed
+│               nodeids
+│
+├───.ruff_cache
+│   │   .gitignore
+│   │   CACHEDIR.TAG
+│   │
+│   └───0.14.6
+│           10002025917660405975
+│           10368877851355531926
+│           11130841448610068451
+│           11265268545111068390
+│           12381905228249073907
+│           13653671695863623284
+│           14194587283873310651
+│           14922142515437958238
+│           15660000123372469490
+│           16452503888619865982
+│           17065613387623430189
+│           17249805240707151861
+│           4087413296317149501
+│           8846921076379734124
+│           9125266409209661349
+│           9241576398605359222
+│           9481576516215426903
+│           9745752983346539006
+│
+├───config
+│       config.json
+│
+├───docs
+│   │   DGN_SUPPORT.md
+│   │   DWG_SUPPORT.md
+│   │   entity_schema.md
+│   │   FAQ.md
+│   │   FINAL_IMPLEMENTATION_REPORT.md
+│   │   HEALTH_TRACKING_REPORT.md
+│   │   IMPLEMENTATION_PLAN.md
+│   │   IMPLEMENTATION_STATUS.md
+│   │   LOGGING_ARCHITECTURE.md
+│   │   PHASE3_BASELINE_METRICS.md
+│   │   PHASE3_EXECUTION_SUMMARY.md
+│   │   PRIORITY_FIXES_SUMMARY.md
+│   │   PROJECT_LEGACY_LEDGER.md
+│   │   QUICKSTART_CAD.md
+│   │   REVIT_SUPPORT.md
+│   │   SYSTEM_REQUIREMENTS.md
+│   │   TASK_2.4_MODEL_SELECTOR_COMPLETION.md
+│   │   TROUBLESHOOTING.md
+│   │   USER_MANUAL.md
+│   │
+│   └───archive
+│           ARCHITECTURE_REALIGNMENT.md
+│           AUDIT_SRC_ANALYSIS.md
+│           AUDIT_SRC_CORE.md
+│           AUDIT_SRC_DB.md
+│           AUDIT_SRC_DOC_PROC.md
+│           AUDIT_SRC_TELEMETRY.md
+│           CODEBASE_INVENTORY.md
+│           DEVELOPER_HANDOFF_INDEX.md
+│           DEVELOPER_QUICK_REFERENCE.md
+│           DOCUMENTATION_INDEX.md
+│           DOCUMENTATION_UPDATE_SUMMARY.md
+│           FILE_GUIDE_DRAFT.md
+│           HANDOFF_DOCUMENTS_INDEX.md
+│           HANDOFF_PACKAGE_SUMMARY.md
+│           LITERAL_LINE_BY_LINE_LOG.md
+│           PHASE1_ARCHITECTURE.md
+│           PHASE2_ARCHITECTURE.md
+│           PHASE3_CHANGELOG.md
+│           PHASE3_COMPLETE_PLAN.md
+│           PHASE3_COMPLETION_STATUS.md
+│           PHASE3_DAY1_SUMMARY.md
+│           PHASE3_DELIVERY_SUMMARY.md
+│           PHASE3_DOCUMENTATION_INDEX.md
+│           PHASE3_EXECUTION_STATUS.md
+│           PHASE3_FINAL_DELIVERY_PACKAGE.md
+│           PHASE3_FINAL_METRICS_REPORT.md
+│           PHASE3_FINAL_REPORT.txt
+│           PHASE3_OPTIMIZATION_RESULTS.md
+│           PHASE3_QUICK_START.md
+│           PHASE4_ROADMAP.md
+│           QUICK_REFERENCE.md
+│           SHIP_STATUS.md
+│           SPRINT_HANDOFF_SUMMARY.md
+│           TASK_2.5_COMPLETION_SUMMARY.md
+│           TASK_2.5_HANDOFF.md
+│           TASK_2.7_AND_PHASE3_HANDOFF.md
+│           TECHNICAL_OVERVIEW.md
+│
+├───models
+│   │   .gitignore
+│   │   DOWNLOAD_INSTRUCTIONS.md
+│   │   Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf
+│   │   mistral-7b-instruct-v0.2.Q5_K_M.gguf
+│   │   Qwen2-VL-7B-Instruct-Q6_K_L.gguf
+│   │   Qwen2.5-VL-7B-Instruct-Q6_K_L.gguf
+│   │   README.md
+│   │
+│   └───.cache
+│       └───huggingface
+│           │   .gitignore
+│           │
+│           └───download
+├───qa_reports
+│       add_copyright_headers.py
+│       bandit_security.json
+│       bandit_security_after_fixes.json
+│       check_security_status.py
+│       copyright_header.txt
+│       licenses_report.md
+│       parse_bandit.py
+│       ruff_all_issues.txt
+│       ruff_autofix_results.txt
+│
+├───src
+│   │   __init__.py
+│   │
+│   ├───analysis_engine
+│   │   │   adaptive_analysis.py
+│   │   │   analysis_engine.py
+│   │   │   compliance_analyzer.py
+│   │   │   cross_document_analyzer.py
+│   │   │   cross_doc_linker.py
+│   │   │   entity_analyzer.py
+│   │   │   geometry_analyzer.py
+│   │   │   geometry_rules.py
+│   │   │   health_tracker.py
+│   │   │   linking_rules.py
+│   │   │   page_analysis.py
+│   │   │   quality_assessor.py
+│   │   │   relationship_analyzer.py
+│   │   │   schemas.py
+│   │   │   transformation_engine.py
+│   │   │   visual_fusion_engine.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           adaptive_analysis.cpython-311.pyc
+│   │           analysis_engine.cpython-311.pyc
+│   │           compliance_analyzer.cpython-311.pyc
+│   │           cross_document_analyzer.cpython-311.pyc
+│   │           cross_doc_linker.cpython-311.pyc
+│   │           entity_analyzer.cpython-311.pyc
+│   │           geometry_analyzer.cpython-311.pyc
+│   │           geometry_rules.cpython-311.pyc
+│   │           health_tracker.cpython-311.pyc
+│   │           linking_rules.cpython-311.pyc
+│   │           page_analysis.cpython-311.pyc
+│   │           quality_assessor.cpython-311.pyc
+│   │           relationship_analyzer.cpython-311.pyc
+│   │           schemas.cpython-311.pyc
+│   │           transformation_engine.cpython-311.pyc
+│   │           visual_fusion_engine.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───application
+│   │   │   __init__.py
+│   │   │
+│   │   ├───orchestrators
+│   │   │   │   agent_orchestrator.py
+│   │   │   │   pipeline.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           agent_orchestrator.cpython-311.pyc
+│   │   │           pipeline.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   ├───services
+│   │   │   │   artifact_service.py
+│   │   │   │   document_service.py
+│   │   │   │   global_knowledge_service.py
+│   │   │   │   project_service.py
+│   │   │   │   query_router.py
+│   │   │   │   rag_service.py
+│   │   │   │   report_factory.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           artifact_service.cpython-311.pyc
+│   │   │           document_service.cpython-311.pyc
+│   │   │           global_knowledge_service.cpython-311.pyc
+│   │   │           project_service.cpython-311.pyc
+│   │   │           query_router.cpython-311.pyc
+│   │   │           rag_service.cpython-311.pyc
+│   │   │           report_factory.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   ├───use_cases
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   └───__pycache__
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───compliance
+│   │   │   seed_data.json
+│   │   │   standards_db.py
+│   │   │   standards_db_initializer.py
+│   │   │   standards_service.py
+│   │   │   standard_enricher.py
+│   │   │   standard_reference_detector.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           standards_db.cpython-311.pyc
+│   │           standards_db_initializer.cpython-311.pyc
+│   │           standards_service.cpython-311.pyc
+│   │           standard_enricher.cpython-311.pyc
+│   │           standard_reference_detector.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───document_processing
+│   │   │   cad_processor.py
+│   │   │   classifier.py
+│   │   │   excel_processor.py
+│   │   │   generic_processor.py
+│   │   │   image_processor.py
+│   │   │   pdf_processor.py
+│   │   │   ppt_processor.py
+│   │   │   processor_utils.py
+│   │   │   word_processor.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           cad_processor.cpython-311.pyc
+│   │           classifier.cpython-311.pyc
+│   │           excel_processor.cpython-311.pyc
+│   │           generic_processor.cpython-311.pyc
+│   │           image_processor.cpython-311.pyc
+│   │           pdf_processor.cpython-311.pyc
+│   │           ppt_processor.cpython-311.pyc
+│   │           processor_utils.cpython-311.pyc
+│   │           word_processor.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───domain
+│   │   │   __init__.py
+│   │   │
+│   │   ├───intelligence
+│   │   │   │   confidence_learner.py
+│   │   │   │   evidence_builder.py
+│   │   │   │   prompt_optimizer.py
+│   │   │   │   prompt_validator.py
+│   │   │   │   quantity_parser.py
+│   │   │   │   text_chunker.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           confidence_learner.cpython-311.pyc
+│   │   │           evidence_builder.cpython-311.pyc
+│   │   │           prompt_optimizer.cpython-311.pyc
+│   │   │           prompt_validator.cpython-311.pyc
+│   │   │           quantity_parser.cpython-311.pyc
+│   │   │           text_chunker.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   ├───models
+│   │   │   │   page_record.py
+│   │   │   │   relationship_types.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           page_record.cpython-311.pyc
+│   │   │           relationship_types.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   ├───personas
+│   │   │   │   contractor_adapter.py
+│   │   │   │   owner_adapter.py
+│   │   │   │   pmc_adapter.py
+│   │   │   │   technical_consultant_adapter.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           contractor_adapter.cpython-311.pyc
+│   │   │           owner_adapter.cpython-311.pyc
+│   │   │           pmc_adapter.cpython-311.pyc
+│   │   │           technical_consultant_adapter.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   ├───templates
+│   │   │   │   loader.py
+│   │   │   │   prompts.yaml
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           loader.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   ├───vision
+│   │   │   │   cross_modal_validator.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           cross_modal_validator.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   └───__pycache__
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───infra
+│   │   │   __init__.py
+│   │   │
+│   │   ├───adapters
+│   │   │   │   cancellation.py
+│   │   │   │   llm_service.py
+│   │   │   │   lm_studio_service.py
+│   │   │   │   model_manager.py
+│   │   │   │   model_router.py
+│   │   │   │   vector_store.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           cancellation.cpython-311.pyc
+│   │   │           llm_service.cpython-311.pyc
+│   │   │           lm_studio_service.cpython-311.pyc
+│   │   │           model_manager.cpython-311.pyc
+│   │   │           model_router.cpython-311.pyc
+│   │   │           vector_store.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   ├───config
+│   │   │   │   configuration_manager.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           configuration_manager.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   ├───persistence
+│   │   │   │   database_manager.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   ├───migrations
+│   │   │   │       001_core_schema.sql
+│   │   │   │       002_hardening.sql
+│   │   │   │       006_lm_studio_support.sql
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           database_manager.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   ├───services
+│   │   │   │   benchmark_service.py
+│   │   │   │   model_recommender.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           benchmark_service.cpython-311.pyc
+│   │   │           model_recommender.cpython-311.pyc
+│   │   │
+│   │   ├───telemetry
+│   │   │   │   llm_logger.py
+│   │   │   │   logging_setup.py
+│   │   │   │   metrics.py
+│   │   │   │   metrics_collector.py
+│   │   │   │   safety_validator.py
+│   │   │   │   structured_logging.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           llm_logger.cpython-311.pyc
+│   │   │           logging_setup.cpython-311.pyc
+│   │   │           metrics.cpython-311.pyc
+│   │   │           metrics_collector.cpython-311.pyc
+│   │   │           safety_validator.cpython-311.pyc
+│   │   │           structured_logging.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   └───__pycache__
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───normalizers
+│   │   │   standards.py
+│   │   │   vendor_map.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           standards.cpython-311.pyc
+│   │           vendor_map.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───plugins
+│   │   │   plugin_registry.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           plugin_registry.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───reference_service
+│   │   │   reference_manager.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           reference_manager.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───reporting
+│   │   │   document_report_generator.py
+│   │   │   report_manager.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           document_report_generator.cpython-311.pyc
+│   │           report_manager.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───role_management
+│   │   │   role_manager.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           role_manager.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───setup
+│   │   │   model_downloader.py
+│   │   │   standards_seed.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           model_downloader.cpython-311.pyc
+│   │           standards_seed.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───standards
+│   │   │   standards_classifier.py
+│   │   │   standards_ingestion_tool.py
+│   │   │
+│   │   └───__pycache__
+│   │           standards_classifier.cpython-311.pyc
+│   │           standards_ingestion_tool.cpython-311.pyc
+│   │
+│   ├───taxonomy
+│   │   │   entities.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           entities.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───tests
+│   │   │   test_database_manager.py
+│   │   │   test_dgn_integration.py
+│   │   │   test_e2e_workflows.py
+│   │   │   test_map_reduce.py
+│   │   │   test_phase1_verification.py
+│   │   │   test_phase3_final_validation.py
+│   │   │   test_pipeline.py
+│   │   │   test_text_utils.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           test_database_manager.cpython-311-pytest-9.0.1.pyc
+│   │           test_database_manager.cpython-311.pyc
+│   │           test_dgn_integration.cpython-311-pytest-9.0.1.pyc
+│   │           test_dgn_integration.cpython-311.pyc
+│   │           test_e2e_workflows.cpython-311-pytest-9.0.1.pyc
+│   │           test_e2e_workflows.cpython-311.pyc
+│   │           test_map_reduce.cpython-311-pytest-9.0.1.pyc
+│   │           test_map_reduce.cpython-311.pyc
+│   │           test_phase1_verification.cpython-311-pytest-9.0.1.pyc
+│   │           test_phase1_verification.cpython-311.pyc
+│   │           test_phase3_final_validation.cpython-311-pytest-9.0.1.pyc
+│   │           test_phase3_final_validation.cpython-311.pyc
+│   │           test_pipeline.cpython-311-pytest-9.0.1.pyc
+│   │           test_pipeline.cpython-311.pyc
+│   │           test_text_utils.cpython-311-pytest-9.0.1.pyc
+│   │           test_text_utils.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───tools
+│   │   │   artifact_tools.py
+│   │   │   base_tool.py
+│   │   │   bim_query_tool.py
+│   │   │   calculator_tool.py
+│   │   │   fortification_tools.py
+│   │   │   n8n_tool.py
+│   │   │   research_tools.py
+│   │   │   schedule_query_tool.py
+│   │   │   structure_tools.py
+│   │   │   vlm_tools.py
+│   │   │
+│   │   └───__pycache__
+│   │           artifact_tools.cpython-311.pyc
+│   │           base_tool.cpython-311.pyc
+│   │           bim_query_tool.cpython-311.pyc
+│   │           calculator_tool.cpython-311.pyc
+│   │           fortification_tools.cpython-311.pyc
+│   │           n8n_tool.cpython-311.pyc
+│   │           research_tools.cpython-311.pyc
+│   │           schedule_query_tool.cpython-311.pyc
+│   │           structure_tools.cpython-311.pyc
+│   │           vlm_tools.cpython-311.pyc
+│   │
+│   ├───ui
+│   │   │   chat_panel.py
+│   │   │   db_inspector.py
+│   │   │   document_viewer.py
+│   │   │   main_window.py
+│   │   │   settings_dialog.py
+│   │   │   __init__.py
+│   │   │
+│   │   ├───components
+│   │   │   │   attachment_handler.py
+│   │   │   │   chat_llm_bridge.py
+│   │   │   │   conversation_manager.py
+│   │   │   │   message_renderer.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           attachment_handler.cpython-311.pyc
+│   │   │           chat_llm_bridge.cpython-311.pyc
+│   │   │           conversation_manager.cpython-311.pyc
+│   │   │           message_renderer.cpython-311.pyc
+│   │   │
+│   │   ├───panels
+│   │   │   │   artifact_panel.py
+│   │   │   │   project_explorer.py
+│   │   │   │   visualization_panel.py
+│   │   │   │   __init__.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           artifact_panel.cpython-311.pyc
+│   │   │           project_explorer.cpython-311.pyc
+│   │   │           visualization_panel.cpython-311.pyc
+│   │   │           __init__.cpython-311.pyc
+│   │   │
+│   │   ├───settings
+│   │   │   │   benchmark_panel.py
+│   │   │   │   model_manager_panel.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           benchmark_panel.cpython-311.pyc
+│   │   │           model_manager_panel.cpython-311.pyc
+│   │   │
+│   │   ├───widgets
+│   │   │   │   vram_monitor.py
+│   │   │   │
+│   │   │   └───__pycache__
+│   │   │           vram_monitor.cpython-311.pyc
+│   │   │
+│   │   └───__pycache__
+│   │           chat_panel.cpython-311.pyc
+│   │           chat_panel_enhanced.cpython-311.pyc
+│   │           db_inspector.cpython-311.pyc
+│   │           document_viewer.cpython-311.pyc
+│   │           main_window.cpython-311.pyc
+│   │           settings_dialog.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───utils
+│   │   │   error_handler.py
+│   │   │   parser_utils.py
+│   │   │   path_validator.py
+│   │   │   retry.py
+│   │   │   utils.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           config_utils.cpython-311.pyc
+│   │           error_handler.cpython-311.pyc
+│   │           parser_utils.cpython-311.pyc
+│   │           path_validator.cpython-311.pyc
+│   │           retry.cpython-311.pyc
+│   │           utils.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───vision
+│   │   │   adaptive_extraction.py
+│   │   │   ocr_backends.py
+│   │   │   paddle_backend.py
+│   │   │   page_scheduler.py
+│   │   │   quality_scoring.py
+│   │   │   run_vision_worker.py
+│   │   │   vision_caption_v2.py
+│   │   │   vision_task_registry.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           adaptive_extraction.cpython-311.pyc
+│   │           ocr_backends.cpython-311.pyc
+│   │           paddle_backend.cpython-311.pyc
+│   │           page_scheduler.cpython-311.pyc
+│   │           quality_scoring.cpython-311.pyc
+│   │           run_vision_worker.cpython-311.pyc
+│   │           vision_caption_v2.cpython-311.pyc
+│   │           vision_task_registry.cpython-311.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───workers
+│   │   │   vision_worker_launcher.py
+│   │   │
+│   │   └───__pycache__
+│   │           vision_worker_launcher.cpython-311.pyc
+│   │
+│   └───__pycache__
+│           utils.cpython-311.pyc
+│           __init__.cpython-311.pyc
+│
+├───temp_validation_project
+│   │   serapeum.sqlite3
+│   │   test.dxf
+│   │   test.pdf
+│   │   test.png
+│   │
+│   └───.serapeum
+│       └───exports
+│           └───pages
+│               ├───img_-6777015718252356188
+│               ├───img_a1973a44d80b37b4
+│               ├───pdf_4718469697389860272
+│               └───pdf_7ead0b44cc1a9959
+├───tests
+│   │   debug_pytesseract.py
+│   │   verify_deployment_readiness.py
+│   │   verify_p2_components.py
+│   │   verify_vlm_logging.py
+│   │
+│   ├───fixtures
+│   │   └───performance
+│   ├───integration
+│   │   │   conftest.py
+│   │   │   test_cross_modal_integration.py
+│   │   │   test_phase1_pipeline.py
+│   │   │   test_phase2_feedback_loop.py
+│   │   │   test_phase3_safety_observability.py
+│   │   │   __init__.py
+│   │   │
+│   │   └───__pycache__
+│   │           conftest.cpython-311-pytest-9.0.1.pyc
+│   │           test_cross_modal_integration.cpython-311-pytest-9.0.1.pyc
+│   │           test_phase1_pipeline.cpython-311-pytest-9.0.1.pyc
+│   │           test_phase2_feedback_loop.cpython-311-pytest-9.0.1.pyc
+│   │           test_phase3_safety_observability.cpython-311-pytest-9.0.1.pyc
+│   │           __init__.cpython-311.pyc
+│   │
+│   ├───performance
+│   │       baseline_profiler.py
+│   │       __init__.py
+│   │
+│   └───unit
+│       │   test_adaptive_analysis.py
+│       │   test_confidence_learner.py
+│       │   test_correction_collector.py
+│       │   test_cross_modal_validator.py
+│       │   test_database_manager.py
+│       │   test_database_schema.py
+│       │   test_llm_service.py
+│       │   test_model_selector.py
+│       │   test_page_analysis.py
+│       │   test_prompt_optimizer.py
+│       │   test_prompt_validator.py
+│       │   test_resilience_framework.py
+│       │   test_resource_monitor.py
+│       │   test_safety_gates.py
+│       │   test_telemetry.py
+│       │   test_vision_adaptive.py
+│       │
+│       ├───domain
+│       │   │   test_confidence_learner.py
+│       │   │   test_quantity_parser.py
+│       │   │
+│       │   └───__pycache__
+│       │           test_confidence_learner.cpython-311-pytest-9.0.1.pyc
+│       │           test_quantity_parser.cpython-311-pytest-9.0.1.pyc
+│       │
+│       ├───infra
+│       │   │   test_database_manager.py
+│       │   │
+│       │   └───__pycache__
+│       │           test_database_manager.cpython-311-pytest-9.0.1.pyc
+│       │
+│       └───__pycache__
+│               test_adaptive_analysis.cpython-311-pytest-9.0.1.pyc
+│               test_confidence_learner.cpython-311-pytest-9.0.1.pyc
+│               test_correction_collector.cpython-311-pytest-9.0.1.pyc
+│               test_cross_modal_validator.cpython-311-pytest-9.0.1.pyc
+│               test_database_manager.cpython-311-pytest-9.0.1.pyc
+│               test_database_schema.cpython-311-pytest-9.0.1.pyc
+│               test_dgn_processor.cpython-311-pytest-9.0.1.pyc
+│               test_llm_service.cpython-311-pytest-9.0.1.pyc
+│               test_model_selector.cpython-311-pytest-9.0.1.pyc
+│               test_page_analysis.cpython-311-pytest-9.0.1.pyc
+│               test_prompt_optimizer.cpython-311-pytest-9.0.1.pyc
+│               test_prompt_validator.cpython-311-pytest-9.0.1.pyc
+│               test_resilience_framework.cpython-311-pytest-9.0.1.pyc
+│               test_resource_monitor.cpython-311-pytest-9.0.1.pyc
+│               test_safety_gates.cpython-311-pytest-9.0.1.pyc
+│               test_telemetry.cpython-311-pytest-9.0.1.pyc
+│               test_vision_adaptive.cpython-311-pytest-9.0.1.pyc
+│
+└───test_project
+    │   serapeum_test.sqlite3
+    │   test.pdf
+    │
+    └───.serapeum
+        ├───artifacts
+        └───exports
+            └───pages
+                └───pdf_c071382684dde891

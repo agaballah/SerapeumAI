@@ -1,0 +1,50 @@
+# SerapeumAI - Requirements
+# Professional Construction Intelligence Platform
+#
+# IMPORTANT: No virtual environment needed — install directly into Python 3.10/3.11.
+# For platform-specific instructions (lms CLI, Tesseract, Poppler, ifcopenshell),
+# see INSTALL.md before running `pip install -r requirements.txt`.
+
+# Vector Database (Local)
+chromadb>=0.4.0
+
+# Data Processing
+pandas>=2.0.0
+numpy<2.0.0
+
+# PDF & Vision
+pypdf>=3.0.0
+pdf2image>=1.16.0      # Also requires Poppler installed on system — see INSTALL.md
+pytesseract>=0.3.10    # Also requires Tesseract OCR installed on system — see INSTALL.md
+pillow>=10.0.0
+opencv-python>=4.8.0
+
+# Construction Formats
+# NOTE: ifcopenshell is NOT available via pip on all platforms.
+# Use: conda install -c conda-forge ifcopenshell
+# OR download the correct wheel from https://github.com/IfcOpenShell/IfcOpenShell
+ifcopenshell>=0.7.0
+ezdxf>=1.0.0
+python-docx>=0.8.11
+openpyxl>=3.1.0
+
+# LLM & RAG
+# NOTE: llama-cpp-python may need a special build for GPU support — see INSTALL.md
+llama-cpp-python>=0.2.0
+sentence-transformers>=2.2.0
+
+# UI
+customtkinter>=5.2.0
+ttkbootstrap>=1.10.0
+
+# Utilities
+pyyaml>=6.0
+python-dateutil>=2.8.0
+tabulate>=0.9.0
+matplotlib>=3.7.0
+
+# Hardware Monitoring
+pynvml>=11.5.0
+
+# Testing
+pytest>=7.0.0

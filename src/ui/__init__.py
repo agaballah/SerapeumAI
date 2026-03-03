@@ -1,0 +1,20 @@
+# Copyright (c) 2025 Ahmed Gaballa
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# expose UI widgets as a package
+from .document_viewer import DocumentViewer
+from .chat_panel import ChatPanel
+from .db_inspector import DBInspectorDialog
+from .settings_dialog import SettingsDialog
+
+__all__ = ["DocumentViewer", "ChatPanel", "DBInspectorDialog", "SettingsDialog"]

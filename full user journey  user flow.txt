@@ -1,0 +1,705 @@
+1) The product’s “contract” the user learns on Day 1
+The central promise (what the user can rely on)
+
+The assistant only answers from Certified Facts (VALIDATED and, where required, HUMAN_CERTIFIED).
+
+Every answer is reproducible and provable:
+
+Each fact has lineage to evidence (page/bbox, cell, GUID, activity ID, etc.).
+
+Each answer cites those facts and evidence pointers.
+
+If the required facts/links aren’t present, the assistant refuses and produces:
+
+a coverage gap (what is missing),
+
+a job plan (what ingestion/extraction/build steps to run next).
+
+The user’s mental model
+
+The user stops thinking “chat with files” and starts thinking:
+
+“This is a truth database for project state, and chat is just the front-end query narrator.”
+
+That framing drives the whole journey: users don’t “upload and ask,” they build a certified truth spine and then query it.
+
+2) First launch journey (install → create a project workspace)
+2.1 App launch: “Create / Open Project”
+
+User intent: “I want a workspace for Project X that becomes the truth source.”
+
+UI steps
+
+Create New Project
+
+Enter:
+
+Project name
+
+Timezone
+
+Unit system
+
+Choose storage mode:
+
+Default: SQLite single-file DB (desktop-friendly)
+
+Optional: local Postgres (if they’re advanced / multi-tool ecosystem)
+
+What happens in backend
+
+A project record is created.
+
+The DB schema/migrations are verified.
+
+A job system is initialized (queue + logs).
+
+User-visible outcome
+
+The project opens into a shell with these main areas:
+
+Project workspace + file browser
+
+Ingestion dashboard
+
+Fact coverage dashboard
+
+Validation queue
+
+Fact explorer
+
+Chat with Sources panel + Activity log
+
+3) “Bring the evidence” journey (ingestion and versioning)
+3.1 Add files to the workspace
+
+User intent: “I need the truth engine to ingest the engineering record.”
+
+Common inputs
+
+IFC/BIM models
+
+P6 schedule exports (XER/XML)
+
+PDFs (drawings, reports, specs)
+
+Office files (Excel registers, Word docs, PowerPoints)
+
+Emails and attachments
+
+Logs (field, QA/QC, commissioning, procurement)
+
+UI steps
+
+User drags files into a project folder or uses Import Files
+
+Files appear in the workspace browser with a status badge:
+
+Not ingested / Ingested / Needs update / Failed
+
+Backend truth behavior
+
+Every file becomes:
+
+a file record
+
+one or more file_version rows (hash-based, immutable)
+
+If a file changes later:
+
+the system creates a new file_version (no overwrites)
+
+history remains queryable
+
+User-visible outcome
+
+They can click a file and see:
+
+File type detection
+
+Hash, modified time, import time
+
+Versions list (v1, v2, v3…)
+
+Which extractors/builders are downstream of this file
+
+4) Extraction journey (raw files → reproducible staging tables)
+4.1 Start extraction
+
+User intent: “Turn raw artifacts into structured evidence.”
+
+UI steps
+
+In the Ingestion Dashboard, user clicks:
+
+“Run Extraction” (or extraction runs automatically after ingest, depending on config)
+
+They see a job list like:
+
+INGEST_FILE_VERSION
+
+EXTRACT(PDF/Text/OCR)
+
+EXTRACT(P6)
+
+EXTRACT(IFC)
+
+EXTRACT(XLSX/DOCX/PPTX/Email)
+
+Backend
+
+Each extractor produces:
+
+a deterministic extraction_run row
+
+typed staging rows for that file_version:
+
+PDFs: pages, text blocks, OCR blocks, table cells
+
+Excel: cells (value/formula/format)
+
+P6: activities/WBS/relations/calendars
+
+IFC: entities/properties/relations/spatial
+
+Email: message metadata + attachment mapping
+
+Key UX design principle
+
+Extraction is not “the assistant reading files.”
+
+Extraction is the only path by which file content enters the truth system.
+
+4.2 Inspect extraction quality (evidence-first UI)
+
+User intent: “Can I trust what got extracted?”
+
+UI steps
+
+User opens an extraction report panel:
+
+Counts (pages parsed, blocks detected, OCR confidence)
+
+Warnings/errors
+
+Rendered PDF page thumbnails
+
+OCR overlays
+
+Table detection results
+
+Decision point
+
+If extraction confidence is low for critical fields (e.g., title block):
+
+those outputs stay CANDIDATE and will later require certification.
+
+5) Normalization journey (staging → canonical entities)
+5.1 Normalize into canonical objects
+
+User intent: “Make everything refer to the same real-world project objects.”
+
+UI steps
+
+After extraction, user triggers (or auto-runs) Normalize
+
+A “Canonical Entities” panel populates:
+
+Documents, drawing numbers, revisions, issue packages
+
+Schedule snapshots, normalized activities
+
+BIM snapshots, normalized elements (zone/system/level)
+
+Equipment tags
+
+Workflow items (RFIs, submittals, permits)
+
+Field assets (installations/inspections)
+
+Turnover assets
+
+Backend
+
+This is where the system creates the stable IDs that later facts/links attach to.
+
+The user sees the benefit later: cross-source linking becomes possible.
+
+6) Snapshot journey (“as-of truth” the user can query)
+6.1 Create/Update snapshots
+
+User intent: “I need coherent ‘as-of’ states so answers are version-correct.”
+
+UI steps
+
+User goes to Snapshots panel (often surfaced inside Dashboard)
+
+They choose or generate:
+
+Schedule snapshot (data date + baseline tag)
+
+BIM snapshot (issue tag/date)
+
+Docs snapshot (latest revisions set or issue package)
+
+Register snapshot (cut-off time)
+
+System creates a Project Snapshot that references all of the above.
+
+User-visible outcome
+
+The default for chat becomes: “latest certified snapshot”
+
+The user can switch context:
+
+“As of data date 2026-02-01”
+
+“As of Issue Package IFC-45”
+
+“As of Doc Set Rev C”
+
+7) Crosswalk linking journey (entities → validated links)
+
+This is the bridge between domains—and it’s where truth systems usually fall apart, so the user journey here is deliberately explicit.
+
+7.1 Generate candidate links
+
+User intent: “Connect schedule ↔ BIM ↔ docs ↔ workflow ↔ field.”
+
+UI steps
+
+User runs “Linking” jobs (or they run after normalization)
+
+A “Crosswalk Links” view shows:
+
+Link type (ACTIVITY_TO_ELEMENTS, RFI_TO_DOCS, SUBMITTAL_TO_EQUIPMENT, …)
+
+Status: CANDIDATE / VALIDATED / REJECTED
+
+Confidence
+
+Method (imported vs inferred)
+
+Evidence references (if present)
+
+7.2 Validate links (human-in-the-loop)
+
+User intent: “I will not allow the assistant to claim mapping unless it’s validated.”
+
+UI steps
+
+User opens Validation Queue
+
+Filter to “Candidate Links”
+
+For each candidate link:
+
+Open evidence (e.g., P6 code + drawing reference, or IFC property, or register row)
+
+Approve (VALIDATED) / Reject (REJECTED)
+
+Add note (why / policy / interpretation)
+
+Result
+
+Only VALIDATED links can be used in answers.
+
+This makes downstream risk templates trustworthy (critical path ↔ design changes, gating submittals, etc.).
+
+8) Fact-building journey (canonical entities + links → facts)
+8.1 Run deterministic fact builders
+
+User intent: “Compute the truth statements we’re allowed to answer from.”
+
+UI steps
+
+User runs BUILD_FACTS for the snapshot
+
+Fact coverage dashboard starts filling with counts:
+
+Schedule facts (milestones, floats, critical path membership)
+
+BIM facts (inventory counts, change sets)
+
+Doc control facts (latest revision, supersedes map)
+
+Workflow/procurement/field/turnover facts
+
+Cross-domain risk facts
+
+Backend
+
+Builders output:
+
+fact rows (typed values, status, scope, as-of)
+
+fact_input lineage rows linking facts to evidence
+
+8.2 Automatic validation of facts
+
+User intent: “I need rule-driven trust, not vibes.”
+
+UI steps
+
+User sees validation results:
+
+Passed rules → fact can become VALIDATED (subject to policy)
+
+Failed rules → fact stays CANDIDATE/REJECTED with diagnostics
+
+Important UX
+
+The UI must make clear:
+
+“This fact exists”
+
+“This fact is certified enough to answer from” (or not)
+
+9) Human certification journey (where required)
+
+Some categories require human certification by default (especially OCR-derived critical fields, inferred crosswalks, judgment-y compliance).
+
+User intent: “I want the truth engine to be strict about what it claims.”
+
+UI steps
+
+Go to Validation Queue
+
+Filter “Facts requiring certification”
+
+For each:
+
+Inspect evidence location (page + bbox, table cell, etc.)
+
+Confirm/deny
+
+Add certification note
+
+Facts move to:
+
+HUMAN_CERTIFIED / VALIDATED (depending on policy design)
+
+10) Coverage dashboard journey (what can we answer, right now?)
+
+This is a major “trust surface” for the user.
+
+10.1 Coverage checks by question template
+
+User intent: “Before I ask, can the system answer without refusal?”
+
+UI steps
+
+Open Fact Coverage Dashboard
+
+See:
+
+Template library (T01–T40 style question families)
+
+For each template:
+
+Required fact types present?
+
+Required link types validated?
+
+Snapshot coherence ok?
+
+Conflict flags?
+
+Outcome
+
+The user learns to manage the system like an aircraft preflight:
+
+Coverage green → ask away
+
+Coverage red → import missing sources / validate missing links
+
+11) Core chat journey (ask → coverage_check → answer or refuse)
+11.1 Ask a question
+
+User intent: “Tell me something about my project—but only if you can prove it.”
+
+UI steps
+
+User goes to Chat
+
+They ask:
+
+“Will Install Milestone X hit given the latest IFC?”
+
+“Which critical path activities are impacted by design changes since Issue Y?”
+
+“Which pending submittals block next month’s critical work?”
+
+11.2 The strict answering protocol (what the user experiences)
+
+When the user hits send, the assistant does not “think and respond” directly. The flow is:
+
+Template identification
+
+The assistant maps the question to a known template ID + parameters.
+
+Coverage check
+
+If coverage is incomplete: immediate refusal path.
+
+Fact retrieval
+
+If coverage complete: fetch whitelisted Fact Packets + Link Packets.
+
+Conflict check
+
+If conflicts exist: disclose them.
+
+Render response
+
+Answer
+
+Evidence (fact IDs + evidence pointers)
+
+Assumptions: empty (unless user explicitly allowed assumptions)
+
+11.3 Refusal path (a feature, not a bug)
+
+User sees
+
+“Not available in DB”
+
+Missing fact types
+
+Missing link types
+
+Required jobs/imports to fix coverage
+
+User’s next action
+
+Click “Run required jobs” (or manually queue them)
+
+Import the missing file types
+
+Validate the missing links/facts
+
+11.4 Answer path (when coverage is complete)
+
+User sees
+
+A direct answer, structured (tables/bullets)
+
+Evidence block with:
+
+fact IDs
+
+as-of snapshot
+
+evidence pointers (page/cell/GUID/activity)
+
+Clickable citations that open the underlying evidence in the UI viewer
+
+This is where the product feels “different” from typical RAG:
+
+Users can audit every claim with one click.
+
+12) Evidence drill-down journey (prove it to me)
+
+User intent: “Show me exactly where that came from.”
+
+UI steps
+
+User clicks a citation in the answer
+
+The app opens:
+
+PDF page at the exact page + highlight bbox
+
+Excel sheet + cell
+
+P6 activity record view
+
+IFC element viewer keyed by GUID
+
+Key outcome
+
+Trust is built through navigation, not persuasion.
+
+13) Conflict journey (when truths disagree)
+
+User intent: “If sources disagree, don’t pick silently—show me.”
+
+UI steps
+
+User sees a “Conflict” banner in chat or dashboard
+
+Click “View conflict”
+
+Conflict panel shows:
+
+subject (document, activity, element, etc.)
+
+conflicting fact IDs
+
+evidence lineage for each
+
+current conflict status
+
+Resolution flow
+
+Depending on policy:
+
+user resolves by certifying one source as authoritative (with note), or
+
+the system keeps both and forces disclosure until resolved
+
+14) Incremental update journey (new revisions, new truth)
+
+This is day-to-day reality: new model issues, new P6 updates, new register drops.
+
+User intent: “Update the truth without rebuilding everything.”
+
+UI steps
+
+Import the updated file (or file watcher detects change)
+
+The system creates a new file_version
+
+Ingestion dashboard shows:
+
+what will be recomputed (dependency graph)
+
+User runs the queued jobs:
+
+extract
+
+normalize
+
+rebuild dependent facts
+
+validate
+
+re-certify where needed
+
+update snapshots
+
+User-visible outcome
+
+Facts get superseded (history preserved)
+
+“Latest certified snapshot” advances
+
+Chat answers shift only when certified truth shifts
+
+15) “Work modes” (how different users experience the same engine)
+
+Even though the truth mechanism is identical, the journey differs slightly by role:
+
+A) Scheduler / Planner (P6-heavy)
+
+Imports P6 weekly
+
+Lives in Schedule page + milestone/critical-path templates
+
+Validates logic constraints and critical path membership facts
+
+Uses chat for impact analysis only when activity→zone/element links exist
+
+B) BIM / VDC coordinator (IFC-heavy)
+
+Imports IFC issue packages
+
+Lives in BIM inventory + change set facts
+
+Validates spatial containment/property completeness
+
+Drives Activity↔Element linking quality so schedule questions become answerable
+
+C) Doc controller / Engineering manager
+
+Imports drawing sets/specs
+
+Lives in doc revision engine (latest revision, supersedes map)
+
+Certifies OCR-derived title block fields when needed
+
+Uses chat for “superseded docs still referenced in schedule/workflow”
+
+D) Procurement / Submittals manager
+
+Imports submittal logs + PO lines + long-lead list
+
+Validates Submittal↔Equipment links
+
+Uses chat for “pending submittals blocking critical work” and “materials scheduled not approved”
+
+E) Field QA/QC + Turnover
+
+Imports install/inspection/test registers
+
+Validates install↔element mappings (or uses deterministic mapping if available)
+
+Uses chat for readiness gaps, missing evidence, asset register completeness
+
+16) End-to-end “golden path” user flow (one coherent narrative)
+
+Here’s the canonical “this is how a project team uses it weekly” journey:
+
+Create Project (timezone/units)
+
+Import baseline corpus
+
+IFC model issue package
+
+P6 schedule
+
+Latest drawing/spec PDFs
+
+Registers (RFI/submittal/procurement)
+
+Run ingestion pipeline
+
+ingest → extract → normalize
+
+Generate snapshots
+
+schedule/bim/docs/register → project snapshot
+
+Run linking
+
+generate candidate links
+
+validate critical links in queue
+
+Build facts
+
+deterministic builders produce facts + lineage
+
+Validate + certify
+
+automated rules → VALIDATED
+
+human queue where required → HUMAN_CERTIFIED
+
+Check coverage dashboard
+
+confirm key templates are “green”
+
+Use chat
+
+ask critical questions
+
+if refused, follow the job plan to close gaps
+
+Audit answers
+
+click citations → inspect evidence
+
+Handle conflicts
+
+disclose → resolve/certify
+
+Incremental updates
+
+new P6 + new IFC + new registers
+
+recompute only dependents
+
+snapshot advances
+
+truth evolves with provenance

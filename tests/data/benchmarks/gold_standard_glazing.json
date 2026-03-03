@@ -1,0 +1,26 @@
+{
+  "doc_id": "benchmark_glazing",
+  "expected_entities": [
+    {
+      "mapping": "u_value",
+      "expected": "1.2",
+      "weight": 1.0
+    },
+    {
+      "mapping": "glass_type",
+      "expected": "triple-paned",
+      "weight": 0.5
+    },
+    {
+      "mapping": "gas_fill",
+      "expected": "argon",
+      "weight": 0.5
+    }
+  ],
+  "retrieval_queries": [
+    {
+      "query": "What is the maximum U-value for the glazing?",
+      "expected_snippet": "1.2"
+    }
+  ]
+}

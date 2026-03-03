@@ -1,0 +1,355 @@
+Detailed user journey / user flow
+1) First launch → create a project workspace
+
+User
+
+Opens the desktop app and creates/selects a project.
+
+UI
+
+Shows the Project workspace + file browser and an initial empty state for ingestion, coverage, validation, facts, and chat. 
+
+build bible
+
+Job System
+
+Initializes the project record and prepares the job DAG scaffolding (queue, logging). The Build Bible is explicit that the backend owns a job queue + dependency graph. 
+
+build bible
+
+DB
+
+Creates/opens the local DB store (SQLite or local Postgres are both contemplated). 
+
+build bible
+
+Persists project(...) in the raw registry layer. 
+
+build bible
+
+2) Import files → “ingest” creates immutable file versions
+
+User
+
+Drags/drops or selects artifacts to import (P6, IFC/BIM, PDFs, Office, emails, logs, registers). 
+
+build bible
+
+UI
+
+Uses the file browser/import wizard (implementation detail) and then routes the import to the backend.
+
+Immediately switches the user’s attention to the Ingestion dashboard (jobs, errors, progress). 
+
+build bible
+
+Job System
+
+Enqueues INGEST_FILE_VERSION(file_path). 
+
+build bible
+
+Computes a hash-based version record and stores immutable metadata; the goal is reproducibility (“same file versions + extractor/builder versions → same DB rebuild”). 
+
+build bible
+
+DB
+
+Inserts/updates file(...), then creates a new file_version(...) row with SHA-256 and timestamps. 
+
+build bible
+
+3) Extraction → deterministic staging tables with provenance
+
+User
+
+Watches progress, sees counts/errors/warnings; doesn’t need to “chat” yet.
+
+UI
+
+In the Ingestion dashboard, the user sees job states and failures; failures are actionable (retry after fix, or import missing prerequisite file types).
+
+Job System
+
+Enqueues and runs EXTRACT(file_version_id, extractor_id) for each relevant file type. 
+
+build bible
+
+Extractors are required to be reproducible for a given file version + extractor version. 
+
+build bible
+
+DB
+
+Writes:
+
+extraction_run(...) plus typed staging rows: PDF blocks/tables/OCR, xlsx cells, docx blocks, p6 activities/relations, ifc entities/properties/relations, etc. 
+
+build bible
+
+Every staging record carries provenance (page+bbox / sheet+cell / GUID / activity key, etc.). 
+
+build bible
+
+4) Normalize → canonical entities + crosswalk links
+
+User
+
+Still mostly monitoring; may start browsing extracted docs/pages and metadata in the Documents/Facts areas.
+
+UI
+
+Begins to show early “structured” browsing: document registers, schedule snapshots, BIM snapshots (as features come online).
+
+Job System
+
+Runs NORMALIZE(project_id, file_version_id) to create the canonical layer. 
+
+build bible
+
+DB
+
+Creates normalized objects (examples): document, document_revision, schedule_snapshot, activity, bim_snapshot, bim_element, equipment, workflow items, field assets, turnover assets, etc. 
+
+build bible
+
+Generates crosswalk link(...) rows, but crucially links can be CANDIDATE or VALIDATED; only VALIDATED links are usable by the assistant. 
+
+build bible
+
+5) Build facts → computed “ground truth units” with lineage
+
+User
+
+Starts to see the “Fact coverage dashboard” light up by domain (schedule/docs/BIM/etc.). 
+
+build bible
+
+UI
+
+Fact coverage dashboard shows what question templates are answerable vs blocked by missing facts/links (mechanically determined).
+
+Job System
+
+Runs deterministic builders: BUILD_FACTS(project_id, builder_id, snapshot_id). 
+
+build bible
+
+Builders must be deterministic; if ML/LLM is used, output must remain CANDIDATE and go through validation. 
+
+build bible
+
+DB
+
+Writes fact(...) rows + fact_input(...) rows (lineage back to evidence). 
+
+build bible
+
+Facts are explicitly “the only answerable truth,” and must include typed values + method/version + status + lineage. 
+
+build bible
+
+6) Validate + certify → automated rules + human queue gates
+
+User
+
+Goes to Validation queue to approve/reject candidate facts/links that require human certification. 
+
+build bible
+
+UI
+
+Validation queue presents candidate facts/links with evidence pointers (page/cell/GUID/activity) so the user can certify quickly. Provenance is a hard requirement. 
+
+build bible
+
+Job System
+
+Runs VALIDATE_FACTS(project_id, fact_type or builder_id) and optionally RECONCILE_CONFLICTS(project_id). 
+
+build bible
+
+Validation
+
+Automated rules run first (e.g., schedule sanity, GUID uniqueness, doc revision consistency, link constraints). 
+
+build bible
+
+Human certification is mandatory for specified categories (e.g., low-confidence OCR title block fields; inferred activity↔element links; judgment-based compliance statements). 
+
+build bible
+
+Assistant usability policy: it may only use status=VALIDATED (plus required human certification when policy demands). 
+
+build bible
+
+DB
+
+Writes validation results to validation_run(...), certification(...), conflict(...), and updates fact.status. 
+
+build bible
+
+7) Snapshot update → “as-of truth” becomes chat default
+
+User
+
+Selects “latest certified snapshot” by default, or asks “as of issue package X” / “as of data date Y.” 
+
+build bible
+
+UI
+
+Shows snapshot controls and “as-of” context in the chat + evidence panel.
+
+Job System
+
+Runs UPDATE_SNAPSHOT(project_id) after certification completes. 
+
+build bible
+
+DB
+
+Persists snapshot objects and ties chat-default to “latest certified snapshot.” 
+
+build bible
+
+8) Ask a question → strict LLM protocol (coverage gate → facts only → citations)
+
+User
+
+Types a question in Chat.
+
+UI
+
+Chat UI shows an answer area + sources panel + activity log. 
+
+build bible
+
+LLM Orchestrator
+
+The LLM is explicitly not a “chat with files” model; it’s a query planner + narrator that may answer only from certified facts. 
+
+build bible
+
+Enforced steps:
+
+Identify question template + parameters
+
+Run coverage_check(template, snapshot, params)
+
+If incomplete → refuse + list missing fact/link types + propose pipeline jobs/imports
+
+If complete → fetch facts/links via whitelisted APIs only → answer with citations and evidence pointers
+
+If conflicts → disclose both or refuse if policy requires 
+
+build bible
+
+DB
+
+Important: LLM does not get raw DB access; it can only call a whitelisted fact query API (coverage_check, fact_get/list, link_get, entity_get, conflict_check). 
+
+build bible
+
+User outcome
+
+Either:
+
+Answered with explicit evidence pointers, or
+
+Refused with a concrete “coverage gap + job plan.” 
+
+build bible
+
+9) Incremental updates (new file drop / revision) → recompute only what’s downstream
+
+User
+
+Imports a newer revision of a model/schedule/register.
+
+Job System
+
+Creates a new file_version, runs relevant extractors, and recomputes only dependent entities/facts; older facts are superseded rather than overwritten. 
+
+build bible
+
+UI
+
+Ingestion dashboard shows new jobs; coverage dashboard changes; validation queue may repopulate if new candidates appear.
+
+Swimlane diagram (User / UI / Job System / DB / Validation / LLM Orchestrator)
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant UI as UI (Desktop App)
+    participant J as Job System (Queue + DAG)
+    participant DB as DB (Registry/Staging/Canonical/Facts)
+    participant V as Validation (Rules + Human Cert)
+    participant L as LLM Orchestrator (Strict Protocol)
+
+    %% ---------------------------
+    %% Onboarding + Processing
+    %% ---------------------------
+    U->>UI: Create/select Project
+    UI->>DB: Create/open project record
+    UI->>J: Initialize job queue + logging
+
+    U->>UI: Import files (P6/IFC/PDF/Office/Email/Registers)
+    UI->>J: INGEST_FILE_VERSION(file_path)
+    J->>DB: Write file + file_version (hash/version metadata)
+
+    J->>J: EXTRACT(file_version_id, extractor_id)
+    J->>DB: Write extraction_run + typed staging rows (with provenance)
+
+    J->>J: NORMALIZE(project_id, file_version_id)
+    J->>DB: Write canonical entities + candidate/validated links
+
+    J->>J: BUILD_FACTS(project_id, builder_id, snapshot_id)
+    J->>DB: Write facts + fact_input lineage (status=DRAFT/CANDIDATE)
+
+    J->>J: VALIDATE_FACTS(project_id, fact_type/builder_id)
+    J->>V: Run automated rule checks
+    V->>DB: Persist validation_run results
+
+    alt Automated rules pass (eligible for VALIDATED)
+        V->>DB: Mark facts status=VALIDATED
+    else Needs human certification or failed rules
+        V->>UI: Populate Validation Queue (approve/reject)
+        U->>UI: Review evidence + certify (or reject)
+        UI->>V: Human certify action
+        V->>DB: Write certification + update statuses
+    end
+
+    J->>J: UPDATE_SNAPSHOT(project_id)
+    J->>DB: Persist latest certified snapshot pointers
+    UI->>U: Coverage dashboard updates (what’s answerable)
+
+    %% ---------------------------
+    %% Chat Answering (Strict)
+    %% ---------------------------
+    U->>UI: Ask question in Chat
+    UI->>L: Send question + selected snapshot context
+
+    L->>L: Identify template + parameters
+    L->>DB: coverage_check(template, snapshot, params)
+
+    alt Coverage incomplete
+        L->>L: Produce REFUSAL + missing fact/link types + job plan
+        L->>UI: Show refusal + coverage gap + required jobs/imports
+        UI->>U: User sees what to import / run next
+    else Coverage complete
+        L->>DB: fact_get/fact_list + link_get + conflict_check (whitelisted only)
+        alt Conflicts detected
+            L->>L: Disclose conflict (or refuse if policy demands)
+        end
+        L->>UI: Answer + Evidence (fact IDs + source pointers)
+        UI->>U: User clicks evidence (page/cell/GUID/activity)
+    end
+
+    %% ---------------------------
+    %% Incremental update loop
+    %% ---------------------------
+    U->>UI: Import revised file (new version)
+    UI->>J: INGEST_FILE_VERSION (new file_version)
+    J->>DB: New file_version + supersede downstream facts as needed
+    J->>J: Re-run only dependent jobs (incremental DAG)

@@ -1,0 +1,65 @@
+# The Site Brain - Requirements
+# Offline Construction AI Assistant
+
+# ============================================================
+# Core Dependencies
+# ============================================================
+
+# Vector Database (Local)
+chromadb>=0.4.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# PDF Processing
+pypdf>=3.0.0
+pdf2image>=1.16.0
+
+# BIM/IFC Processing
+ifcopenshell>=0.7.0
+
+# Office Document Support
+python-docx>=0.8.11
+openpyxl>=3.1.0
+python-pptx>=0.6.21
+
+# CAD Support
+ezdxf>=1.0.0
+
+# OCR
+pytesseract>=0.3.10
+# paddleocr  # Optional, for advanced OCR
+
+# LLM Integration
+llama-cpp-python>=0.2.0
+
+# Embeddings
+sentence-transformers>=2.2.0
+
+# Database
+# SQLite is built-in to Python
+
+# UI
+ttkbootstrap>=1.10.0
+
+# Utilities
+pyyaml>=6.0
+python-dateutil>=2.8.0
+pillow>=10.0.0
+tabulate>=0.9.0
+opencv-python>=4.8.0
+
+# ============================================================
+# Schedule Processing (Custom Parsers)
+# ============================================================
+# Note: .xer and .mpp parsing will use custom logic
+# python-msp  # Optional, for MS Project support
+# xerparser  # Optional, for Primavera XER support
+
+# ============================================================
+# Development Dependencies
+# ============================================================
+pytest>=7.4.0
+ruff>=0.1.0
+pint

@@ -1,0 +1,627 @@
+Below is an end-to-end user journey / user flow for your cleaned repo, expressed in:
+
+a BPMN-style lane step list (User / UI / Job System / DB / Validation / LLM Orchestrator), and
+
+a screen-by-screen flow mapping directly to your UI pages (Dashboard / Documents / Facts / Schedule / Chat) and backend job classes (ingest_file_job / extract_job / file_linker_job / build_facts_job, plus the queue/manager).
+
+Everything is aligned to the Build Bible’s guarantees: facts-only answering, reproducible extraction/building, validation/certification gates, and “refuse + coverage gap + job plan” when coverage is incomplete. 
+
+build bible
+
+ 
+
+build bible
+
+Mental model of the product
+What the user is really doing
+
+They’re not “chatting with files.” They’re building and maintaining an offline project truth database:
+
+Ingest artifacts → immutable versioned registry
+
+Extract deterministic evidence → typed staging tables with provenance
+
+Normalize / Link entities across sources → validated crosswalk links
+
+Build facts deterministically → fact rows + lineage to evidence
+
+Validate / Certify facts → rules + human queue gating “answerability”
+
+Query via Chat → LLM is only a planner/narrator, never a source of truth 
+
+build bible
+
+UI surface expected by Build Bible
+
+Your UI needs to expose (at minimum): project workspace/file browser, ingestion dashboard, fact coverage dashboard, validation queue, fact explorer, and chat with strict protocol + sources panel + activity log. 
+
+build bible
+
+BPMN-style step list with lanes
+Lane: User
+
+Create/open a project.
+
+Import one or more project artifacts (P6 XER/XML, IFC, PDFs, Office, registers).
+
+Monitor processing; resolve ingest/extract errors if any.
+
+Review generated facts and any candidate links/facts that require approval.
+
+Certify/approve required items in the validation queue.
+
+Ask questions in Chat (optionally specifying “as-of” snapshot).
+
+Export fact packs / reports as needed.
+
+Lane: UI (Dashboard/Documents/Facts/Schedule/Chat)
+
+Project selection: Open existing project or create a new one.
+
+Documents page: Add files (drag/drop, folder import, or wizard).
+
+Dashboard page: Show job queue status, throughput, failures, pending validations, coverage status.
+
+Facts page: Show coverage dashboard + fact explorer + conflicts.
+
+Schedule page: Show schedule snapshot selection + schedule visualizations and health checks.
+
+Chat page: Enforce strict answering protocol and show Evidence/Sources/Activity log.
+
+(Those exact modules exist in your tree: src/ui/pages/dashboard_page.py, documents_page.py, facts_page.py, schedule_page.py, chat_page.py.)
+
+Lane: Job System (job queue + manager + jobs)
+
+Enqueue INGEST job(s) per imported file.
+
+After ingest, enqueue EXTRACT job(s) for relevant extractor(s) by file type.
+
+After extract, enqueue NORMALIZE / LINK job(s) to create canonical entities + candidate/validated links.
+
+After normalize/link, enqueue BUILD_FACTS jobs per builder + snapshot.
+
+After build, enqueue VALIDATE_FACTS and RECONCILE_CONFLICTS, then UPDATE_SNAPSHOT.
+
+Persist job outcomes, diagnostics, and any “requires human certification” items.
+
+This is explicitly the intended dependency DAG:
+INGEST → EXTRACT → NORMALIZE → BUILD_FACTS → VALIDATE → CERTIFY → SNAPSHOT_UPDATE. 
+
+build bible
+
+Your repo’s concrete job classes that map cleanly to that DAG:
+
+src/application/jobs/ingest_file_job.py → INGEST_FILE_VERSION
+
+src/application/jobs/extract_job.py → EXTRACT
+
+src/application/jobs/file_linker_job.py → NORMALIZE/LINK (practical mapping)
+
+src/application/jobs/build_facts_job.py → BUILD_FACTS (and commonly triggers VALIDATE/SNAPSHOT update steps)
+
+src/application/jobs/job_queue.py, manager.py → orchestration and dependency handling
+
+Lane: DB (persistence + lineage)
+
+Create or update file / file_version records (hash-based version truth). 
+
+build bible
+
+Insert extraction_run + typed staging rows (PDF blocks, P6 activities, IFC entities, etc.). 
+
+build bible
+
+Insert/update canonical entities and snapshots (schedule_snapshot, bim_snapshot, doc snapshot sets, etc.). 
+
+build bible
+
+Insert crosswalk link rows with status CANDIDATE/VALIDATED/REJECTED. 
+
+build bible
+
+Insert fact rows + fact_input lineage mapping to evidence locations. 
+
+build bible
+
+Record validation runs, certifications, and conflicts. 
+
+build bible
+
+Lane: Validation (rules + human certification queue)
+
+Run automated rule checks before a fact can become VALIDATED. 
+
+build bible
+
+Route required categories to human certification queue (e.g., low-confidence OCR critical fields, inferred Activity↔Element links, judgment-based compliance). 
+
+build bible
+
+Enforce usability policy: assistant may only use status=VALIDATED, plus any required HUMAN_CERTIFIED flags. 
+
+build bible
+
+Lane: LLM Orchestrator (strict planner + narrator)
+
+Identify question template + parameters.
+
+Call coverage_check(template, snapshot, params). 
+
+build bible
+
+If incomplete coverage: refuse, list missing fact/link types, propose required imports/jobs. 
+
+build bible
+
+If coverage complete: retrieve facts/links only through the whitelisted Fact Query API. 
+
+build bible
+
+If conflicts exist: disclose them (no silent choice). 
+
+build bible
+
+Output: Answer + Evidence section (fact IDs + evidence pointers), Assumptions empty by default. 
+
+build bible
+
+Screen-by-screen flow mapped to UI pages and backend jobs
+
+What follows is a “user journey” written the way a real user experiences the app—screen by screen—while also naming the backend jobs and DB artifacts that change.
+
+1) Dashboard page (src/ui/pages/dashboard_page.py)
+User intent on this screen
+
+“I want to know whether my project truth DB is healthy, current, and answerable.”
+
+UI sections that matter
+
+Project status: active project + current “latest certified snapshot” (default chat target). 
+
+build bible
+
+Ingestion / job status: running/queued/failed jobs, progress bars, last run timestamps.
+
+Validation queue counters: pending items that block answerability (especially crosswalk links and OCR-critical fields). 
+
+build bible
+
+Coverage headline: “Can Chat answer template set X for snapshot Y?” (high-level coverage view; detailed coverage is in Facts).
+
+Primary user actions → backend mapping
+
+Open project
+
+UI → project_service.py (likely) to select project_id
+
+DB reads: project, current snapshot tables (schedule_snapshot/bim_snapshot/doc snapshot sets)
+
+View job queue + failures
+
+UI → src/application/jobs/manager.py / job_queue.py
+
+DB reads: job table(s) (your implementation), plus extraction_run diagnostics. 
+
+build bible
+
+Run pipeline / refresh
+
+UI enqueues jobs through manager.py:
+
+INGEST_FILE_VERSION (if new/changed files)
+
+EXTRACT
+
+NORMALIZE/LINK
+
+BUILD_FACTS
+
+VALIDATE_FACTS, UPDATE_SNAPSHOT 
+
+build bible
+
+Dashboard success criteria
+
+No stuck/failed jobs
+
+Validation queue not accumulating unchecked blockers
+
+“Latest certified snapshot” exists and is selected by default in Chat 
+
+build bible
+
+2) Documents page (src/ui/pages/documents_page.py)
+User intent on this screen
+
+“I want my source artifacts versioned, extracted, and ready for fact building.”
+
+What the user sees (typical layout)
+
+Project file browser (folders/tags)
+
+File detail panel:
+
+versions (hash/mtime)
+
+extraction status per version
+
+diagnostics/errors
+
+“included in snapshot” or “baseline tag” style metadata (if supported)
+
+Import controls (drag/drop, add folder, import wizard)
+
+Flow: importing files → ingest/extract jobs
+Step A — User adds files
+
+User drops a PDF/XER/IFC/XLSX into Documents.
+
+UI calls backend document ingestion endpoint/service.
+
+Step B — Ingest (job: ingest_file_job.py)
+
+Job System runs ingest_file_job.py:
+
+Compute hash
+
+Create/update file row
+
+Create new file_version if hash changed 
+
+build bible
+
+Outcome shown in UI
+
+A file now has an immutable version history; the latest version is “pending extraction.”
+
+Step C — Extract (job: extract_job.py)
+
+Job System runs extract_job.py for each (file_version, extractor_id):
+
+Insert extraction_run row with status + diagnostics 
+
+build bible
+
+Insert typed staging rows by file type:
+
+PDFs → pdf_text_block, pdf_table_cell, pdf_ocr_block 
+
+build bible
+
+P6 → p6_activity, p6_relation, etc. 
+
+build bible
+
+IFC → ifc_entity, ifc_property, etc. 
+
+build bible
+
+Outcome shown in UI
+
+For each file: extractor results (counts, warnings) and clickable diagnostics.
+
+Step D — Incremental updates
+
+If user re-imports a changed file:
+
+new file_version
+
+only dependent extractors and downstream builders re-run (incremental) 
+
+build bible
+
+Common error states the Documents page must support
+
+Extractor fails → show extraction_run.diagnostics_json and keep prior extracted data intact (reproducibility)
+
+Low-confidence OCR fields → flag for human certification queue (later shown in Facts/Validation) 
+
+build bible
+
+3) Facts page (src/ui/pages/facts_page.py)
+User intent on this screen
+
+“What do we know as certified truth, what’s missing, and what’s blocked?”
+
+This page is where the Build Bible’s “truth contract” becomes visible:
+
+Facts are answerable only if they have lineage to evidence and are validated/certified. 
+
+build bible
+
+ 
+
+build bible
+
+Conflicts must be surfaced; no silent resolution. 
+
+build bible
+
+Facts page sub-areas and their backend ties
+A) Fact coverage dashboard
+
+Purpose: For a given snapshot + question template(s), show “complete/partial” coverage.
+
+Backend API concept: coverage_check(question_template_id, project_snapshot_id, params) 
+
+build bible
+
+UI output:
+
+Required fact types present/missing
+
+Required link types present/missing
+
+“What jobs to run / what files to import” suggestion (mirrors Chat refusal behavior)
+
+B) Validation queue view (likely embedded here if no separate page)
+
+Purpose: Approve/reject candidate facts and links that block certification.
+
+Candidate categories explicitly called out:
+
+inferred Activity↔Element links
+
+low-confidence OCR critical fields
+
+judgment-based compliance statements 
+
+build bible
+
+Backend mapping
+
+Likely driven by:
+
+link table statuses (CANDIDATE/VALIDATED/REJECTED) 
+
+build bible
+
+fact.status (CANDIDATE → VALIDATED after rules, then optional HUMAN_CERTIFIED) 
+
+build bible
+
+certification table entries 
+
+build bible
+
+C) Fact explorer
+
+Purpose: Filter/query/export certified facts with evidence traceability.
+
+Backend: Fact Query API tool equivalents:
+
+fact_list, fact_get, plus conflict_check for the current scope 
+
+build bible
+
+DB read pattern:
+
+fact + fact_input to render Evidence panel (page/cell/GUID/activity keys) 
+
+build bible
+
+D) Conflict viewer
+
+Purpose: Show conflicting certified facts and their sources.
+
+DB: conflict records, plus linked fact_ids_json 
+
+build bible
+
+Policy: disclose conflict; do not “pick one.” 
+
+build bible
+
+Which backend jobs this page triggers
+
+Re-run builders: build_facts_job.py
+
+Re-run linkers: file_linker_job.py (especially if user approves/rejects link candidates and wants rebuild)
+
+Trigger validations (either explicit job you add later or a phase inside build_facts_job.py):
+
+VALIDATE_FACTS, RECONCILE_CONFLICTS, UPDATE_SNAPSHOT 
+
+build bible
+
+4) Schedule page (src/ui/pages/schedule_page.py)
+User intent on this screen
+
+“I want schedule truth: what the plan is, what the critical path is, and whether it’s valid.”
+
+What the page is responsible for in the overall truth system
+
+Schedule is a snapshot-bound entity (“as-of” data date + baseline tag). 
+
+build bible
+
+It must pass deterministic validation rules before facts become answerable (no cycles, finish>=start, etc.). 
+
+build bible
+
+Typical flow on this page
+
+Select schedule snapshot
+
+UI reads from schedule_snapshot and derived normalized activity rows 
+
+build bible
+
+Import P6
+
+Usually starts on Documents (file ingest/extract), but Schedule page may provide a specialized “Import P6” shortcut.
+
+Backend jobs:
+
+ingest_file_job.py → create file_version
+
+extract_job.py using p6_extractor.py logic
+
+build_facts_job.py builds schedule facts for selected snapshot
+
+Visualize
+
+UI panel ties (from your tree): src/ui/panels/p6_visualizer.py likely renders WBS/activity trees and relationships.
+
+DB reads: p6_activity, p6_relation (staging) and/or normalized activity table 
+
+build bible
+
+ 
+
+build bible
+
+Run schedule validations
+
+Validation engine should run rule set:
+
+no relationship cycles
+
+finish >= start
+
+data date in range 
+
+build bible
+
+Persist results to validation_run; failing rules should prevent “VALIDATED” status.
+
+Enable crosswalk linking
+
+Schedule becomes dramatically more valuable when linked to BIM elements/zones/systems:
+
+link.ACTIVITY_TO_ELEMENTS, ACTIVITY_TO_ZONE, etc. 
+
+build bible
+
+Many such links require human certification if inferred. 
+
+build bible
+
+5) Chat page (src/ui/pages/chat_page.py)
+User intent on this screen
+
+“I want an answer—but only if it is provably true from certified facts.”
+
+Chat is not “RAG”
+
+Chat is a strict controller over a whitelisted Fact Query API; the LLM never sees the raw DB. 
+
+build bible
+
+Chat happy-path (coverage complete)
+
+User asks a question (optionally: “as of data date X” / issue package Y).
+
+UI passes snapshot context to backend.
+
+LLM Orchestrator executes:
+
+determine template + params
+
+call coverage_check 
+
+build bible
+
+call fact_get/fact_list/link_get/entity_get to retrieve required certified truth 
+
+build bible
+
+call conflict_check if needed 
+
+build bible
+
+produce output with fact IDs + evidence pointers (page/cell/GUID/activity keys) 
+
+build bible
+
+UI renders:
+
+Answer
+
+Evidence section (fact IDs, evidence refs)
+
+Sources panel (click-through to documents/pages/cells)
+
+Activity log (which tools were called, coverage outcome)
+
+Chat refusal-path (coverage incomplete)
+
+coverage_check returns incomplete.
+
+Chat must refuse with:
+
+“Not available in DB”
+
+missing fact_types and link_types
+
+proposed pipeline jobs / required imports 
+
+build bible
+
+This refusal is not a “failure”—it’s the system enforcing the non-negotiable guarantee: no certified facts ⇒ no answer. 
+
+build bible
+
+Chat conflict-path
+
+If conflict_check indicates conflicting certified facts:
+
+Disclose conflict and show both sets (or refuse if policy requires). 
+
+build bible
+
+Direct mapping: UI page → backend job classes
+
+Here’s the practical “wiring map” you can use while auditing flows:
+
+Documents page
+
+Trigger: import files
+
+Jobs: ingest_file_job.py → extract_job.py
+
+DB writes: file, file_version, extraction_run, staging tables 
+
+build bible
+
+Dashboard page
+
+Trigger: run pipeline / refresh / retry failures
+
+Jobs: manager.py + job_queue.py enqueue DAG (ingest/extract/link/build/validate/snapshot)
+
+DB reads: job state + extraction diagnostics + queue counts
+
+Facts page
+
+Trigger: rebuild facts, approve/reject candidate links/facts, export facts
+
+Jobs: file_linker_job.py (normalize/link) + build_facts_job.py (build) (+ validation steps)
+
+DB reads/writes: fact, fact_input, validation_run, certification, conflict 
+
+build bible
+
+Schedule page
+
+Trigger: import/select snapshot, validate schedule, generate schedule facts, build crosswalks
+
+Jobs: extract_job.py (P6) + build_facts_job.py (+ schedule validations) + file_linker_job.py (links)
+
+DB reads/writes: p6_*, schedule_snapshot, activity, validation_run 
+
+build bible
+
+ 
+
+build bible
+
+Chat page
+
+Trigger: user question
+
+Jobs: none (ideally) unless you explicitly allow Chat to enqueue “job plans” as drafts
+
+Backend: LLM orchestrator uses Fact Query API (fact_api.py) tools, never raw SQL 
+
+build bible

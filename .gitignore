@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# Project Specific (runtime-generated, never commit)
+.serapeum/
+.serapeum_vectors/
+*.sqlite3
+*.log
+*.log.*
+
+# Large model files (download separately — see INSTALL.md)
+models/
+*.gguf
+*.bin
+*.pt
+*.safetensors
+
+# Benchmark & scaling test data
+benchmark_run/
+test_scaling_project/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

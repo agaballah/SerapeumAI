@@ -1,0 +1,889 @@
+AECO TRUTH ENGINE — BUILD BIBLE (v1.0)
+Offline, DB-First, Strict-Ground-Truth Assistant
+Target: Windows desktop app + local backend + local DB + local LLM
+
+=====================================================================
+0) TL;DR FOR THE TEAM
+=====================================================================
+We are NOT building “chat with files”.
+We are building an OFFLINE ENGINEERING TRUTH SYSTEM:
+
+- Ingest engineering artifacts (IFC/BIM, P6, PDFs, Office, emails, logs).
+- Run deterministic extractors -> structured staging tables with provenance.
+- Run deterministic fact builders -> explicit computed facts with lineage.
+- Validate/certify facts via rules + human queue.
+- LLM is a query planner + narrator. It can answer ONLY from CERTIFIED facts.
+- If facts are missing, LLM must refuse and output a coverage gap + job plan.
+
+Non-negotiable: If it’s not in certified facts with citations, we do not answer.
+
+=====================================================================
+1) DEFINITIONS (STRICT SEMANTICS)
+=====================================================================
+1. Evidence
+   Atomic extracted item tied to a specific file version and location.
+   Examples: OCR span with bbox, PDF text block, Excel cell, P6 activity record,
+             IFC property, email header field.
+
+2. Extraction
+   Structured output of an extractor: a set of evidence records + metadata + diagnostics.
+   Always reproducible from the file version + extractor version.
+
+3. Canonical Entity
+   Normalized “real project object” across sources.
+   Examples: Drawing (by drawing number), Document revision, Activity, IFC element GUID,
+             Equipment tag, RFI, Submittal, Permit.
+
+4. Crosswalk Link
+   Explicit link between canonical entities.
+   Examples: Activity -> Zone, Activity -> Elements, RFI -> Elements, Submittal -> Equipment.
+   Links can be VALIDATED or CANDIDATE; assistant can only rely on VALIDATED links.
+
+5. Fact (Ground Truth Unit)
+   A computed/validated statement allowed to be used in an answer.
+   Must include: fact_type, subject_id, scope, as_of snapshot, typed value, method version,
+                status, and lineage to evidence + links.
+
+6. Snapshot (As-Of State)
+   A coherent “project state” that answers refer to:
+   - schedule snapshot (data date, baseline)
+   - design snapshot (model revision/issue package)
+   - docs snapshot (latest revisions set)
+   - registers snapshot (RFI/submittal/procurement/field logs cut-off)
+
+7. Certified Facts
+   Facts with status=VALIDATED (automated rule pass) and if required, HUMAN_CERTIFIED.
+
+=====================================================================
+2) PRODUCT GUARANTEES (ACCEPTANCE CRITERIA)
+=====================================================================
+G1. Strictness:
+    The assistant must refuse any claim that cannot be fully supported by certified facts.
+
+G2. Reproducibility:
+    Given same file versions + extractor/builder versions, the DB can be rebuilt and match.
+
+G3. Provenance:
+    Every answer must cite facts, and every fact must cite evidence locations.
+
+G4. Version correctness:
+    Facts are computed “as-of” an explicit snapshot; superseded facts remain in history.
+
+G5. Conflict safety:
+    If conflicting certified facts exist, assistant must disclose conflict; no silent choice.
+
+=====================================================================
+3) ARCHITECTURE (OFFLINE)
+=====================================================================
+3.1 Components
+A) Windows Desktop UI
+   - Project workspace, file browser
+   - Ingestion dashboard (jobs, errors, progress)
+   - Fact coverage dashboard
+   - Validation queue (approve/reject candidate facts/links)
+   - Fact explorer (query, filter, export)
+   - Chat (strict protocol) + sources panel + activity log
+
+B) Local Backend Service (runs on same machine)
+   - File registry + versioning (hash-based)
+   - Job queue + dependency graph
+   - Extractor runner (Python)
+   - Fact builder runner (Python)
+   - Validation engine
+   - Fact Query API (whitelisted)
+   - LLM orchestrator (offline local models)
+
+C) Storage
+   - Primary DB: SQLite (single-file, ideal for desktop) OR local Postgres
+   - Optional: DuckDB for heavy analytics (schedule/BIM rollups)
+   - Optional: Vector index (FAISS/HNSW) ONLY for discovery (NOT ground truth)
+   - Cache: rendered PDF pages, thumbnails, OCR intermediates
+
+=====================================================================
+4) DATA MODEL (CANONICAL SCHEMA BLUEPRINT)
+=====================================================================
+NOTE: Implement minimal columns now, but schema must support full lineage + versioning.
+
+4.1 Raw Registry Layer (immutable file truth)
+- project(project_id, name, timezone, unit_system, created_at)
+- file(file_id, project_id, path, file_type, created_at)
+- file_version(file_version_id, file_id, sha256, size, mtime, imported_at, source_tag)
+- file_relation(parent_file_version_id, child_file_version_id, relation_type)  // email attachment, transmittal bundle, etc.
+
+4.2 Extraction Staging Layer (reproducible, typed)
+General:
+- extraction_run(run_id, file_version_id, extractor_id, extractor_version, started_at, ended_at, status, diagnostics_json)
+
+PDF:
+- pdf_page(file_version_id, page_no, width, height, render_cache_path)
+- pdf_text_block(block_id, file_version_id, page_no, bbox_json, text, reading_order, confidence)
+- pdf_ocr_block(block_id, file_version_id, page_no, bbox_json, text, confidence)
+- pdf_table_cell(cell_id, file_version_id, page_no, bbox_json, row_i, col_j, text, confidence)
+
+Office:
+- xlsx_cell(cell_id, file_version_id, sheet, cell_ref, value_text, value_num, formula, format_json)
+- docx_block(block_id, file_version_id, block_type, index_i, text, table_ref, style_json)
+- pptx_block(block_id, file_version_id, slide_no, block_type, text, notes_text)
+
+Email:
+- email_message(msg_id, file_version_id, message_id, thread_id, from_json, to_json, cc_json, subject, sent_at, body_text, body_html_ref)
+- email_attachment(att_id, msg_id, child_file_version_id, filename, mime_type)
+
+Primavera P6 (XER/XML):
+- p6_project(p6_project_id, file_version_id, name, data_date, calendar_id, raw_json)
+- p6_wbs(wbs_id, file_version_id, p6_project_id, parent_wbs_id, code, name)
+- p6_activity(activity_id, file_version_id, p6_project_id, wbs_id, code, name, start, finish, actual_start, actual_finish, remaining_duration, total_float, constraints_json, codes_json)
+- p6_relation(rel_id, file_version_id, p6_project_id, pred_activity_id, succ_activity_id, rel_type, lag)
+- p6_calendar(calendar_id, file_version_id, p6_project_id, calendar_json)
+
+IFC:
+- ifc_model(model_id, file_version_id, schema, authoring_tool, units_json, coord_sys_json)
+- ifc_entity(entity_pk, model_id, ifc_guid, ifc_type, name, raw_json)
+- ifc_property(prop_pk, model_id, ifc_guid, pset_name, prop_name, prop_value, prop_unit, raw_json)
+- ifc_relation(rel_pk, model_id, rel_type, from_guid, to_guid, raw_json)
+- ifc_spatial(sp_pk, model_id, ifc_guid, building, storey, space, zone, grid_json)
+
+Registers (RFI/Submittal/Permits/Procurement/Field/Commissioning) — ingest as structured tables:
+- rfi(rfi_id, file_version_id, number, title, status, opened_at, answered_at, discipline, response_text, impact_tags_json)
+- submittal(submittal_id, file_version_id, number, title, status, submitted_at, approved_at, spec_section, vendor, equipment_tag, notes)
+- permit(permit_id, file_version_id, authority, permit_type, status, submitted_at, issued_at, notes)
+- po_line(po_line_id, file_version_id, po_no, vendor, item_desc, equipment_tag, model_no, dims_json, weight, delivery_date, warranty_start, storage_req_json)
+- field_install(install_id, file_version_id, date, crew, location_json, equipment_tag, ifc_guid, activity_id, status, notes)
+- inspection(inspection_id, file_version_id, date, type, status, ifc_guid, activity_id, signoff_by, evidence_ref)
+- commissioning_test(test_id, file_version_id, system, asset_tag, test_type, status, date, evidence_ref)
+- bas_point(point_id, file_version_id, system, asset_tag, point_name, point_type, mapping_json)
+
+4.3 Canonical Entity Layer (normalized)
+- document(doc_id, project_id, doc_kind, drawing_no, title, discipline, package_code)
+- document_revision(rev_id, doc_id, revision, issue_date, status, file_version_id, supersedes_rev_id)
+- spec_section(section_id, project_id, code, title, latest_rev_id)
+- schedule_snapshot(snapshot_id, project_id, p6_project_id, data_date, baseline_tag, source_file_version_id)
+- activity(activity_key, snapshot_id, activity_id, wbs_id, code, name, start, finish, float, etc.) // normalized copy for fast queries
+- bim_snapshot(snapshot_id, project_id, model_id, issue_tag, issue_date)
+- bim_element(elem_key, snapshot_id, ifc_guid, ifc_type, system, zone, level, name, critical_props_json)
+- equipment(equip_id, project_id, equipment_tag, model_no, vendor, system, zone, ifc_guid, doc_links_json)
+- workflow_item(work_id, project_id, kind, number, status, dates_json, references_json)
+- field_asset(asset_id, project_id, asset_tag, ifc_guid, installed_status, installed_date, serial_no, location_json)
+- turnover_asset(asset_id, project_id, asset_tag, serial_no, om_manual_rev_id, warranty_json, commissioning_status_json, cyber_json)
+
+4.4 Crosswalk Layer (validated links)
+- link(link_id, project_id, link_type, from_kind, from_id, to_kind, to_id,
+       status {CANDIDATE|VALIDATED|REJECTED}, confidence, method_id, created_at, validated_by, validated_at, evidence_refs_json)
+
+Common link_types:
+- ACTIVITY_TO_ZONE
+- ACTIVITY_TO_SYSTEM
+- ACTIVITY_TO_ELEMENTS
+- DOC_REV_TO_MODEL_ISSUE
+- RFI_TO_ELEMENTS
+- RFI_TO_DOCS
+- SUBMITTAL_TO_EQUIPMENT
+- PO_LINE_TO_EQUIPMENT
+- FIELD_RECORD_TO_ELEMENT
+- FIELD_RECORD_TO_ACTIVITY
+- INSPECTION_TO_ELEMENT
+- TEST_TO_ASSET
+- BAS_POINT_TO_ASSET
+
+4.5 Fact Layer (the only answerable truth)
+- fact(fact_id, project_id, fact_type,
+       subject_kind, subject_id,
+       scope_json, asof_json,
+       value_type, value_num, value_text, value_date, value_json,
+       unit,
+       method_id, builder_version,
+       status {DRAFT|CANDIDATE|VALIDATED|SUPERSEDED|REJECTED},
+       quality_flags_json, created_at, updated_at)
+
+- fact_input(fact_id, input_kind, input_id, file_version_id, location_json) // provenance to staging evidence
+
+4.6 Validation & Conflicts
+- rule(rule_id, rule_group, severity, description, rule_version)
+- validation_run(run_id, fact_id, rule_id, pass_fail, details_json, run_at)
+- certification(cert_id, fact_id, certified_by, certified_at, note)
+- conflict(conflict_id, project_id, conflict_type, subject_kind, subject_id, fact_ids_json, status, resolution_json)
+
+Indexes (minimum):
+- fact(project_id, fact_type, status)
+- link(project_id, link_type, status)
+- document(drawing_no), document_revision(doc_id, revision)
+- activity(snapshot_id, activity_id), bim_element(snapshot_id, ifc_guid)
+- file_version(file_id, sha256)
+
+=====================================================================
+5) PIPELINE + JOB SYSTEM
+=====================================================================
+5.1 Jobs
+Each job is idempotent and versioned. Jobs form a dependency DAG.
+
+Job types:
+- INGEST_FILE_VERSION(file_path)
+- EXTRACT(file_version_id, extractor_id)
+- NORMALIZE(project_id, file_version_id)
+- BUILD_FACTS(project_id, builder_id, snapshot_id)
+- VALIDATE_FACTS(project_id, fact_type or builder_id)
+- RECONCILE_CONFLICTS(project_id)
+- UPDATE_SNAPSHOT(project_id)
+
+5.2 Dependency Graph (high level)
+INGEST -> EXTRACT -> NORMALIZE -> BUILD_FACTS -> VALIDATE -> CERTIFY -> SNAPSHOT_UPDATE
+
+5.3 Incremental processing
+On file change:
+- create new file_version
+- run relevant extractors
+- recompute only dependent canonical entities and fact builders
+- supersede prior facts for the same subject/as-of rule
+
+=====================================================================
+6) EXTRACTOR SDK (PLUGIN CONTRACT)
+=====================================================================
+6.1 Required interface
+Extractor:
+- id: string
+- version: semver
+- supported_file_types: list
+- run(file_version_id) -> ExtractionResult
+
+ExtractionResult must include:
+- records: list of typed staging rows OR direct inserts via repository layer
+- diagnostics: warnings/errors
+- metrics: runtime, counts, confidence stats
+- provenance: always embedded per record (file_version_id + location)
+
+6.2 Provenance requirements by file type
+- PDF: page_no + bbox + (render_cache_path optional)
+- Excel: sheet + cell_ref
+- Word/PPT: block index + slide no
+- P6: activity_id/wbs_id keys
+- IFC: ifc_guid + pset/prop names
+- Email: message_id + header fields + attachment mapping
+- Registers: row number + source file reference
+
+=====================================================================
+7) FACT BUILDER SDK (DETERMINISTIC ENGINES)
+=====================================================================
+7.1 Required interface
+Builder:
+- id: string
+- version: semver
+- required_inputs: staging tables + canonical entities + link types
+- run(project_id, snapshot_id) -> list[fact] + list[fact_input] + diagnostics
+
+7.2 Builder must be deterministic
+No LLM in builders for producing validated facts.
+If ML/LLM is used, output must be CANDIDATE and go to validation queue.
+
+=====================================================================
+8) VALIDATION + CERTIFICATION
+=====================================================================
+8.1 Automated validation (must exist before “validated”)
+Rules (examples):
+Schedule:
+- no relationship cycles
+- no orphan activities on critical path
+- finish >= start
+- data date within project range
+BIM:
+- GUID uniqueness
+- spatial containment completeness
+- required properties present (per discipline)
+Docs:
+- latest revision selection deterministic
+- supersession chain consistent
+Crosswalk:
+- ACTIVITY_TO_ELEMENTS links must have evidence or be human-validated
+- one-to-many constraints (configurable)
+Procurement:
+- dims/weights parseable and units normalized
+
+8.2 Human certification queue (mandatory for these default categories)
+- OCR-derived title block critical fields when confidence < threshold
+- inferred Activity<->Element links (unless imported from 4D tool)
+- extracted action items/commitments from emails
+- any “judgment-based” compliance statement
+
+8.3 Fact usability policy
+Assistant may only use:
+- status=VALIDATED
+- plus required certification flag if rule group demands it
+
+=====================================================================
+9) SNAPSHOT SYSTEM (“AS-OF TRUTH”)
+=====================================================================
+9.1 Snapshot types
+- SCHEDULE_SNAPSHOT: derived from a specific P6 import, includes data_date and baseline tag
+- BIM_SNAPSHOT: derived from a specific IFC/model issue package
+- DOC_SNAPSHOT: derived from document_revision set (latest or issue package)
+- REGISTER_SNAPSHOT: derived from latest ingested logs at a cut-off time
+- PROJECT_SNAPSHOT: references the above for a coherent as-of state
+
+9.2 Snapshot selection
+- “latest certified snapshot” is default for chat
+- user can ask “as of issue package X” or “as of data date Y”
+
+=====================================================================
+10) FACT QUERY API (WHITELISTED, NOT FREE SQL)
+=====================================================================
+LLM does NOT get raw DB access. It gets a strict set of tools returning Fact Packets.
+
+10.1 Tools
+- coverage_check(question_template_id, project_snapshot_id, parameters_json) -> CoverageReport
+- fact_get(fact_type, subject_kind, subject_id, asof_json) -> FactPacket
+- fact_list(fact_type, filters_json, asof_json, limit, sort) -> FactPacket
+- link_get(link_type, from_kind/from_id filters, to_kind filters, status=VALIDATED) -> LinkPacket
+- entity_get(entity_kind, filters_json) -> EntityPacket
+- conflict_check(scope_json, asof_json) -> ConflictPacket
+
+10.2 FactPacket response contract
+- facts: list of fact rows
+- lineage: fact_inputs for each fact
+- snapshot: echoed snapshot/as-of
+- completeness: complete/partial
+- conflicts: any conflict references
+- notes: warnings for UI
+
+=====================================================================
+11) LLM ORCHESTRATION (STRICT ANSWERING PROTOCOL)
+=====================================================================
+LLM steps (hard enforced):
+1) Determine question template ID + parameters.
+2) coverage_check(template, snapshot, params).
+3) If coverage incomplete -> REFUSE:
+   - “Not available in DB”
+   - list missing fact_types and missing link_types
+   - propose pipeline jobs / required imports
+4) If coverage complete:
+   - fetch facts/links only via APIs
+   - answer with citations:
+     - cite fact_id(s)
+     - include evidence refs (page/cell/GUID/activity keys)
+5) If conflict exists:
+   - disclose conflict and show both sets (or refuse if policy requires)
+
+LLM output formats:
+- “Answer” section
+- “Evidence” section (fact IDs + source pointers)
+- “Assumptions” section must be empty unless user explicitly allows assumptions (default: no assumptions)
+
+=====================================================================
+12) QUESTION TEMPLATE LIBRARY (40 CORE TEMPLATES)
+=====================================================================
+These templates cover your 200 questions. Each template defines REQUIRED facts/links.
+Implement them as DB-stored metadata (template table) + execution logic using APIs.
+
+T01) WILL_INSTALL_HIT_MILESTONE_GIVEN_CURRENT_IFC
+- Requires:
+  - schedule.milestone_forecast_date (milestone)
+  - schedule.critical_path_set (or membership)
+  - bim.change_set_since_issue (for relevant scope)
+  - link.ACTIVITY_TO_ELEMENTS or ACTIVITY_TO_ZONE/SYSTEM
+- Output facts:
+  - risk.install_plan_vs_design_change_risk (by zone/system/milestone)
+- Coverage blockers:
+  - missing activity<->zone/system mapping => refuse
+
+T02) DESIGN_CHANGES_IMPACTING_CRITICAL_PATH
+- Requires:
+  - schedule.critical_path_membership (activities)
+  - bim.change_set (elements changed)
+  - link.ACTIVITY_TO_ELEMENTS (validated)
+- Output:
+  - list of changed elements mapped to critical activities + severity
+
+T03) APPROVED_RFI_INVALIDATES_INSTALL_SEQUENCE
+- Requires:
+  - workflow.rfi_status (approved)
+  - link.RFI_TO_ELEMENTS / RFI_TO_DOCS
+  - link.ACTIVITY_TO_ELEMENTS
+  - schedule.logic_dependencies (P6 relations)
+- Output:
+  - affected activities + recommended resequencing flag (fact, not LLM advice)
+
+T04) SHOP_DRAWINGS_ASSUMING_OUTDATED_GEOMETRY
+- Requires:
+  - doc.shop_drawing_revision
+  - doc.latest_model_issue (or model issue package)
+  - link.DOC_REV_TO_MODEL_ISSUE
+  - bim.change_set_since_issue
+- Output:
+  - shop drawings referencing superseded model issues
+
+T05) SCHEDULE_REFERENCES_SUPERSEDED_DRAWINGS
+- Requires:
+  - doc.latest_revision (drawing)
+  - schedule.activity_doc_references (from codes/notes/imported register)
+  - link.ACTIVITY_TO_DOCS (validated)
+- Output:
+  - activities referencing superseded docs
+
+T06) PENDING_SUBMITTALS_BLOCK_NEXT_MONTH_CRITICAL
+- Requires:
+  - schedule.next_month_critical_activities (derived fact)
+  - workflow.submittal_status (pending)
+  - link.SUBMITTAL_TO_EQUIPMENT or SUBMITTAL_TO_ELEMENTS
+  - link.ACTIVITY_TO_ELEMENTS/EQUIPMENT
+- Output:
+  - list of pending submittals gating critical activities
+
+T07) MATERIALS_SCHEDULED_NOT_APPROVED
+- Requires:
+  - procurement.item_status
+  - workflow.submittal_status
+  - link.PO_LINE_TO_EQUIPMENT and SUBMITTAL_TO_EQUIPMENT
+  - schedule.activity_to_equipment (validated)
+- Output:
+  - activities requiring unapproved materials
+
+T08) DESIGN_REVISIONS_INVALIDATE_PREFAB
+- Requires:
+  - bim.change_set (dimensions/connection changes)
+  - prefab_assembly_definition (imported register)
+  - link.PREFAB_TO_ELEMENTS
+- Output:
+  - prefab assemblies invalidated
+
+T09) STRUCTURAL_REVISIONS_AFFECT_MEP_SEQUENCE
+- Requires:
+  - bim.change_set in structural + impacted zones
+  - schedule.zone_sequence (derived from schedule)
+  - link.ACTIVITY_TO_ZONE/SYSTEM
+- Output:
+  - sequencing risk in impacted zones
+
+T10) OUTDATED_CLASH_REPORTS_USED_FOR_SEQUENCE
+- Requires:
+  - doc.clash_report_revision + status
+  - doc.latest_model_issue
+  - link.CLASH_REPORT_TO_MODEL_ISSUE
+- Output:
+  - coordination artifacts superseded
+
+T11) GRID_LEVEL_CHANGES_SHIFT_SLEEVES_VS_POURED_CONCRETE
+- Requires:
+  - bim.level_grid_change_facts
+  - field.concrete_pour_records (imported)
+  - link.FIELD_RECORD_TO_ELEMENTS
+- Output:
+  - sleeve mismatch risk list
+
+T12) LONG_LEAD_ALIGNMENT_WITH_LATEST_DESIGN
+- Requires:
+  - procurement.long_lead_list
+  - bim.equipment_footprints + dims
+  - doc.latest_spec_revision
+  - workflow.submittal_basis_revision
+- Output:
+  - mismatch flags by item
+
+T13) CRANE_PICKS_FOR_EQUIPMENT_NO_LONGER_FITS_ACCESS
+- Requires:
+  - procurement.equipment_dims/weight
+  - bim.access_path_clearance (if deterministic rules exist)
+  - doc.lifting_plan_latest_revision
+- Output:
+  - infeasible picks list
+
+T14) INSPECTIONS_DEPEND_ON_DOCS_NOT_ISSUED
+- Requires:
+  - inspection.requirements_registry (imported)
+  - doc.issue_status
+  - link.INSPECTION_TO_DOCS
+- Output:
+  - blocked inspections
+
+T15) PROCUREMENT_PACKAGES_ASSUME_OUTDATED_SPEC
+- Requires:
+  - spec.latest_revision
+  - procurement.package_spec_revision_basis
+- Output:
+  - packages needing update
+
+T16) VE_CHANGE_ALTER_INSTALL_DURATIONS
+- Requires:
+  - workflow.change_order_details (scope tags)
+  - schedule.duration_basis_registry (imported or derived)
+- Output:
+  - activities whose duration basis invalidated
+
+T17) TEMP_WORKS_DEPEND_ON_SUPERSEDED_LOADS
+- Requires:
+  - bim.load_assumptions + revisions
+  - temp_works_register (imported)
+- Output:
+  - temp works needing recalculation
+
+T18) COMMISSIONING_MILESTONES_ASSUME_SYSTEMS_UNCOORDINATED
+- Requires:
+  - schedule.commissioning_milestones
+  - bim.coordination_status_by_system (imported status)
+- Output:
+  - commissioning readiness gaps
+
+T19) FIELD_WORK_BASED_ON_UNAPPROVED_COORDINATION_MODEL
+- Requires:
+  - doc.model_issue_status (AFC/IFC/coordination)
+  - field.install_records with referenced model issue
+- Output:
+  - noncompliant field work list
+
+T20) ACTIVITIES_RELY_ON_PENDING_AHJ_APPROVALS
+- Requires:
+  - workflow.permit_status (AHJ)
+  - link.ACTIVITY_TO_PERMIT
+- Output:
+  - gated activities
+
+T21) OWNER_DIRECTIVE_OVERRIDES_DESIGN_BASIS_AFFECTING_SCHEDULE
+- Requires:
+  - workflow.directive_registry
+  - link.DIRECTIVE_TO_DOCS/SYSTEMS
+  - schedule.logic impacted by systems
+- Output:
+  - impacted schedule logic
+
+T22) ELEMENTS_LACK_FAB_DETAILS_BUT_SCHEDULED_FOR_INSTALL
+- Requires:
+  - bim.fabrication_detail_completeness
+  - schedule.activity_to_elements (validated)
+- Output:
+  - install scheduled without fab details
+
+T23) ZONE_BOUNDARIES_CHANGED_VS_SEQUENCE
+- Requires:
+  - bim.zone_definition_change
+  - schedule.sequence_by_zone
+- Output:
+  - mismatch list
+
+T24) TRADES_WORKING_FROM_DIFFERENT_MODEL_VERSIONS
+- Requires:
+  - field/trade_distribution_model_issue logs (imported)
+  - doc/model issue registry
+- Output:
+  - inconsistency report
+
+T25) SITE_LOGISTICS_CHANGE_AFFECTS_DELIVERY_SEQUENCE
+- Requires:
+  - doc.site_logistics_plan_latest
+  - procurement.delivery_schedule
+  - schedule.delivery_constraints facts
+- Output:
+  - delivery conflicts
+
+T26) AS_BUILT_SCAN_DISAGREES_WITH_DESIGN
+- Requires:
+  - field.scan_to_model_deviation facts (requires scan ingestion)
+- Output:
+  - deviation map
+
+T27) INSTALLED_NOT_IN_MODEL
+- Requires:
+  - field.installed_asset_register
+  - bim.element_inventory
+- Output:
+  - field-only assets list
+
+T28) MODELED_NOT_INSTALLABLE_DUE_TO_ACCESS
+- Requires:
+  - bim.maintenance_access_envelope checks (deterministic)
+  - bim.element_locations
+- Output:
+  - installability violations
+
+T29) INSTALLED_COMPONENTS_LACK_SUBMITTAL_APPROVAL
+- Requires:
+  - field.install_records
+  - workflow.submittal_status
+  - link.INSTALL_TO_SUBMITTAL or INSTALL_TO_EQUIPMENT
+- Output:
+  - noncompliant installs list
+
+T30) FIRESTOP/PENETRATION_APPROVAL GAPS
+- Requires:
+  - bim.penetration_inventory
+  - workflow.firestop_system_approval
+  - field.firestop_inspection records
+- Output:
+  - gaps list
+
+T31) PURCHASED_EQUIPMENT_NO_LONGER_FITS_ALLOCATED_SPACE
+- Requires:
+  - procurement.equipment_dims
+  - bim.allocated_space_dims
+  - link.EQUIPMENT_TO_SPACE
+- Output:
+  - fit failures
+
+T32) PURCHASED_EQUIPMENT_EXCEEDS_UPDATED_LOADS
+- Requires:
+  - procurement.weight
+  - bim.support_load_capacity (if available)
+- Output:
+  - overload risk list
+
+T33) PURCHASED_MATERIALS_VIOLATE_LATEST_SPEC
+- Requires:
+  - procurement.material_properties
+  - spec.latest_requirements (structured rules import)
+- Output:
+  - compliance violations
+
+T34) DELIVERY_TIMING_CONFLICTS_WITH_INSTALL_READINESS
+- Requires:
+  - procurement.delivery_dates
+  - schedule.install_readiness_windows
+- Output:
+  - timing mismatch list
+
+T35) HIDDEN_RISKS_IN_PENDING_RFIS
+- Requires:
+  - workflow.rfi_pending list + impact tags
+  - link.RFI_TO_SYSTEMS/ZONES
+  - schedule.zone_criticality facts
+- Output:
+  - risk-ranked pending RFIs (ranking method deterministic)
+
+T36) SCOPE_MISMATCH_MATRIX (MODEL vs SPECS vs DRAWINGS vs SCHEDULE)
+- Requires:
+  - bim.scope_tags_by_system
+  - doc.scope_tags (from specs/drawings registers)
+  - schedule.scope_tags (WBS/codes)
+- Output:
+  - mismatch facts per system/package
+
+T37) TURNOVER_ASSET_REGISTER_COMPLETENESS
+- Requires:
+  - turnover.asset_register
+  - field.installed_asset_register
+  - bim.element_inventory (if twin requires)
+- Output:
+  - missing serials, missing tags, missing assets
+
+T38) O&M_MANUALS_MISMATCH_INSTALLED_MODEL_NUMBERS
+- Requires:
+  - turnover.om_manual_linkage
+  - procurement.model_no
+  - field.asset_register model_no
+- Output:
+  - mismatch list
+
+T39) COMMISSIONING_EVIDENCE_GAPS
+- Requires:
+  - commissioning.tests required (imported matrix)
+  - commissioning.tests evidence present
+- Output:
+  - missing test evidence list
+
+T40) DIGITAL_TWIN_VALIDATION_AGAINST_FIELD_SCAN
+- Requires:
+  - scan_to_model deviation facts
+  - asset register + BIM inventory
+- Output:
+  - twin accuracy score + discrepancies
+
+=====================================================================
+13) FACT TAXONOMY v1 (CORE FACT TYPES)
+=====================================================================
+This list is the MINIMUM core required. Add more as needed, but do not rename once shipped.
+
+SCHEDULE (P6)
+- schedule.data_date
+- schedule.milestone_forecast_date
+- schedule.activity_forecast_start
+- schedule.activity_forecast_finish
+- schedule.activity_total_float_days
+- schedule.critical_path_membership
+- schedule.longest_path_set
+- schedule.driving_predecessors
+- schedule.constraints_summary
+- schedule.baseline_finish_date
+- schedule.finish_variance_days
+- schedule.next_month_critical_activity_set
+- schedule.install_readiness_window
+- schedule.zone_sequence_order
+- schedule.system_sequence_order
+- schedule.commissioning_milestone_set
+- schedule.resource_load_summary (optional)
+
+BIM/IFC
+- bim.element_inventory_count_by_type
+- bim.element_inventory_count_by_level
+- bim.element_inventory_count_by_zone
+- bim.element_property_value (key properties normalized)
+- bim.property_completeness_score
+- bim.change_set_added_elements
+- bim.change_set_removed_elements
+- bim.change_set_modified_properties
+- bim.zone_definition
+- bim.zone_definition_change
+- bim.level_grid_definition
+- bim.level_grid_change
+- bim.equipment_footprint_dims
+- bim.allocated_space_dims
+- bim.access_clearance_violation (deterministic checks only)
+- bim.rule_violation (fire rating missing, seismic tag missing, etc.)
+- bim.penetration_inventory
+- bim.system_distribution_summary
+
+DOC CONTROL
+- doc.latest_revision
+- doc.supersedes_map
+- doc.issue_status (AFC/IFC/etc.)
+- drawing.title_block_number (candidate->validated)
+- drawing.title_block_revision (candidate->validated)
+- drawing.issue_date (candidate->validated)
+- spec.latest_revision
+- doc.clash_report_latest_revision (if applicable)
+- doc.site_logistics_latest_revision
+- doc.lifting_plan_latest_revision
+
+WORKFLOW (RFI/Submittal/Permit/CO/Directive)
+- workflow.rfi_status
+- workflow.rfi_impact_scope (zones/systems/elements)
+- workflow.submittal_status
+- workflow.submittal_basis_revision
+- workflow.permit_status
+- workflow.change_order_scope
+- workflow.directive_scope
+
+PROCUREMENT
+- procurement.long_lead_item_set
+- procurement.po_line_dims
+- procurement.po_line_weight
+- procurement.delivery_date
+- procurement.storage_requirements
+- procurement.warranty_start_date
+- procurement.fat_requirement_status
+- procurement.spares_ordered_status
+- procurement.training_scheduled_status
+
+FIELD / QAQC
+- field.installed_asset_register_entry
+- field.installation_status_by_asset
+- field.install_vs_model_discrepancy (requires mapping)
+- field.inspection_signoff_status
+- field.tolerance_violation (requires measurement source)
+- field.firestop_inspection_status
+- field.asbuilt_redline_captured_status
+- field.scan_to_model_deviation (if scan supported)
+
+COMMISSIONING / TURNOVER
+- turnover.asset_register_completeness
+- turnover.serial_verified_status
+- turnover.setpoints_documented_status
+- turnover.calibration_cert_present_status
+- turnover.bas_point_mapping_status
+- turnover.functional_test_evidence_status
+- turnover.seasonal_plan_present_status
+- turnover.cyber_docs_present_status
+- turnover.om_manual_match_status
+- turnover.software_versions_recorded
+- turnover.config_backup_present_status
+- turnover.network_diagram_present_status
+
+RISK (CROSS-DOMAIN DERIVED)
+- risk.design_change_impacts_critical_activity
+- risk.pending_submittal_blocks_critical_work
+- risk.pending_permit_blocks_critical_work
+- risk.procurement_fit_failure
+- risk.procurement_load_overrun
+- risk.schedule_based_on_superseded_docs
+- risk.field_install_noncompliant_with_approvals
+- risk.turnover_readiness_gap
+- risk.digital_twin_discrepancy
+
+=====================================================================
+14) HOW WE ANSWER THE 200 QUESTIONS (MECHANICALLY)
+=====================================================================
+Each user question:
+- maps to a template (T01..T40)
+- requires a set of fact types + link types
+- coverage_check determines if we can answer
+- if yes -> fetch facts -> render answer + citations
+- if no -> refuse + list missing items + propose pipeline jobs
+
+NO OTHER PATH EXISTS.
+
+=====================================================================
+15) IMPLEMENTATION ORDER (ENGINEERING PLAN)
+=====================================================================
+Phase 0: Spine (must exist first)
+- DB schema + migrations
+- file registry + versioning (hash)
+- job queue + logging
+- extractor SDK + runner
+- builder SDK + runner
+- validation framework + certification queue
+- fact API layer (whitelisted)
+- chat orchestrator (strict protocol)
+- UI shells (project, ingestion, fact explorer, chat)
+
+Phase 1: High-value domains (enables most questions)
+- P6 extractor + schedule snapshot + schedule builder + validations
+- IFC extractor + BIM snapshot + BIM builder + validations
+- Document register + revision engine (PDF/Office basic)
+
+Phase 2: Workflow/approvals + procurement (enables critical gating questions)
+- RFI/submittal/permit registers ingestion (from Excel/PDF/email logs)
+- link builders for workflow->elements/docs/system/zone (validated)
+- procurement ingestion + fit/load checks
+
+Phase 3: Field reality + turnover
+- installation/inspection logs ingestion
+- as-built/redlines ingestion
+- commissioning registers ingestion
+- BAS mapping ingestion
+
+Phase 4: Scan/digital twin + advanced checks
+- point cloud/scan pipeline (optional)
+- deviation computations
+
+=====================================================================
+16) TESTING / QA (NON-NEGOTIABLE)
+=====================================================================
+Strictness tests:
+- If a required fact is missing -> assistant must refuse
+- If fact exists but status != VALIDATED -> must refuse
+- If link exists but status != VALIDATED -> must refuse
+Provenance tests:
+- Every fact must have at least 1 fact_input
+- UI must open evidence location (page/cell/GUID)
+Rebuild tests:
+- Wipe DB -> rebuild -> same facts count + same values for deterministic builders
+Conflict tests:
+- Create conflicting doc latest revision -> assistant must disclose conflict
+Performance tests:
+- Incremental update only recomputes dependent builders
+
+=====================================================================
+17) “NO SURPRISES” DATA REQUIREMENTS (REALITY CHECK)
+=====================================================================
+Some question families require specific data sources:
+- Field-vs-model requires install records or scans.
+- RFI/submittal gating requires structured logs.
+- Commissioning readiness requires test matrices and evidence registers.
+If these sources are absent, the system must REFUSE those templates and request imports.
+
+=====================================================================
+18) OUTPUT STANDARD FOR ANSWERS (UI)
+=====================================================================
+Answer block:
+- Direct response
+- Structured bullets/tables (from facts)
+Evidence block:
+- Fact IDs + as-of snapshot
+- Evidence pointers (file version + page/cell/GUID/activity)
+Coverage block (if refused):
+- Missing fact_types
+- Missing link_types
+- Required jobs/imports
+
+=====================================================================
+END OF BUILD BIBLE v1.0
+=====================================================================
+
+COPY/PASTE NOTES:
+- This is the authoritative architecture contract.
+- Dev work must not bypass facts/validation for answers.
+- Any “shortcut” that lets LLM read raw files directly breaks strict truth.

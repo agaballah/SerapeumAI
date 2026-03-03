@@ -1,0 +1,188 @@
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\العارض 5-9-2024.xlsx ---
+Sheets found: ['Pricing Attachment']
+Sheet Pricing Attachment: Detected Header at Row 5
+Total records: 1072
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\النشار.xlsx ---
+Sheets found: ['Details', 'GVMetadata']
+Sheet Details: Detected Header at Row 5
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 1393
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\ITB&BF&BF-PA (1)\4)BID FORM-PRICING ATTACHMENT.xlsx ---
+Sheets found: ['BF(PA)', 'GVMetadata']
+Sheet BF(PA): Detected Header at Row 5
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 1085
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\NG-MCCC_Riyadh HQ final\01. Construction Specifications & Attachments\DCS_CE-925843.00.00 (Conceptual Drawings).xlsx ---
+Sheets found: ['Page1', 'GVMetadata']
+Sheet Page1: Detected Header at Row 29
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 17
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\NG-MCCC_Riyadh HQ final\04. REFERENCE DRAWINGS & standards\Recommended Security Systems Manufacturers.xlsx ---
+Sheets found: ['Sheet1', 'GVMetadata']
+Sheet Sheet1: Detected Header at Row 0
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 41
+
+--- Extracting D:/AAC/Misc/ULA/Tender Package - Al Ula Central Package/Tender Package - Al Ula Central Package\Volume 2 - BoQ\BOQ - Al Ula Central.xlsx ---
+Sheets found: ['Summary', 'Two Bedroom Building G+4', '2A Bedroom Building G+4', 'Three Bedroom Building G+4']
+Sheet Summary: Detected Header at Row 4
+Sheet Two Bedroom Building G+4: Detected Header at Row 2
+Sheet 2A Bedroom Building G+4: Detected Header at Row 2
+Sheet Three Bedroom Building G+4: Detected Header at Row 2
+Total records: 266
+
+--- Extracting D:/AAC/Misc/ULA/Tender Package - Al Ula Central Package/Tender Package - Al Ula Central Package\Volume 5 - Annexures\Annex 2 - Inquiry Form\Inquiry Form - نموذج الاستفسارات.xlsx ---
+Sheets found: ['ورقة1']
+Sheet ورقة1: Detected Header at Row 0
+Total records: 14
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\العارض 5-9-2024.xlsx ---
+Sheets found: ['Pricing Attachment']
+Sheet Pricing Attachment: Detected Header at Row 5
+Total records: 1072
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\النشار.xlsx ---
+Sheets found: ['Details', 'GVMetadata']
+Sheet Details: Detected Header at Row 5
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 1393
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\ITB&BF&BF-PA (1)\4)BID FORM-PRICING ATTACHMENT.xlsx ---
+Sheets found: ['BF(PA)', 'GVMetadata']
+Sheet BF(PA): Detected Header at Row 5
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 1085
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\NG-MCCC_Riyadh HQ final\01. Construction Specifications & Attachments\DCS_CE-925843.00.00 (Conceptual Drawings).xlsx ---
+Sheets found: ['Page1', 'GVMetadata']
+Sheet Page1: Detected Header at Row 29
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 17
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\NG-MCCC_Riyadh HQ final\04. REFERENCE DRAWINGS & standards\Recommended Security Systems Manufacturers.xlsx ---
+Sheets found: ['Sheet1', 'GVMetadata']
+Sheet Sheet1: Detected Header at Row 0
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 41
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\العارض 5-9-2024.xlsx ---
+Sheets found: ['Pricing Attachment']
+Sheet Pricing Attachment: Detected Header at Row 5
+Total records: 1072
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\النشار.xlsx ---
+Sheets found: ['Details', 'GVMetadata']
+Sheet Details: Detected Header at Row 5
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 1393
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\العارض 5-9-2024.xlsx ---
+Sheets found: ['Pricing Attachment']
+Sheet Pricing Attachment: Detected Header at Row 5
+Total records: 1072
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\النشار.xlsx ---
+Sheets found: ['Details', 'GVMetadata']
+Sheet Details: Detected Header at Row 5
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 1393
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\ITB&BF&BF-PA (1)\4)BID FORM-PRICING ATTACHMENT.xlsx ---
+Sheets found: ['BF(PA)', 'GVMetadata']
+Sheet BF(PA): Detected Header at Row 5
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 1085
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\NG-MCCC_Riyadh HQ final\01. Construction Specifications & Attachments\DCS_CE-925843.00.00 (Conceptual Drawings).xlsx ---
+Sheets found: ['Page1', 'GVMetadata']
+Sheet Page1: Detected Header at Row 29
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 17
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\NG-MCCC_Riyadh HQ final\04. REFERENCE DRAWINGS & standards\Recommended Security Systems Manufacturers.xlsx ---
+Sheets found: ['Sheet1', 'GVMetadata']
+Sheet Sheet1: Detected Header at Row 0
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 41
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\العارض 5-9-2024.xlsx ---
+Sheets found: ['Pricing Attachment']
+Sheet Pricing Attachment: Detected Header at Row 5
+Total records: 1072
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\النشار.xlsx ---
+Sheets found: ['Details', 'GVMetadata']
+Sheet Details: Detected Header at Row 5
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 1393
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\ITB&BF&BF-PA (1)\4)BID FORM-PRICING ATTACHMENT.xlsx ---
+Sheets found: ['BF(PA)', 'GVMetadata']
+Sheet BF(PA): Detected Header at Row 5
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 1085
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\NG-MCCC_Riyadh HQ final\01. Construction Specifications & Attachments\DCS_CE-925843.00.00 (Conceptual Drawings).xlsx ---
+Sheets found: ['Page1', 'GVMetadata']
+Sheet Page1: Detected Header at Row 29
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 17
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\NG-MCCC_Riyadh HQ final\04. REFERENCE DRAWINGS & standards\Recommended Security Systems Manufacturers.xlsx ---
+Sheets found: ['Sheet1', 'GVMetadata']
+Sheet Sheet1: Detected Header at Row 0
+Sheet GVMetadata: Detected Header at Row 3
+Total records: 41
+
+--- Extracting D:/AAC/Misc/MCCC_Riyadh HQ\العارض 5-9-2024.xlsx ---
+Sheets found: ['Pricing Attachment']
+Sheet Pricing Attachment: Detected Header at Row 5
+Total records: 1072
+
+--- Extracting D:/AAC/Essam/Salini/15_AGA P3B RFX R034314 - INTERNAL FINISHING PACKAGE\Tender Form 1-3 (ITT Clarifications) – AGA P3B Internal Finishing Works.xlsx ---
+Sheets found: ['AAC Querries ']
+Sheet AAC Querries : Detected Header at Row 0
+Total records: 7
+
+--- Extracting D:/AAC/Essam/Salini/15_AGA P3B RFX R034314 - INTERNAL FINISHING PACKAGE\PART 02\002 Bill of Quantity\RFX R034314 AGA P3B - BOQ - INTERNAL FINISHING.xlsx ---
+Sheets found: ['SUMMARY', 'DIRECT COST']
+Sheet SUMMARY: Detected Header at Row 4
+Sheet DIRECT COST: Detected Header at Row 3
+Total records: 277
+
+--- Extracting D:/AAC/Essam/Salini/15_AGA P3B RFX R034314 - INTERNAL FINISHING PACKAGE\PART 02\002 Bill of Quantity\~$RFX R034314 AGA P3B - BOQ - INTERNAL FINISHING.xlsx ---
+ERROR: Excel file format cannot be determined, you must specify an engine manually.
+Traceback (most recent call last):
+  File "D:\SerapeumAI\src\engine\extractors\register_extractor.py", line 82, in extract
+    xls = pd.read_excel(file_path, sheet_name=None, dtype=str)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADWWA\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\io\excel\_base.py", line 495, in read_excel
+    io = ExcelFile(
+         ^^^^^^^^^^
+  File "C:\Users\ADWWA\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\io\excel\_base.py", line 1554, in __init__
+    raise ValueError(
+ValueError: Excel file format cannot be determined, you must specify an engine manually.
+
+--- Extracting D:/AAC/Essam/Salini/15_AGA P3B RFX R034314 - INTERNAL FINISHING PACKAGE\PART 03\001 Drawings\INTERIOR FINISHES DRAWING LIST.xlsx ---
+Sheets found: ['Str IFC_P03 Feasibility Mittig', 'MDCC_P03 Programme_01', 'MDCC_P03 Programme_02', 'DSQ_P03-ARCH DD LOD']
+Sheet Str IFC_P03 Feasibility Mittig: Detected Header at Row 17
+Sheet MDCC_P03 Programme_01: Detected Header at Row 11
+Sheet MDCC_P03 Programme_02: Detected Header at Row 1
+Sheet DSQ_P03-ARCH DD LOD: Detected Header at Row 0
+Total records: 731
+
+--- Extracting D:/AAC/Essam/Salini/15_AGA P3B RFX R034314 - INTERNAL FINISHING PACKAGE\PART 03\003 Finishing Schedule\P3B - Interior Finishes Material List.xlsx ---
+Sheets found: ['PACKAGE 3B']
+Sheet PACKAGE 3B: Detected Header at Row 2
+Total records: 194
+
+--- Extracting D:/AAC/Essam/Salini/15_AGA P3B RFX R034314 - INTERNAL FINISHING PACKAGE\PART 02\002 Bill of Quantity\RFX R034314 AGA P3B - BOQ - INTERNAL FINISHING.xlsx ---
+Sheets found: ['SUMMARY', 'DIRECT COST']
+Sheet SUMMARY: Detected Header at Row 4
+Sheet DIRECT COST: Detected Header at Row 3
+Total records: 277

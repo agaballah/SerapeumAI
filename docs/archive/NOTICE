@@ -1,0 +1,58 @@
+SerapeumAI - AECO Assistant
+Copyright 2025 Ahmed Gaballa
+
+This product includes software developed by Ahmed Gaballa.
+
+================================================================================
+
+Third-Party Components
+================================================================================
+
+This software includes the following third-party components:
+
+1. Qwen2-VL-7B-Instruct
+   - Copyright: Alibaba Cloud
+   - License: Apache License 2.0
+   - Source: https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct
+   - Note: Model files are downloaded separately and are not included in this distribution
+
+2. llama-cpp-python
+   - License: MIT License
+   - Source: https://github.com/abetlen/llama-cpp-python
+
+3. Python Libraries (see requirements_phase1.txt for complete list)
+   - python-docx (MIT)
+   - openpyxl (MIT)
+   - python-pptx (MIT)
+   - ezdxf (MIT)
+   - Pillow (HPND)
+   - pytesseract (Apache 2.0)
+   - ttkbootstrap (MIT)
+   - requests (Apache 2.0)
+   - pydantic (MIT)
+
+4. Optional Dependencies
+   - ifcopenshell (LGPL) - Dynamically linked, not distributed
+   - Poppler (GPL) - External utility, not distributed
+   - Tesseract OCR (Apache 2.0) - External utility, not distributed
+
+================================================================================
+
+For a complete list of dependencies and their licenses, see:
+- requirements_phase1.txt
+- Run: python -m pip-licenses --format=markdown
+
+================================================================================
+
+Patent Notice
+================================================================================
+
+This software is licensed under the Apache License 2.0, which includes
+an express patent grant. See the LICENSE file for details.
+
+================================================================================
+
+Trademark Notice
+================================================================================
+
+SerapeumAI and related marks are trademarks of Ahmed Gaballa.
