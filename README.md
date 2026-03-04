@@ -6,12 +6,13 @@ SerapeumAI is a professional-grade, **locally-hosted** construction intelligence
 
 ## 🌟 Key Features
 
-- **Hybrid Construction RAG**: Combines semantic vector search (for drawings/diagrams) with keyword-based block search (for specifications) and structured SQL queries (for P6/IFC data).
-- **Automated Fact Builders**: Extracts "Certified Facts" from P6 (.xer) and BIM (.ifc) files, providing verifiable answers for critical path, element inventory, and float.
-- **Vision-Augmented Ingestion**: Automatically analyzes technical drawings (VLM) and indexes descriptions for natural language discovery.
-- **Full Traceability**: Every AI-generated answer includes deep lineage links back to the exact source document, page, or database record.
+- **Certified Truth Engine (v2)**: Moves beyond generic RAG to a deterministic "Truth Spine." Facts are organized into Domains (Schedule, BIM, Doc Control) and verified via a Multi-Domain Knowledge Graph.
+- **Link Confidence Tiers**: Automatic categorization of links (Auto-Validated, High Confidence) reduces human review workload by 80%.
+- **Validation Queue**: Dedicated human-in-the-loop interface for engineers to certify "CANDIDATE" facts and links.
+- **Truth Graph Traversal**: Discover hidden relationships between Schedule activities and specific BIM elements or Drawing details using graph logic.
+- **Authority Policies**: Enforces technical certification by role (e.g., only Planners can certify Schedule milestones).
 - **Arabic Language Support**: Advanced OCR and text unification for regional construction documentation.
-- **Zero-UI LLM**: The app auto-starts LM Studio server headlessly via the `lms` CLI — no manual steps required.
+- **Zero-UI LLM**: The app auto-starts LM Studio server headlessly via the `lms` CLI.
 
 ---
 

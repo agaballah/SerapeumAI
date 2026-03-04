@@ -59,19 +59,16 @@ lms --version   # verify it works
 
 ### Download Models (Chat & Vision)
 
-The app needs a **Chat** model for reasoning and a **Vision (VLM)** model for analyzing drawings. Run these commands once:
+The app requires specific multi-modal models for reasoning and drawing analysis. Run these commands once:
 
 ```bash
-# 1. Download Reasoning/Chat Model (~4GB)
-lms get lmstudio-community/Qwen2.5-7B-Instruct-GGUF
+# 1. Download Reasoning & Analysis Model (Qwen 2.5 VL)
+# Provides top-tier reasoning for schedules and specs
+lms get qwen/qwen2.5-vl-7b
 
-# 2. Download Vision Model (VLM) for Technical Drawings
-# Option A: Balanced (Recommended)
-lms get lmstudio-community/Llama-3.2-11B-Vision-Instruct-GGUF
-# Option B: Fast/Small (600MB)
-lms get lmstudio-community/moondream2-GGUF
-# Option C: High Accuracy
-lms get lmstudio-community/Qwen2-VL-7B-Instruct-GGUF
+# 2. Download Vision Model (Llama 3.2 Vision)
+# Optimized for technical drawing interpretation
+lms get leafspark/Llama-3.2-11B-Vision-Instruct-GGUF
 ```
 
 > After installation, **do not manually start LM Studio** — the app does it automatically on launch.

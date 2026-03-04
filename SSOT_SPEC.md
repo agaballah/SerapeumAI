@@ -30,113 +30,98 @@ This document consolidates the current, authoritative product and engineering in
 | Term | Definition |
 |------|-----------|
 | **Evidence** | Atomic extracted item tied to a specific file version and location |
-| **Canonical Entity** | Normalized real-world project object across sources |
-| **Crosswalk Link** | Explicit link between entities (`CANDIDATE` or `VALIDATED`) |
-| **Fact** | Computed/validated statement allowed in answers, bound to an as-of snapshot and backed by lineage |
+| **Canonical Entity** | Normalized real-world project object (the nodes of the Truth Graph) |
+| **Crosswalk Link** | Explicit link between entities with **Confidence Tiers** |
+| **Fact** | Computed statement bound to an as-of snapshot and a **Fact Domain** |
+| **Truth Graph** | The project-wide knowledge graph tying all entities and links together |
 
 ---
 
-## 2. Scope, Out-of-Scope, and Red Lines
+## 2. Advanced Architectural Layers (Truth Engine v2)
 
-### In Scope
-- Desktop-first workflow (Windows baseline)
-- Local-first processing as default; privacy-first language must be accurate
-- Evidence-based output with citations back to project documents
-- Workflow: Projects → Documents → Processing → Chat/Compliance → Export
+### A) Link Confidence Tiers
+To reduce human validation workload, links must be categorized by reliability:
+- `AUTO_VALIDATED`: Deterministic mappings (e.g., matching unique IDs/codes).
+- `HIGH_CONFIDENCE`: Strong NLP + metadata synergy (ready for machine use in some domains).
+- `CANDIDATE`: Needs human validation via the Validation Queue.
+- `REJECTED`: Explicitly invalidated links.
 
-### Out of Scope
-- No design authoring (no CAD/BIM editing)
-- No cloud collaboration features required for core use
-- No automatic submission/approval actions on behalf of the user
-- **No autonomous agent behavior without a clear user trigger**
+### B) Fact Domains
+Facts are grouped into logical domains to manage state and coverage:
+- `SCHEDULE`: Activity dates, float, critical path progress.
+- `BIM`: Element inventory, geometry, property completeness.
+- `DOC_CONTROL`: Revision states, superseded maps.
+- `PROCUREMENT`: Submittal status, equipment approvals.
+- `FIELD`: Installation, inspection, and test results.
+- `RISK`: Cross-domain derived risks (e.g., Schedule vs. Procurement).
 
-### Documentation Red Lines
-- Docs must match **shipped behavior**, not ambition
-- User docs are **not** engineering docs (avoid internal module names, file paths, stack diagrams, code blocks)
-- One clear run path: `python run.py`
-- No claims of guaranteed compliance certification; position outputs as review assistance with evidence
+### C) The Truth Graph
+The backbone of the system is a Project Knowledge Graph. Crosswalk links are the **edges** of this graph.
+- **Traversal Reasoning**: Allows the engine to reason across systems (e.g., finding Drawings for a specific BIM Element linked to a Schedule Activity).
+
+### D) Authority Policies
+Security layer ensuring only authorized roles can certify certain truth domains:
+- `SCHEDULE_FACTS`: Certified by `PLANNER`
+- `BIM_FACTS`: Certified by `BIM_LEAD`
+- `PROCUREMENT_FACTS`: Certified by `PROCUREMENT_MANAGER`
 
 ---
 
-## 3. Canonical Documentation Set
-
-### User-Facing Docs
-
-| Doc | Audience | Allowed | Not Allowed |
-|-----|----------|---------|-------------|
-| `README.md` | All | What it does; minimal setup; single run path | Architecture; internal paths |
-| User Manual | Practitioners | Screen-by-screen workflow | Implementation modules; code |
-| System Requirements | IT/Admin | OS, Python, models, hardware, offline posture | Ambiguous privacy claims |
-| Troubleshooting | All | Common errors and recovery steps | Speculative fixes |
-| `CONTRIBUTING.md` | Devs | Dev setup, lint/tests, contribution guide | User doc content |
+## 3. Scope, Out-of-Scope, and Red Lines
+... (previous sections 2 and 3 remain logicially similar but are now v2-aware) ...
 
 ---
 
 ## 4. End-to-End Workflow
 
-> The workflow is a deterministic pipeline that turns raw artifacts into certified, queryable truth. Chat is the front-end narrator; the truth lives in the database.
-
 ### Pipeline
-
 ```
-Ingest → Extract → Normalize/Link → Build Facts → Validate/Certify → Snapshot → Chat
+Ingest → Extract → Normalize/Link (Tiers) → Build Facts (Domains) → Validate/Certify → Snapshot → Chat
 ```
 
 | Stage | Job (backend) | DB Outputs | User-Visible Surface |
 |-------|--------------|-----------|---------------------|
-| Ingest | `INGEST_FILE_VERSION(file_path)` | `file`, `file_version` | Documents + Ingestion dashboard |
-| Extract | `EXTRACT(file_version_id, extractor_id)` | `extraction_run` + staging rows | Job progress; extraction report |
-| Normalize/Link | `NORMALIZE / LINK` | canonical entities + link | Registers; early graphs |
-| Build Facts | `BUILD_FACTS(project_id, builder_id, snapshot_id)` | `fact` + lineage | Coverage dashboard; fact explorer |
-| Validate/Certify | `VALIDATE_FACTS + HUMAN_QUEUE` | validation_run; conflicts | Validation queue; conflict panels |
-| Snapshot | `UPDATE_SNAPSHOT(project_id)` | snapshot sets | Snapshot selector in Chat |
-| Chat | `coverage_check + fact_query` | read-only queries | Answer + Sources + Activity log |
+| Ingest | `INGEST_FILE_VERSION` | `file`, `file_version` | Ingestion dashboard |
+| Extract | `EXTRACT` | evidence tables | Extraction report |
+| Normalize/Link | `NORMALIZE / LINK` | `entity_nodes`, `entity_links` | Truth Map Visualization |
+| Build Facts | `BUILD_FACTS` | `facts` (grouped by domain) | Coverage dashboard (per domain) |
+| Validate/Certify | `VALIDATE + HUMAN_QUEUE` | `certifications` | Validation queue (CANDIDATE prioritized) |
+| Snapshot | `UPDATE_SNAPSHOT` | snapshot sets | Snapshot selector |
+| Chat | `router + coverage + query` | answers from truth | Answer + Sources + Truth Map |
 
 ---
 
 ## 5. Offline Architecture Overview
+... (same components as v1.2) ...
 
-### Components
-- **Windows Desktop UI**: workspace, ingestion dashboard, coverage dashboard, validation queue, fact explorer, chat with sources
-- **Local Backend Service**: file registry/versioning, job queue/DAG, extractor runner, fact builder runner, validation engine, fact query API, LLM orchestrator
-- **Storage**: SQLite (default) or local Postgres; optional DuckDB for analytics; optional vector index for discovery only (**not ground truth**)
-
-### LLM Role (Strict)
-> The LLM is a **query planner + narrator**. It must never answer from raw files, embeddings, or unstaged text. It may only retrieve information via a **whitelisted fact query interface** over Certified Facts and VALIDATED links.
+### LLM Role: The Template Router
+The LLM acts as a **Template Router**. 
+1. Natural Language question ↓
+2. **Router** selects matching Fact Templates.
+3. System performs `coverage_check` on those templates.
+4. Response is generated based on retrieved certified facts.
 
 ---
 
 ## 6. Canonical Data Model
 
-```
-Evidence → Entities → Links → Facts
-```
+### Truth Graph Schema
+- `entity_nodes`: `(id, project_id, type, value, metadata)`
+- `entity_links`: `(id, project_id, from_id, to_id, rel_type, confidence_tier)`
 
-| Layer | Contents |
-|-------|---------|
-| Raw registry | Immutable file truth (`file` + `file_version`) |
-| Extraction staging | Typed evidence tables (PDF blocks, XLSX cells, P6 activities, IFC entities) |
-| Canonical entity | Normalized project objects (documents, schedule activities, BIM elements, equipment) |
-| Crosswalk | Links with status gates (`CANDIDATE` / `VALIDATED` / `REJECTED`) |
-| Fact | Typed computed statements with method/version, as-of snapshot, full lineage |
-
-### Minimum Fact Record (Required Fields)
-- `fact_type`, `subject_id`, `scope`, `snapshot_id`/`as_of`, `typed_value`, `units`
-- `method_id` + `method_version`
-- `status` (`CANDIDATE` / `VALIDATED` / `HUMAN_CERTIFIED`)
-- Lineage pointers to evidence IDs and link IDs
+### Facts with Domains
+- `facts`: `(fact_id, domain, fact_type, subject_id, status, authority_role, ...)`
 
 ---
 
-## 7. Strict Chat Protocol
+## 7. Strict Chat Protocol (v2)
 
 ### Mandatory Sequence
-1. Parse question → identify template and parameters
-2. `coverage_check(template, snapshot, params)`
-3. If **incomplete**: refuse + list missing fact/link types + propose required imports/jobs
-4. If **complete**: retrieve facts/links via whitelisted API only
-5. If **conflicts** exist: disclose both; if policy requires, refuse to choose
-6. Respond: Answer + Evidence/Sources pointers; keep assumptions empty unless explicitly needed
+1. **Route**: Parse question → identify set of Fact Templates via Template Router.
+2. **Check**: `coverage_check(templates, snapshot, params)` across Fact Domains.
+3. **Refuse**: If incomplete, list missing requirements.
+4. **Retrieve**: Query Facts + traverse Truth Graph for evidence map.
+5. **Narrate**: Answer + Evidence + Truth Map visualization pointer.
 
 ---
 

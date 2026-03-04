@@ -113,15 +113,16 @@ Creates normalized objects (examples): document, document_revision, schedule_sna
 
 build bible
 
-Generates crosswalk link(...) rows, but crucially links can be CANDIDATE or VALIDATED; only VALIDATED links are usable by the assistant. 
+J->>J: NORMALIZE(project_id, file_version_id)
+J->>DB: Write canonical entities + candidate/validated links
+Note: v2 introduces Link Confidence Tiers (AUTO_VALIDATED, HIGH_CONFIDENCE, CANDIDATE) to triage validation work.
 
 build bible
 
 5) Build facts → computed “ground truth units” with lineage
 
 User
-
-Starts to see the “Fact coverage dashboard” light up by domain (schedule/docs/BIM/etc.). 
+Starts to see the “Fact coverage dashboard” light up by domain (SCHEDULE, BIM, DOC_CONTROL, PROCUREMENT, FIELD, RISK). 
 
 build bible
 
@@ -151,9 +152,8 @@ build bible
 
 6) Validate + certify → automated rules + human queue gates
 
-User
-
 Goes to Validation queue to approve/reject candidate facts/links that require human certification. 
+V2: Authority Policies enforce which roles can certify items (e.g. Schedule milestones certified by PLANNER).
 
 build bible
 

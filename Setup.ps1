@@ -60,10 +60,10 @@ if ($choice -eq 'y') {
     # Ensure npm finishes installing lms if it's fresh
     Start-Process "cmd.exe" -ArgumentList "/c npm install -g @lmstudio/lms" -Wait
     
-    Write-Host "Downloading Reasoning Model (Qwen2.5)..." -ForegroundColor Yellow
-    lms get lmstudio-community/Qwen2.5-7B-Instruct-GGUF
+    Write-Host "Downloading Reasoning Model (Qwen2.5 VL)..." -ForegroundColor Yellow
+    lms get qwen/qwen2.5-vl-7b
     Write-Host "Downloading Vision Model (Llama-3.2 Vision)..." -ForegroundColor Yellow
-    lms get lmstudio-community/Llama-3.2-11B-Vision-Instruct-GGUF
+    lms get leafspark/Llama-3.2-11B-Vision-Instruct-GGUF
     Write-Host "Models downloaded!" -ForegroundColor Green
 } else {
     Write-Host "Skipping model download. You can download them later via Start.bat." -ForegroundColor Gray

@@ -8,9 +8,11 @@ It is **not** a user manual. It exists so product, engineering, and documentatio
 
 ## Product intent (north star)
 SerapeumAI helps AEC teams **review project documents faster** by:
-- Ingesting and organizing mixed project files
-- Answering questions with document-grounded evidence
-- Running a structured compliance-style review to surface potential issues
+- Ingesting and organizing mixed project files.
+- Answering questions with document-grounded evidence.
+- **Truth Certification**: Providing a structured "Truth Spine" where facts can be human-verified.
+- **Human-in-the-loop**: Designing for expert review rather than black-box automation.
+- Running a structured compliance-style review to surface potential issues.
 
 The product is designed to be **local-first** and **privacy-first**.
 

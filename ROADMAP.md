@@ -8,11 +8,12 @@ Our vision is to build the most accessible and powerful AI-native platform for A
 - [x] Vision-based drawing analysis (Llama 3.2 Vision)
 - [x] Zero-click Windows installation flow
 
-## 🟡 Phase 2: Intelligence & Workflow (Next 3-6 Months)
+## 🟡 Phase 2: Intelligence & Workflow (In Progress)
+- [x] **Truth Engine v2**: Fact Domains, Link Tiers, and Validation Queue.
+- [x] **Truth Graph**: Multi-domain knowledge graph for cross-system reasoning.
 - [ ] **Advanced RAG**: Better context window management for 500+ page specifications.
-- [ ] **Multi-Model Routing**: Automatically switching between local and cloud (optional) models based on task complexity.
-- [ ] **Interactive Gantt**: Direct linkage between PDF facts and P6 schedule activities.
-- [ ] **Plugin System**: Allow third-party extractors for specialized file formats (e.g., Revit, Civil3D).
+- [ ] **Interactive Gantt**: Direct linkage between PDF facts and P6 schedule activities (Backend Complete).
+- [ ] **Plugin System**: Allow third-party extractors for specialized file formats.
 
 ## 🟠 Phase 3: Collaborative Intelligence (Next 6-12 Months)
 - [ ] **Project Benchmarking**: Comparing current project performance against historical data.
