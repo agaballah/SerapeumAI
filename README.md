@@ -25,8 +25,8 @@ SerapeumAI is a professional-grade, **locally-hosted** construction intelligence
 
 ### 2. Installation
 
-> **📋 First-time setup? See [INSTALL.md](INSTALL.md) for the complete guide.**
-> It covers the `lms` CLI, Tesseract, Poppler, and ifcopenshell.
+> **📋 First-time setup? Double-click `Setup.bat`.**
+> This automatically installs Python 3.11, Node.js, and all project dependencies.
 
 ```bash
 git clone https://github.com/gaballa/SerapeumAI.git

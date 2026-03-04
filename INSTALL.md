@@ -1,12 +1,15 @@
-# SerapeumAI — Installation Guide
+## 🚀 Zero-Knowledge Setup (Windows Only)
 
-This guide walks you through setting up SerapeumAI on a fresh machine (Windows, Linux, or macOS).
+If you are on Windows, simply:
+1. Double-click `Setup.bat`
+2. Wait for it to finish.
+3. Double-click `Start.bat` to launch.
 
-> **No virtual environment needed.** Install into your system Python or a Conda environment.
+This automatically handles Python, Node.js, and all dependencies.
 
 ---
 
-## ✅ Prerequisites Checklist
+## 🛠️ Manual Installation Guide
 
 | Requirement | Version | Notes |
 |---|---|---|
