@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 import os
+import pytest
 
 # Mock Llama before importing model_manager because it imports it at top level if available
 with patch.dict('sys.modules', {'llama_cpp': MagicMock()}):
@@ -32,23 +33,20 @@ def test_chat_panel_init_robustness():
     from src.ui.chat_panel import ChatPanel
     
     if os.environ.get("SERAPEUM_ENV") == "ci":
-        root = MagicMock() # Headless skip
-    else:
-        root = tk.Tk()
+        pytest.skip("Skipping UI-dependent ChatPanel test in headless CI")
+    
+    root = tk.Tk()
     try:
         # 1. Init with db=None
         cp = ChatPanel(root, db=None)
         assert cp._session_state is not None
         assert cp.ref_mgr is None
         
-        # 2. Init with db=Mock but ReferenceManager fails (simulated by not mocking internals)
+        # 2. Init with db=Mock
         db = MagicMock()
         db.root_dir = "."
         cp2 = ChatPanel(root, db=db)
-        assert cp2.role_mgr is not None # RoleManager mocked or real?
-        # Check ref_mgr
-        # If ReferenceManager import works, it might be instantiated. 
-        # If it fails, cp2.ref_mgr should be None (due to our try/except block)
+        assert cp2.role_mgr is not None
     finally:
         root.destroy()
 
