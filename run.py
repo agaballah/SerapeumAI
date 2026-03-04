@@ -34,8 +34,39 @@ def get_app_root() -> Path:
     return Path(__file__).resolve().parent
 
 
+def check_system_dependencies():
+    """Verify that Tesseract and Poppler are in the system path."""
+    import shutil
+    import tkinter.messagebox as messagebox
+    from tkinter import Tk
+
+    missing = []
+    if not shutil.which("tesseract"):
+        missing.append("- Tesseract OCR (Required for reading PDFs)")
+    if not shutil.which("pdfinfo"):
+        missing.append("- Poppler (Required for rendering PDFs)")
+
+    if missing:
+        # Create hidden root for messagebox if needed
+        root = Tk()
+        root.withdraw()
+        
+        msg = "Some required system tools were not found:\n\n" + "\n".join(missing)
+        msg += "\n\nSerapeumAI will still open, but PDF processing will fail.\n"
+        msg += "Please run Setup.bat again or follow the guide in INSTALL.md."
+        
+        messagebox.showwarning("System Dependencies Missing", msg)
+        root.destroy()
+
+
 def main() -> int:
     app_root = get_app_root()
+
+    # Early check for system tools (Tesseract, Poppler)
+    try:
+        check_system_dependencies()
+    except Exception:
+        pass
 
     # Ensure APP_ROOT is on sys.path so `import src....` works reliably
     app_root_str = str(app_root)
