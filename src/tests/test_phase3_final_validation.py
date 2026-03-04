@@ -60,23 +60,19 @@ class TestPhase3Completion:
     
     def test_phase3c3_xref_detector(self):
         """Phase 3c.3: XREF detection module."""
-        from src.document_processing.xref_detector import XREFDetector, XREFInfo, format_xref_tree
+        from src.document_processing.xref_detector import XREFDetector, XREFInfo
         
-        detector = XREFDetector()
-        assert hasattr(detector, 'detect_xrefs')
-        assert hasattr(detector, 'resolve_xref')
-        assert hasattr(detector, 'get_xref_tree')
-        assert hasattr(detector, 'resolve_all_xrefs')
+        detector = XREFDetector(project_root=".")
+        assert hasattr(detector, 'scan')
     
     def test_phase3c3_xref_tree(self):
         """Phase 3c.3: XREF dependency tree generation."""
         from src.document_processing.xref_detector import XREFDetector
         
-        detector = XREFDetector()
-        # Test with current file as a non-CAD file (should handle gracefully)
-        tree = detector.get_xref_tree(__file__)
-        assert isinstance(tree, dict)
-        assert "file" in tree
+        detector = XREFDetector(project_root=".")
+        # Test with current file
+        xrefs = detector.scan(__file__)
+        assert isinstance(xrefs, list)
     
     def test_phase3d1_e2e_database(self):
         """Phase 3d.1: E2E - Database initialization."""

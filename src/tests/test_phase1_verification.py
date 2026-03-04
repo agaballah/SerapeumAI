@@ -1,33 +1,40 @@
 from unittest.mock import MagicMock, patch
+import os
 
 # Mock Llama before importing model_manager because it imports it at top level if available
 with patch.dict('sys.modules', {'llama_cpp': MagicMock()}):
     from src.infra.adapters.model_manager import ModelManager
 
-def test_model_manager_init_no_crash():
-    """Test that ModelManager initializes without crashing (double thread start fix)."""
+def test_model_manager_singleton_and_lock():
+    """Test that ModelManager is a singleton and its lock works."""
     # Reset singleton
     ModelManager._instance = None
-    ModelManager._monitor_thread = None
     
-    with patch('src.infra.adapters.model_manager._HAS_LLAMA_CPP', True):
-        mm = ModelManager()
-        # Verify monitor thread started exactly once
-        assert mm._monitor_thread is not None
-        assert mm._monitor_thread.is_alive()
-        
-        # Verify unloading doesn't crash
-        mm._current_model = MagicMock()
-        mm._current_task_type = "universal"
-        mm._unload_current_model()
-        # Should not raise RuntimeError
+    mm1 = ModelManager()
+    mm2 = ModelManager()
+    assert mm1 is mm2
+    
+    # Test locking
+    assert mm1.lock("test_owner") is True
+    assert mm2.get_status()["locked"] is True
+    assert mm2.get_status()["locked_by"] == "test_owner"
+    
+    # Cant lock again by different owner
+    assert mm1.lock("other") is False
+    
+    # Unlock
+    mm1.unlock("test_owner")
+    assert mm2.get_status()["locked"] is False
 
 def test_chat_panel_init_robustness():
     """Test ChatPanel initializes even with None db."""
     import tkinter as tk
     from src.ui.chat_panel import ChatPanel
     
-    root = tk.Tk()
+    if os.environ.get("SERAPEUM_ENV") == "ci":
+        root = MagicMock() # Headless skip
+    else:
+        root = tk.Tk()
     try:
         # 1. Init with db=None
         cp = ChatPanel(root, db=None)

@@ -14,7 +14,7 @@ class TestPipeline(unittest.TestCase):
         self.project_root = self.test_dir
         
         # We need to patch DocumentService since Pipeline instantiates it in __init__
-        with patch('src.core.pipeline.DocumentService') as MockDocService:
+        with patch('src.application.orchestrators.pipeline.DocumentService') as MockDocService:
             self.pipeline = Pipeline(
                 db=self.db,
                 llm=self.llm,

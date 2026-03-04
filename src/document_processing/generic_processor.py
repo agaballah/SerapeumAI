@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 
 class GenericProcessor:
     """Route to specialized processors based on file extension."""
+    
+    DXF_EXTS = {".dxf"}
+    DGN_EXTS = {".dgn"}
+    CAD_EXTS = DXF_EXTS | DGN_EXTS
 
     def process(self, abs_path: str, rel_path: str, export_root: str, *, doc_id_override: str | None = None, project_root: str | None = None):
         ext = os.path.splitext(abs_path)[1].lower()
@@ -25,7 +29,7 @@ class GenericProcessor:
             logger.info(f"   [GenericProcessor] Delegating {rel_path} to ImageProcessor (Tesseract OCR)")
             return ImageProcessor().process(abs_path, rel_path, export_root, doc_id_override=doc_id_override)
 
-        if ext in {".dxf", ".dgn"}:
+        if ext in self.CAD_EXTS:
             from .cad_processor import CADProcessor
             logger.info(f"   [GenericProcessor] Delegating {rel_path} to CADProcessor ({ext.upper()})")
             return CADProcessor().process(abs_path, rel_path, export_root, doc_id_override=doc_id_override, project_root=project_root)

@@ -43,10 +43,8 @@ class TestE2ECoreFeatures:
     def test_xref_detector(self):
         """Test XREF detector module."""
         from src.document_processing.xref_detector import XREFDetector
-        detector = XREFDetector()
-        assert hasattr(detector, 'detect_xrefs')
-        assert hasattr(detector, 'resolve_xref')
-        assert hasattr(detector, 'get_xref_tree')
+        detector = XREFDetector(project_root=".")
+        assert hasattr(detector, 'scan')
     
     def test_oda_converter(self):
         """Test ODA converter availability."""

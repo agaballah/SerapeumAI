@@ -122,3 +122,14 @@ class ODAConverter:
             except Exception as e:
                 logger.error(f"[ODAConverter] Unexpected error during conversion: {e}")
                 return None
+
+def get_oda_executable() -> str:
+    """Helper for legacy tests to find the ODA converter. Raises ODAConverterNotFound if missing."""
+    exe = ODAConverter().converter_path
+    if not exe:
+        raise ODAConverterNotFound("ODA File Converter not found. Download from https://www.opendesign.com/guestfiles/oda_file_converter")
+    return exe
+
+def convert_dgn_to_dxf(input_path: str) -> Optional[str]:
+    """Helper for legacy tests to convert a DGN file."""
+    return ODAConverter().convert_to_dxf(input_path)

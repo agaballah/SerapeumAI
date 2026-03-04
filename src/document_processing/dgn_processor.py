@@ -80,12 +80,16 @@ def process(
         "file_path": file_path,
         "xrefs": [],
         "dxf_path": None,
+        "text": "",
+        "meta": {},
         "error": None,
     }
 
     if not os.path.exists(file_path):
         result["status"] = "error"
         result["error"] = f"File not found: {file_path}"
+        result["text"] = f"Error: {result['error']}"
+        result["meta"] = {"error": True, "source": "dgn_processor"}
         return result
 
     # Step 1: Convert to DXF using ODA Converter (if available)
@@ -111,6 +115,8 @@ def process(
             logger.warning(f"[DGNProcessor] XREF detection failed: {e}")
 
     result["status"] = "done" if result.get("dxf_path") else "no_oda"
+    result["text"] = f"DGN Processing: {result['status']}"
+    result["meta"] = {"source": "dgn_processor", "status": result["status"]}
     return result
 
 
