@@ -48,7 +48,11 @@ if ($null -eq $npmCheck) {
 Write-Host ""
 Write-Host "[3/3] Updating Environment Variables..." -ForegroundColor Yellow
 # Refresh environment variables in the current session so we can use python and npm immediately
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+try {
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+} catch {
+    Write-Host "Note: Could not fully refresh environment variables. You might need to restart your terminal after setup." -ForegroundColor Gray
+}
 
 Write-Host ""
 Write-Host "=======================================================" -ForegroundColor Cyan
@@ -57,7 +61,13 @@ Write-Host "=======================================================" -Foreground
 Write-Host ""
 
 # Call the original Install.bat to finish the python pip installations
-Start-Process "cmd.exe" -ArgumentList "/c Install.bat" -Wait
+if (Test-Path "Install.bat") {
+    Start-Process "cmd.exe" -ArgumentList "/c Install.bat" -Wait
+} else {
+    Write-Host "[ERROR] Install.bat not found in the current directory." -ForegroundColor Red
+}
 
+Write-Host ""
 Write-Host "All done! You can now use Start.bat to launch the application." -ForegroundColor Green
+Write-Host "The setup window will close when you press any key."
 Pause
