@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 # Mock Llama before importing model_manager because it imports it at top level if available
 with patch.dict('sys.modules', {'llama_cpp': MagicMock()}):
-    from src.core.model_manager import ModelManager
+    from src.infra.adapters.model_manager import ModelManager
 
 def test_model_manager_init_no_crash():
     """Test that ModelManager initializes without crashing (double thread start fix)."""
@@ -10,7 +10,7 @@ def test_model_manager_init_no_crash():
     ModelManager._instance = None
     ModelManager._monitor_thread = None
     
-    with patch('src.core.model_manager._HAS_LLAMA_CPP', True):
+    with patch('src.infra.adapters.model_manager._HAS_LLAMA_CPP', True):
         mm = ModelManager()
         # Verify monitor thread started exactly once
         assert mm._monitor_thread is not None
