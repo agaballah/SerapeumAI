@@ -17,7 +17,7 @@ build/
 *.log.*
 
 # Large model files (download separately — see INSTALL.md)
-models/
+/models/
 *.gguf
 *.bin
 *.pt

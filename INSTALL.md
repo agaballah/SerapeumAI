@@ -57,15 +57,21 @@ curl -fsSL https://lmstudio.ai/install.sh | sh
 lms --version   # verify it works
 ```
 
-### Download a model (first time only)
+### Download Models (Chat & Vision)
 
-The app needs at least one chat model. Download one now so it's ready:
+The app needs a **Chat** model for reasoning and a **Vision (VLM)** model for analyzing drawings. Run these commands once:
+
 ```bash
-# Download a small but capable model (~4GB)
+# 1. Download Reasoning/Chat Model (~4GB)
 lms get lmstudio-community/Qwen2.5-7B-Instruct-GGUF
 
-# Or any other model from Hugging Face, e.g.:
-# lms get bartowski/Mistral-7B-Instruct-v0.3-GGUF
+# 2. Download Vision Model (VLM) for Technical Drawings
+# Option A: Balanced (Recommended)
+lms get lmstudio-community/Llama-3.2-11B-Vision-Instruct-GGUF
+# Option B: Fast/Small (600MB)
+lms get lmstudio-community/moondream2-GGUF
+# Option C: High Accuracy
+lms get lmstudio-community/Qwen2-VL-7B-Instruct-GGUF
 ```
 
 > After installation, **do not manually start LM Studio** — the app does it automatically on launch.
