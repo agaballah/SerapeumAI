@@ -65,8 +65,14 @@ We welcome contributions to extractors, fact builders, and UI enhancements! Plea
 
 ---
 
-## 📄 License
-SerapeumAI is licensed under the **Apache 2.0 License**. See [LICENSE](LICENSE) for the full text.
+## 📄 License & Dual Licensing
+SerapeumAI operates under a **Dual Licensing** model to ensure it remains free for the community while supporting commercial development:
+
+1. **Open Source (GNU AGPLv3)**:
+   The project is completely free for individual, non-commercial, and open-source use under the [GNU AGPLv3 License](LICENSE). Note that if you modify the code and provide it as a service over a network, you *must* open-source your modifications.
+
+2. **Commercial License**:
+   For companies that wish to integrate SerapeumAI into proprietary software, use it internally without the AGPL open-source requirements, or embed it in a commercial product, a separate Commercial License is required. Please contact the author for commercial licensing.
 
 ---
 *Developed by construction engineers, for construction engineers.*
