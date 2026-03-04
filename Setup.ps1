@@ -1,73 +1,93 @@
 # SerapeumAI - Automated Windows Setup Script
 # This script uses the built-in Windows Package Manager (winget) to silently
-# install Python 3.11 and Node.js without requiring the user to do anything.
+# install all required system tools for SerapeumAI.
 
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host "       SerapeumAI - Initial System Setup" -ForegroundColor Cyan
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "[1/3] Checking for Python 3.11..." -ForegroundColor Yellow
 
-# Check if Python is installed
+# 1. Python 3.11
+Write-Host "[1/5] Checking for Python 3.11..." -ForegroundColor Yellow
 $pythonCheck = Get-Command "python" -ErrorAction SilentlyContinue
 if ($null -eq $pythonCheck) {
-    Write-Host "Python not found. Installing Python 3.11 silently... (This may take a minute)" -ForegroundColor Yellow
-    # Install Python 3.11 using winget (silent install, adds to PATH automatically)
+    Write-Host "Python not found. Installing Python 3.11 silently..." -ForegroundColor Yellow
     winget install --id Python.Python.3.11 --exact --silent --accept-package-agreements --accept-source-agreements
-    
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "Failed to install Python. Please download and install it manually from python.org." -ForegroundColor Red
-        Pause
-        exit 1
+        Write-Host "Failed to install Python. Please install manually from python.org" -ForegroundColor Red
+        Pause; exit 1
     }
-    Write-Host "Python 3.11 installed successfully!" -ForegroundColor Green
+    Write-Host "Python 3.11 installed!" -ForegroundColor Green
 } else {
     Write-Host "Python is already installed." -ForegroundColor Green
 }
 
+# 2. Node.js (for lms CLI)
 Write-Host ""
-Write-Host "[2/3] Checking for Node.js (Required for AI Server CLI)..." -ForegroundColor Yellow
-
-# Check if Node.js (npm) is installed
+Write-Host "[2/5] Checking for Node.js (Required for AI Server)..." -ForegroundColor Yellow
 $npmCheck = Get-Command "npm" -ErrorAction SilentlyContinue
 if ($null -eq $npmCheck) {
     Write-Host "Node.js not found. Installing Node.js LTS silently..." -ForegroundColor Yellow
-    # Install Node.js using winget
     winget install --id OpenJS.NodeJS.LTS --exact --silent --accept-package-agreements --accept-source-agreements
-    
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "Failed to install Node.js. Please download and install it manually from nodejs.org." -ForegroundColor Red
-        Pause
-        exit 1
+        Write-Host "Failed to install Node.js. Please install manually from nodejs.org" -ForegroundColor Red
+        Pause; exit 1
     }
-    Write-Host "Node.js installed successfully!" -ForegroundColor Green
+    Write-Host "Node.js installed!" -ForegroundColor Green
 } else {
     Write-Host "Node.js is already installed." -ForegroundColor Green
 }
 
+# 3. Tesseract OCR
 Write-Host ""
-Write-Host "[3/3] Updating Environment Variables..." -ForegroundColor Yellow
-# Refresh environment variables in the current session so we can use python and npm immediately
+Write-Host "[3/5] Checking for Tesseract OCR (Required for scanned PDFs)..." -ForegroundColor Yellow
+$tessCheck = Get-Command "tesseract" -ErrorAction SilentlyContinue
+if ($null -eq $tessCheck) {
+    Write-Host "Tesseract not found. Installing via winget..." -ForegroundColor Yellow
+    winget install --id UB-Mannheim.Tesseract --exact --silent --accept-package-agreements --accept-source-agreements
+    Write-Host "Tesseract installed!" -ForegroundColor Green
+} else {
+    Write-Host "Tesseract is already installed." -ForegroundColor Green
+}
+
+# 4. Optional Model Download
+Write-Host ""
+Write-Host "[4/5] Optional: Download AI Models (~8GB total)" -ForegroundColor Yellow
+Write-Host "SerapeumAI uses local AI models to keep your data private." -ForegroundColor White
+$choice = Read-Host "Would you like to download the recommended models now? (y/n)"
+if ($choice -eq 'y') {
+    Write-Host "Initializing AI Server..." -ForegroundColor Yellow
+    # Ensure npm finishes installing lms if it's fresh
+    Start-Process "cmd.exe" -ArgumentList "/c npm install -g @lmstudio/lms" -Wait
+    
+    Write-Host "Downloading Reasoning Model (Qwen2.5)..." -ForegroundColor Yellow
+    lms get lmstudio-community/Qwen2.5-7B-Instruct-GGUF
+    Write-Host "Downloading Vision Model (Llama-3.2 Vision)..." -ForegroundColor Yellow
+    lms get lmstudio-community/Llama-3.2-11B-Vision-Instruct-GGUF
+    Write-Host "Models downloaded!" -ForegroundColor Green
+} else {
+    Write-Host "Skipping model download. You can download them later via Start.bat." -ForegroundColor Gray
+}
+
+# 5. Refresh Environment Variables
+Write-Host ""
+Write-Host "[5/5] Finalizing Environment..." -ForegroundColor Yellow
 try {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 } catch {
-    Write-Host "Note: Could not fully refresh environment variables. You might need to restart your terminal after setup." -ForegroundColor Gray
+    Write-Host "Note: Restart your computer if tools like 'python' or 'lms' are not found after setup." -ForegroundColor Gray
 }
 
 Write-Host ""
 Write-Host "=======================================================" -ForegroundColor Cyan
-Write-Host " System Setup Complete! Launching SerapeumAI Installer..." -ForegroundColor Cyan
+Write-Host " System Setup Complete! Launching Python Installer..." -ForegroundColor Cyan
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Call the original Install.bat to finish the python pip installations
 if (Test-Path "Install.bat") {
     Start-Process "cmd.exe" -ArgumentList "/c Install.bat" -Wait
-} else {
-    Write-Host "[ERROR] Install.bat not found in the current directory." -ForegroundColor Red
 }
 
 Write-Host ""
-Write-Host "All done! You can now use Start.bat to launch the application." -ForegroundColor Green
-Write-Host "The setup window will close when you press any key."
+Write-Host "All done! You can now use Start.bat to launch SerapeumAI." -ForegroundColor Green
 Pause
