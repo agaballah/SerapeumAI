@@ -84,8 +84,8 @@ class DocumentsPage(BasePage):
             fname = path.split("\\")[-1]
             fid = r[1]
             
-            row = ctk.CTkFrame(self.scroll_files, cursor="hand2")
-            row.pack(fill="x", pady=2)
+            row = ctk.CTkFrame(self.scroll_files, cursor="hand2", fg_color="#2b2b2b", corner_radius=8, border_width=1, border_color="#3a3a3a")
+            row.pack(fill="x", pady=4, padx=10)
             
             # Click Handler
             def open_inspector(event, p=path, f=fid):
@@ -93,12 +93,12 @@ class DocumentsPage(BasePage):
             
             row.bind("<Button-1>", open_inspector)
             
-            lbl = ctk.CTkLabel(row, text=fname)
-            lbl.pack(side="left", padx=10)
+            lbl = ctk.CTkLabel(row, text=fname, text_color="#DCE4EE", font=("Arial", 13))
+            lbl.pack(side="left", padx=15, pady=10)
             lbl.bind("<Button-1>", open_inspector)
             
-            status = ctk.CTkLabel(row, text="Ingested", text_color="green")
-            status.pack(side="right", padx=10)
+            status = ctk.CTkLabel(row, text="Ingested", text_color="#00FF00", font=("Arial", 11, "bold"))
+            status.pack(side="right", padx=15)
             status.bind("<Button-1>", open_inspector)
 
         if end_idx < len(rows):

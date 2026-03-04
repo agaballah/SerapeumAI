@@ -16,29 +16,28 @@ class DashboardPage(BasePage):
         self.scroll_body.grid_columnconfigure(0, weight=1)
         
         # Header
-        self.lbl_title = ctk.CTkLabel(self.scroll_body, text="Project Dashboard", font=("Arial", 24, "bold"), text_color="#ffffff", fg_color="transparent")
-        self.lbl_title.grid(row=0, column=0, pady=20, padx=20, sticky="w")
+        self.lbl_title = ctk.CTkLabel(self.scroll_body, text="Project Dashboard", font=("Arial", 28, "bold"), text_color="#DCE4EE", fg_color="transparent")
+        self.lbl_title.grid(row=0, column=0, pady=(30, 10), padx=30, sticky="w")
         
         # Stats Cards
-        self.frame_stats = ctk.CTkFrame(self.scroll_body, fg_color="#252525") # Slightly lighter card
-        self.frame_stats.grid(row=1, column=0, sticky="ew", padx=20, pady=10)
+        self.frame_stats = ctk.CTkFrame(self.scroll_body, fg_color="#2b2b2b", corner_radius=15, border_width=1, border_color="#333333")
+        self.frame_stats.grid(row=1, column=0, sticky="ew", padx=30, pady=20)
         
-        self.lbl_files = ctk.CTkLabel(self.frame_stats, text="Files Ingested: --", font=("Arial", 16), text_color="#ffffff", fg_color="transparent")
-        self.lbl_files.pack(side="left", padx=20, pady=20)
+        self.lbl_files = ctk.CTkLabel(self.frame_stats, text="Files Ingested: --", font=("Arial", 18, "bold"), text_color="#ffffff", fg_color="transparent")
+        self.lbl_files.pack(side="left", padx=30, pady=30)
         
-        self.lbl_facts = ctk.CTkLabel(self.frame_stats, text="Facts Qualified: --", font=("Arial", 16), text_color="#ffffff", fg_color="transparent")
-        self.lbl_facts.pack(side="left", padx=20, pady=10)
+        self.lbl_facts = ctk.CTkLabel(self.frame_stats, text="Facts Qualified: --", font=("Arial", 18, "bold"), text_color="#ffffff", fg_color="transparent")
+        self.lbl_facts.pack(side="left", padx=30, pady=30)
         
-        # Recent Activity (Logs) - Occupies more space in new layout
+        # Recent Activity (Logs)
         self.frame_logs = ctk.CTkFrame(self.scroll_body, fg_color="#1e1e1e")
-        self.frame_logs.grid(row=2, column=0, sticky="nsew", padx=20, pady=10)
+        self.frame_logs.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
         self.frame_logs.grid_columnconfigure(0, weight=1)
         self.frame_logs.grid_rowconfigure(1, weight=1)
         
-        ctk.CTkLabel(self.frame_logs, text="Mission Control Activity Log", font=("Arial", 14, "bold"), text_color="#ffffff", fg_color="transparent").grid(row=0, column=0, pady=5)
-        
-        self.txt_logs = ctk.CTkTextbox(self.frame_logs, font=("Consolas", 11), text_color="#00FF00", fg_color="black", height=300) # Terminal look
-        self.txt_logs.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+        ctk.CTkLabel(self.frame_logs, text="Mission Control Activity Log", font=("Arial", 16, "bold"), text_color="#DCE4EE", fg_color="transparent").grid(row=0, column=0, pady=(20, 10), padx=30, sticky="w")
+        self.txt_logs = ctk.CTkTextbox(self.frame_logs, font=("Consolas", 11), text_color="#00FF00", fg_color="#121212", border_width=1, border_color="#333333", height=300)
+        self.txt_logs.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
         self.txt_logs.insert("0.0", "System Initialized. Waiting for project load...\n")
         self.txt_logs.configure(state="disabled")
         

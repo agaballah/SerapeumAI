@@ -48,8 +48,8 @@ class P6Visualizer(ctk.CTkFrame):
             # 3. Plot (Dark Mode)
             plt.style.use('dark_background')
             fig, ax = plt.subplots(figsize=(10, 6))
-            fig.patch.set_facecolor('#1a1a1a') # Match CTk background
-            ax.set_facecolor('#1a1a1a')
+            fig.patch.set_facecolor('#1e1e1e') # Exact match for CTk background
+            ax.set_facecolor('#1e1e1e')
             
             y_pos = range(len(df))
             ax.barh(y_pos, df['duration'], left=df['start'], height=0.5, color='#1f538d', edgecolor='white')

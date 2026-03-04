@@ -102,6 +102,36 @@ class LMStudioService:
         port = parsed.port or 1234
         return host, port
 
+    def _is_server_reachable(self, timeout_s: float = 2.0) -> bool:
+        """Check if the LM Studio server is responding."""
+        try:
+            # Short timeout to avoid blocking startup too long
+            resp = requests.get(self.url, timeout=timeout_s)
+            return resp.status_code < 500
+        except Exception:
+            try:
+                # Fallback check
+                resp = requests.get(f"{self.url}/v1/models", timeout=timeout_s)
+                return resp.status_code < 500
+            except Exception:
+                return False
+
+    def _run_cli(self, cmd: List[str], timeout_s: int = 45) -> Tuple[int, str]:
+        """Run a command safely and return (exit_code, output)."""
+        try:
+            res = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout_s,
+                check=False
+            )
+            return res.returncode, (res.stdout + res.stderr).strip()
+        except subprocess.TimeoutExpired:
+            return -1, "Command timed out"
+        except Exception as e:
+            return -1, f"Execution error: {e}"
+
     def _find_lms_cli(self) -> Optional[str]:
         """Locate the lms CLI executable. Auto-installs via npm if not found."""
         if self.lms_path:

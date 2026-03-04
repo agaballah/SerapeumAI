@@ -59,19 +59,15 @@ class ChatPage(BasePage):
         frame = ctk.CTkFrame(self.chat_container, fg_color="transparent")
         frame.pack(fill="x", pady=10)
         
-        # Sender Label
-        lbl_sender = ctk.CTkLabel(frame, text=sender, font=("Arial", 12, "bold"), text_color="lightblue" if sender=="Serapeum" else "white", fg_color="transparent")
-        lbl_sender.pack(anchor="w")
-        
         # Message Bubble
-        bubble_bg = "#3a3a3a" if sender=="Serapeum" else "#2b2b2b"
-        if sender == "System": bubble_bg = "#1a1a1a"
+        bubble_bg = "#2b2b2b" if sender=="Serapeum" else "#333333"
+        if sender == "System": bubble_bg = "#121212"
         
-        bubble = ctk.CTkFrame(frame, fg_color=bubble_bg)
-        bubble.pack(anchor="w", fill="x")
+        bubble = ctk.CTkFrame(frame, fg_color=bubble_bg, corner_radius=10, border_width=1, border_color="#3a3a3a")
+        bubble.pack(anchor="w", fill="x", padx=10)
         
         lbl_text = ctk.CTkLabel(bubble, text=text, justify="left", wraplength=800, text_color="#DCE4EE", fg_color="transparent")
-        lbl_text.pack(padx=10, pady=10, anchor="w")
+        lbl_text.pack(padx=15, pady=10, anchor="w")
         
         # Extract Citations
         citations = re.findall(r"\[Fact:(\w+)\]", text)

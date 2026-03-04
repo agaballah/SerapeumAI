@@ -46,6 +46,9 @@ class MainApp(ctk.CTk):
     def __init__(self, root_dir: str = None):
         super().__init__()
         
+        # Force theme again to ensure all late-loading widgets comply
+        ctk.set_appearance_mode("Dark")
+        
         self.title("Serapeum V02 | Engineering Truth Engine")
         self.geometry("1400x900")
         self.configure(fg_color="#1e1e1e") # Deep dark root
