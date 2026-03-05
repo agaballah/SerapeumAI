@@ -33,7 +33,7 @@ _USING_TTKBOOTSTRAP = False
 try:
     import ttkbootstrap as ttk  # type: ignore
     from ttkbootstrap.constants import *  # noqa: F403
-    from ttkbootstrap.scrolled import ScrolledText  # type: ignore
+    from ttkbootstrap.widgets.scrolled import ScrolledText  # type: ignore
     _USING_TTKBOOTSTRAP = True
 except ImportError:
     ttk = tk_ttk  # type: ignore

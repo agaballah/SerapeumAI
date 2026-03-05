@@ -14,18 +14,21 @@ def test_db():
     db = DatabaseManager(root_dir="tmp_tests", db_name=":memory:")
     
     # 1. Load Baseline v14
-    baseline_path = "d:/SerapeumAI/src/infra/persistence/migrations/001_baseline_v14.sql"
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    migrations_dir = os.path.join(base_dir, "infra", "persistence", "migrations")
+    
+    baseline_path = os.path.join(migrations_dir, "001_baseline_v14.sql")
     with open(baseline_path, "r", encoding="utf-8") as f:
         db.execute_script(f.read())
         
     # 2. Load v16 (missing columns fix)
-    v16_path = "d:/SerapeumAI/src/infra/persistence/migrations/016_fix_missing_column.sql"
+    v16_path = os.path.join(migrations_dir, "016_fix_missing_column.sql")
     if os.path.exists(v16_path):
         with open(v16_path, "r", encoding="utf-8") as f:
             db.execute_script(f.read())
 
     # 3. Load v17 (Truth Engine v2)
-    migration_path = "d:/SerapeumAI/src/infra/persistence/migrations/017_truth_engine_v2.sql"
+    migration_path = os.path.join(migrations_dir, "017_truth_engine_v2.sql")
     with open(migration_path, "r", encoding="utf-8") as f:
         db.execute_script(f.read())
     
