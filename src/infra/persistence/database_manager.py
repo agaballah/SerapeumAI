@@ -43,6 +43,7 @@ import os
 import sqlite3
 import threading
 import logging
+import weakref
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -59,6 +60,36 @@ class DatabaseManager:
     Database manager with thread-local connection pooling.
     Each thread gets its own connection that persists for the thread's lifetime.
     """
+
+    _instances = weakref.WeakSet()
+
+    @classmethod
+    def close_all_instances(cls) -> None:
+        """
+        Close all active connections across all registered DatabaseManager instances.
+        Useful when switching project roots to ensure file locks are released.
+        """
+        for instance in list(cls._instances):
+            try:
+                instance.close_all_connections()
+            except Exception:
+                pass
+
+    def close_all_connections(self) -> None:
+        """Close every connection instantiated by this DatabaseManager."""
+        for conn in list(getattr(self, "_all_conns", [])):
+            try:
+                conn.close()
+            except Exception:
+                pass
+        if hasattr(self, "_all_conns"):
+            self._all_conns.clear()
+        
+        # Clear current thread's reference
+        if hasattr(self._local, "conn"):
+            self._local.conn = None
+        if hasattr(self._local, "tx_conn"):
+            self._local.tx_conn = None
 
     def __init__(
         self,
@@ -115,6 +146,8 @@ class DatabaseManager:
             self.db_path = os.path.join(self.root_dir, db_name)
 
         # Thread-local storage for connections
+        type(self)._instances.add(self)
+        self._all_conns = weakref.WeakSet()
         self._local = threading.local()
 
         # Current transaction connection is now stored in self._local.tx_conn
@@ -192,6 +225,7 @@ class DatabaseManager:
     def _open_new_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path, timeout=self._timeout_seconds)
         self._configure_connection(conn)
+        self._all_conns.add(conn)
         return conn
 
     def _get_connection(self) -> sqlite3.Connection:

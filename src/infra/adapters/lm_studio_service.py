@@ -49,6 +49,9 @@ from urllib.parse import urlparse
 
 import requests
 
+from src.infra.telemetry.metrics_collector import MetricsCollector
+from src.infra.telemetry.llm_logger import get_llm_logger
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +71,7 @@ class LMStudioService:
     - is_model_downloaded(...)
     """
 
-    def __init__(self, config):
+    def __init__(self, config, db=None):
         lm_config = (config.get_section("lm_studio") or {}) if config else {}
 
         self.enabled: bool = bool(lm_config.get("enabled", False))
@@ -86,6 +89,11 @@ class LMStudioService:
         self.cors: bool = bool(lm_config.get("cors", False))
 
         self._startup_attempted: bool = False
+        
+        # Telemetry
+        self.db = db
+        self.metrics = MetricsCollector(db=db)
+        self.llm_logger = get_llm_logger()
 
         if self.enabled:
             self._ensure_server_running()
@@ -438,6 +446,19 @@ class LMStudioService:
 
         settings = self._profile_settings(profile, overrides)
         target_model = model or settings.get("model") or "local-model"
+        start_time = time.time()
+
+        # Log Call
+        call_id = self.llm_logger.log_call(
+            task_type=profile,
+            model=target_model,
+            system_prompt=next((m.get("content") for m in messages if m.get("role") == "system"), "") or "",
+            user_prompt=str([m.get("content") for m in messages if m.get("role") == "user"]),
+            temperature=settings.get("temperature", 0.3),
+            max_tokens=settings.get("max_tokens", 1024),
+            context_length=0,
+            metadata=overrides
+        )
 
         if stream:
             payload = {
@@ -449,7 +470,9 @@ class LMStudioService:
             openai_payload = self._prepare_openai_chatcompletions_payload(payload)
             if previous_response_id:
                 logger.warning("[LMStudio] previous_response_id not supported for /v1/chat/completions streaming; ignored.")
-            return self._chat_completions_stream(openai_payload)
+            
+            # Streaming telemetry is handled within the generator
+            return self._chat_completions_stream(openai_payload, call_id, start_time, profile)
 
         system_prompt, native_input = self._messages_to_native_input(messages)
         native_settings = self._native_settings_from_profile(settings)
@@ -464,17 +487,50 @@ class LMStudioService:
         if previous_response_id:
             native_payload["previous_response_id"] = previous_response_id
 
-        native_resp = self._request(
-            "POST",
-            "/api/v1/chat",
-            token_type="chat",
-            json_body=native_payload,
-            timeout=180,
-        ).json()
+        try:
+            native_resp = self._request(
+                "POST",
+                "/api/v1/chat",
+                token_type="chat",
+                json_body=native_payload,
+                timeout=180,
+            ).json()
 
-        return self._native_chat_to_openai_chatcompletions(native_resp, model=target_model)
+            result = self._native_chat_to_openai_chatcompletions(native_resp, model=target_model)
+            
+            # Log Response
+            duration = time.time() - start_time
+            usage = result.get("usage", {})
+            self.llm_logger.log_response(
+                call_id=call_id,
+                response=result,
+                duration_seconds=duration,
+                success=True,
+                tokens_used=usage
+            )
+            self.metrics.record_latency(f"llm_{profile}", duration)
+            if usage:
+                self.metrics.record_metric("llm_tokens_total", usage.get("total_tokens", 0))
 
-    def _chat_completions_stream(self, openai_payload: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
+            return result
+        except Exception as e:
+            duration = time.time() - start_time
+            self.llm_logger.log_response(
+                call_id=call_id,
+                response=None,
+                duration_seconds=duration,
+                success=False,
+                error=str(e)
+            )
+            raise
+
+    def _chat_completions_stream(
+        self, 
+        openai_payload: Dict[str, Any], 
+        call_id: str, 
+        start_time: float, 
+        profile: str
+    ) -> Iterator[Dict[str, Any]]:
         resp = self._request(
             "POST",
             "/v1/chat/completions",
@@ -484,22 +540,49 @@ class LMStudioService:
             timeout=180,
         )
 
-        for line in resp.iter_lines():
-            if not line:
-                continue
-            try:
-                s = line.decode("utf-8", errors="ignore")
-            except Exception:
-                continue
-            if not s.startswith("data: "):
-                continue
-            s = s[6:]
-            if s.strip() == "[DONE]":
-                break
-            try:
-                yield json.loads(s)
-            except json.JSONDecodeError:
-                continue
+        full_content = []
+        try:
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                try:
+                    s = line.decode("utf-8", errors="ignore")
+                except Exception:
+                    continue
+                if not s.startswith("data: "):
+                    continue
+                s = s[6:]
+                if s.strip() == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(s)
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                    if "content" in delta:
+                        full_content.append(delta["content"])
+                    yield chunk
+                except json.JSONDecodeError:
+                    continue
+            
+            # Log successful stream completion
+            duration = time.time() - start_time
+            self.llm_logger.log_response(
+                call_id=call_id,
+                response={"content": "".join(full_content)},
+                duration_seconds=duration,
+                success=True
+            )
+            self.metrics.record_latency(f"llm_stream_{profile}", duration)
+
+        except Exception as e:
+            duration = time.time() - start_time
+            self.llm_logger.log_response(
+                call_id=call_id,
+                response=None,
+                duration_seconds=duration,
+                success=False,
+                error=str(e)
+            )
+            raise
 
     # ----------------------------
     # Vision chat

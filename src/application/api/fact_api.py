@@ -17,8 +17,11 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-logger = logging.getLogger(__name__)
+from src.engine.validation.rule_runner import RuleRunner
+from src.compliance.standard_enricher import StandardEnricher
+from src.domain.facts.models import Fact, FactStatus
 
+logger = logging.getLogger(__name__)
 
 class FactQueryAPI:
     """
@@ -35,6 +38,8 @@ class FactQueryAPI:
 
     def __init__(self, db):
         self.db = db
+        self.rule_runner = RuleRunner(db)
+        self.standard_enricher = StandardEnricher()
 
     # -----------------------------------------------------------------------
     # Primary entry point — used by AgentOrchestrator
@@ -87,12 +92,20 @@ class FactQueryAPI:
         # Build rich fact records with lineage
         enriched = [self._enrich_with_lineage(f) for f in all_facts]
 
+        # Deterministic rule fortification
+        violations = self._validate_with_rules(enriched)
+
+        # Compliance Standards Enrichment
+        standards = self._enrich_with_standards(all_facts)
+
         return {
             "facts": enriched,
             "count": len(enriched),
             "has_certified_data": len(enriched) > 0,
             "conflicts": conflicts,
-            "formatted_context": self._format_for_llm(enriched, conflicts),
+            "rule_violations": violations,
+            "relevant_standards": standards,
+            "formatted_context": self._format_for_llm(enriched, conflicts, violations, standards),
         }
 
     # -----------------------------------------------------------------------
@@ -160,10 +173,12 @@ class FactQueryAPI:
 
     def detect_conflicts(
         self, fact_type: str, subject_ids: List[str], project_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         """
         Detect conflicting certified facts for the same subject.
         Conflict = multiple VALIDATED facts for same subject with different values.
+        
+        Now enriches with standard clauses for the fact type.
         """
         conflicts = []
         for subj in subject_ids:
@@ -195,7 +210,18 @@ class FactQueryAPI:
                             for r in rows
                         ],
                     })
-        return conflicts
+        
+        # Cross-reference with compliance module (new fortification)
+        standards = []
+        try:
+            standards = self.standard_enricher.lookup_clauses_by_concept(fact_type)
+        except Exception as e:
+            logger.debug(f"[FactQueryAPI] Standards lookup failed in detect_conflicts: {e}")
+
+        return {
+            "conflicts": conflicts,
+            "relevant_standards": standards
+        }
 
     # -----------------------------------------------------------------------
     # Internal helpers
@@ -316,7 +342,11 @@ class FactQueryAPI:
         return conflicts
 
     def _format_for_llm(
-        self, facts: List[Dict[str, Any]], conflicts: List[Dict[str, Any]]
+        self, 
+        facts: List[Dict[str, Any]], 
+        conflicts: List[Dict[str, Any]], 
+        violations: List[Dict[str, Any]] = None,
+        standards: List[Dict[str, Any]] = None
     ) -> str:
         """
         Build a structured, LLM-injectable context block from certified facts.
@@ -370,7 +400,83 @@ class FactQueryAPI:
                     f"{len(c['conflicting_facts'])} contradicting certified facts found."
                 )
 
+        if violations:
+            parts.append("\n### ⚠️ DETERMINISTIC RULE VIOLATIONS\n")
+            parts.append(
+                "The following 'Certified' facts failed deterministic verification rules. "
+                "Disclose these risks when answering.\n"
+            )
+            for v in violations:
+                parts.append(
+                    f"VIOLATION [Fact {v['fact_id']}]: {v['rule_id']} - {v['message']} ({v['severity']})"
+                )
+
+        if standards:
+            parts.append("\n### 📜 RELEVANT REGULATORY STANDARDS / CODES\n")
+            parts.append(
+                "The following standards clauses relate to the technical facts above. "
+                "Cross-reference these when performing compliance reasoning.\n"
+            )
+            for s in standards:
+                parts.append(
+                    f"STANDARD [{s['standard_id']} § {s['path']}]:\n"
+                    f"  {s['text'].strip()[:500]}..."
+                )
+
         return "\n".join(parts)
+
+    def _validate_with_rules(self, enriched_facts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Run legacy deterministic rules against the retrieved facts."""
+        violations = []
+        for f in enriched_facts:
+            try:
+                fact_obj = Fact(
+                    fact_id=f.get("fact_id", ""),
+                    project_id=f.get("project_id", ""),
+                    fact_type=f.get("fact_type", ""),
+                    subject_id=f.get("subject_id", ""),
+                    subject_kind=f.get("subject_kind", "unknown"),
+                    value=f.get("value"),
+                    as_of=f.get("as_of", {}),
+                    status=FactStatus(f.get("status", "CANDIDATE"))
+                )
+                results = self.rule_runner.validate_fact(fact_obj)
+                for r in results:
+                    if not r.pass_fail:
+                        violations.append({
+                            "fact_id": f.get("fact_id"),
+                            "rule_id": r.rule_id,
+                            "message": r.details.get("msg", "Validation failed"),
+                            "severity": r.severity
+                        })
+            except Exception as e:
+                logger.error(f"Error validating fact {f.get('fact_id')}: {e}")
+        return violations
+
+    def _enrich_with_standards(self, facts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Cross-reference facts with standard clauses via concepts."""
+        if not facts:
+            return []
+            
+        # Extract unique fact types as concepts
+        concepts = set(f.get("fact_type", "") for f in facts)
+        
+        all_clauses = []
+        for concept in concepts:
+            if not concept: continue
+            try:
+                # Use StandardEnricher for deterministic lookup
+                clauses = self.standard_enricher.lookup_clauses_by_concept(concept)
+                all_clauses.extend(clauses)
+            except Exception as e:
+                logger.debug(f"[FactQueryAPI] Standards lookup failed for {concept}: {e}")
+        
+        # Deduplicate clauses by ID
+        unique_clauses = {}
+        for c in all_clauses:
+            unique_clauses[c["id"]] = c
+            
+        return list(unique_clauses.values())
 
     @staticmethod
     def _safe_json(value: Any) -> Any:

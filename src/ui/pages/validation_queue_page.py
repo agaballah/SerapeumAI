@@ -29,14 +29,26 @@ class ValidationQueuePage(BasePage):
         self.frame_table.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
         
         # Columns
-        columns = ("id", "domain", "type", "description", "confidence", "tier")
+        columns = ("id", "status", "domain", "type", "description", "confidence", "tier")
         self.tree = ttk.Treeview(self.frame_table, columns=columns, show="headings")
         self.tree.heading("id", text="ID")
+        self.tree.heading("status", text="Status")
         self.tree.heading("domain", text="Domain")
         self.tree.heading("type", text="Type")
         self.tree.heading("description", text="Candidate Fact/Link")
         self.tree.heading("confidence", text="Conf.")
         self.tree.heading("tier", text="Tier")
+
+        self.tree.column("status", width=100)
+        self.tree.column("confidence", width=80)
+        self.tree.column("tier", width=80)
+        
+        # Configure Row Colors (Tags)
+        self.tree.tag_configure("VALIDATED", background="#2a4b2a", foreground="white")  # Dark Green
+        self.tree.tag_configure("DRAFT", background="#5b4814", foreground="white")      # Dark Yellow/Gold
+        self.tree.tag_configure("REJECTED", background="#5c1e1e", foreground="white")    # Dark Red
+        self.tree.tag_configure("SUPERSEDED", background="#333333", foreground="#a0a0a0") # Dim Gray
+        self.tree.tag_configure("CANDIDATE", background="#1e3a5f", foreground="white")    # Dark Blue
         
         self.tree.pack(side="left", fill="both", expand=True)
         
@@ -60,17 +72,19 @@ class ValidationQueuePage(BasePage):
         for i in self.tree.get_children():
             self.tree.delete(i)
             
-        # 1. Fetch CANDIDATE facts
-        facts = self.controller.db.execute("SELECT fact_id, domain, fact_type, COALESCE(value_text, CAST(value_num AS TEXT)) as val, confidence FROM facts WHERE status = 'CANDIDATE'").fetchall()
+        # 1. Fetch ALL facts (not just CANDIDATE) to show comprehensive queue
+        facts = self.controller.db.execute("SELECT fact_id, status, domain, fact_type, COALESCE(value_text, CAST(value_num AS TEXT)) as val, confidence FROM facts ORDER BY created_at DESC LIMIT 100").fetchall()
         for f in facts:
-            self.tree.insert("", "end", values=(f[0], f[1], f[2], f[3], f"{f[4]:.2f}", "CANDIDATE"))
+            status = f[1] or "UNKNOWN"
+            self.tree.insert("", "end", values=(f[0], status, f[2], f[3], f[4], f"{f[5]:.2f}", "N/A"), tags=(status,))
             
-        # 2. Fetch CANDIDATE links
-        links = self.controller.db.execute("SELECT link_id, 'LINK' as domain, link_type, from_id || ' -> ' || to_id, confidence, confidence_tier FROM links WHERE status = 'CANDIDATE'").fetchall()
+        # 2. Fetch ALL links
+        links = self.controller.db.execute("SELECT link_id, status, 'LINK' as domain, link_type, from_id || ' -> ' || to_id, confidence, confidence_tier FROM links ORDER BY created_at DESC LIMIT 100").fetchall()
         for l in links:
-            self.tree.insert("", "end", values=(l[0], l[1], l[2], l[3], f"{l[4]:.2f}", l[5]))
+            status = l[1] or "UNKNOWN"
+            self.tree.insert("", "end", values=(l[0], status, l[2], l[3], l[4], f"{l[5]:.2f}", l[6]), tags=(status,))
             
-        self.lbl_count.configure(text=f"({len(self.tree.get_children())} items pending)")
+        self.lbl_count.configure(text=f"({len(self.tree.get_children())} items total)")
 
     def _on_approve(self):
         # Implementation of certification logic
@@ -80,7 +94,7 @@ class ValidationQueuePage(BasePage):
         for item in selected:
             vals = self.tree.item(item, "values")
             id_val = vals[0]
-            domain = vals[1]
+            domain = vals[2]
             
             if domain == 'LINK':
                 self.controller.db.execute("UPDATE links SET status = 'VALIDATED', validated_at = strftime('%s','now') WHERE link_id = ?", (id_val,))
@@ -97,7 +111,7 @@ class ValidationQueuePage(BasePage):
         for item in selected:
             vals = self.tree.item(item, "values")
             id_val = vals[0]
-            domain = vals[1]
+            domain = vals[2]
             
             if domain == 'LINK':
                 self.controller.db.execute("UPDATE links SET status = 'REJECTED' WHERE link_id = ?", (id_val,))

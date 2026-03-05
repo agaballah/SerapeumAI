@@ -25,6 +25,9 @@ import subprocess
 import sys
 from typing import Optional
 
+import requests
+from src.utils.retry import retry, RetryStrategy
+
 
 class VisionWorkerLauncher:
     """
@@ -71,18 +74,26 @@ class VisionWorkerLauncher:
         except Exception as e:
             return {"ok": False, "error": str(e), "pid": None}
 
+    @retry(
+        max_attempts=3,
+        strategy=RetryStrategy.EXPONENTIAL,
+        base_delay=1.0,
+        max_delay=5.0,
+        exceptions=(requests.exceptions.Timeout, requests.exceptions.ConnectionError)
+    )
+    def _do_check_health(self, base_url: str) -> dict:
+        r = requests.head(base_url, timeout=2)
+        if r.status_code in (200, 400, 404):
+            return {"ok": True}
+        return {"ok": False, "status": r.status_code}
+
     # ------------------------------------------------------------------
     def check_health(self, *, base_url: str = "http://127.0.0.1:1234/v1") -> dict:
         """
         Optional: check LM Studio server status.
         Only performs a HEAD request to avoid overhead.
         """
-        import requests
-
         try:
-            r = requests.head(base_url, timeout=2)
-            if r.status_code in (200, 400, 404):
-                return {"ok": True}
-            return {"ok": False, "status": r.status_code}
+            return self._do_check_health(base_url)
         except Exception as e:
             return {"ok": False, "error": str(e)}

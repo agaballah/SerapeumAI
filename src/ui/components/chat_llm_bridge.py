@@ -63,17 +63,34 @@ class ChatLLMBridge:
         
         return {"mode": "Mode B", "strict": False, "scope": "local_only", "desc": "Spec/Doc Summary (General)"}
 
-    def get_mode_instructions(self, mode_info: Dict[str, Any]) -> str:
+    def get_mode_instructions(self, mode_info: Dict[str, Any], query: str = "") -> str:
         """
-        Generate system instructions based on classified mode.
+        Generate system instructions based on classified mode using PromptOptimizer.
         
         Args:
             mode_info: Dict with mode, desc, strict, scope keys
+            query: User query string
             
         Returns:
             Instruction string for LLM system prompt
         """
-        mode, desc, strict, scope = mode_info["mode"], mode_info["desc"], mode_info["strict"], mode_info["scope"]
+        mode = mode_info["mode"]
+        
+        # If orchestrator is available, use its optimizer for fortified prompting
+        if hasattr(self.panel, 'orchestrator') and self.panel.orchestrator:
+            try:
+                # Stage 1 prompt from optimizer provides better fortification
+                op = self.panel.orchestrator.optimizer.generate_stage1_prompt(
+                    query=query,
+                    user_role=getattr(self.panel.db, 'user_role', 'general'),
+                    model_name=self.panel.llm.model
+                )
+                return op.full_prompt
+            except Exception as e:
+                logger.warning(f"[ChatLLMBridge] Optimizer failed, using legacy instructions: {e}")
+
+        # Legacy fallback
+        desc, strict, scope = mode_info["desc"], mode_info["strict"], mode_info["scope"]
         instr = f"You are operating in '{mode}: {desc}' mode. "
         if strict:
             instr += "Find and cite EXACT mentions/clauses. DO NOT paraphrase. State clearly if evidence is missing. "

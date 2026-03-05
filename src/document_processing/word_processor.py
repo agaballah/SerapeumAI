@@ -43,11 +43,28 @@ class WordProcessor:
 
                 # tables
                 for table in d.tables:
+                    text_parts.append("[Table]")
                     for row in table.rows:
-                        cells = [(c.text or "").strip() for c in row.cells]
-                        line = "\t".join([c for c in cells if c])
-                        if line.strip():
+                        cells = [(c.text or "").strip().replace('\n', ' ') for c in row.cells]
+                        line = " | ".join(cells)
+                        if line.strip('| '):
                             text_parts.append(line)
+                            
+                # inline images
+                for rel in d.part.rels.values():
+                    if "image" in rel.target_ref:
+                        try:
+                            image_part = rel.target_part
+                            img_path = os.path.join(export_root, f"word_img_{rel.rId}.png")
+                            with open(img_path, "wb") as f:
+                                f.write(image_part.blob)
+                                
+                            from src.vision.ocr_backends import TesseractBackend
+                            ocr_text = TesseractBackend().recognize(img_path, lang_hint="eng")
+                            if ocr_text:
+                                text_parts.append(f"[Image OCR] {ocr_text.strip()}")
+                        except Exception as e:
+                            logger.warning(f"Failed to extract word image: {e}")
 
             except Exception as e:
                 logger.exception("   [WordProcessor] Failed to parse DOCX: %s", rel_path)
@@ -69,11 +86,6 @@ class WordProcessor:
                 continue
             if s_part == last_line:
                 continue
-
-            if current_len + len(s_part) > MAX_DOC_CHARS:
-                logger.warning("   [WordProcessor] Doc %s exceeded %s chars. Truncating.", rel_path, MAX_DOC_CHARS)
-                final_parts.append(f"... [Truncated at {MAX_DOC_CHARS} chars]")
-                break
 
             final_parts.append(s_part)
             current_len += len(s_part)

@@ -23,9 +23,10 @@ Implements:
 import json
 import logging
 import time
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Callable
 from dataclasses import dataclass, asdict
 from enum import Enum
+from src.utils.retry import retry, RetryStrategy, RetryError
 from src.domain.vision.cross_modal_validator import CrossModalValidator
 from src.domain.intelligence.prompt_validator import validate_prompt, sanitize_user_prompt
 from src.infra.telemetry.safety_validator import SafetyValidator
@@ -58,6 +59,7 @@ class DocumentClassification(Enum):
     LEGEND = "legend"
     TITLE_BLOCK = "title_block"
     UNKNOWN = "unknown"
+    EMBEDDED_GRAPHIC = "embedded_graphic"
 
 
 @dataclass
@@ -107,6 +109,7 @@ class AdaptivePromptSelector:
             DocumentClassification.SCHEDULE: "schedule",
             DocumentClassification.SECTION: "section",
             DocumentClassification.DETAIL: "detail",
+            DocumentClassification.EMBEDDED_GRAPHIC: "embedded_graphic",
         }
         
         persona_key = key_map.get(doc_type, "generic")
@@ -307,19 +310,46 @@ class TwoStageVisionEngine:
             logger.warning("Stage1 prompt validation failed: %s", reason)
             user_prompt = sanitize_user_prompt(user_prompt)
 
-        # Call VLM
-        resp = self.llm.chat(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": [
-                    {"type": "text", "text": user_prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{self._load_img_b64(image_path)}"}}
-                ]}
-            ],
-            temperature=0.1,
-            max_tokens=500,
-            task_type="vision"
+        @retry(
+            max_attempts=3,
+            strategy=RetryStrategy.EXPONENTIAL,
+            base_delay=2.0,
+            max_delay=10.0,
+            on_retry=lambda attempt, err: logger.warning(f"Stage 1 retry {attempt}/3: {err}")
         )
+        def _call_vlm():
+            resp = self.llm.chat(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": user_prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{self._load_img_b64(image_path)}"}}
+                    ]}
+                ],
+                temperature=0.1,
+                max_tokens=500,
+                task_type="vision"
+            )
+            if isinstance(resp, dict) and "error" in resp:
+                raise RuntimeError(f"VLM call failed: {resp['error']}")
+            return resp
+
+        try:
+            resp = _call_vlm()
+        except Exception as e:
+            logger.error(f"Stage 1 final failure: {e}")
+            # Fallback values if all retries fail
+            return QuickIdentificationResult(
+                document_type=DocumentClassification.UNKNOWN,
+                sheet_number="N/A",
+                revision="N/A",
+                project_name="N/A",
+                page_context=f"Error: {str(e)}",
+                key_systems=[],
+                confidence=0,
+                extracted_text_snippets=[],
+                raw_response={"error": str(e)}
+            )
         
         content = (resp.get("choices") or [{}])[0].get("message", {}).get("content", "")
         stage1_data = self._parse_stage1_json(content)
@@ -373,19 +403,53 @@ Use these findings to focus your detailed extraction."""
             logger.warning("Stage2 prompt validation failed: %s", reason)
             user_prompt = sanitize_user_prompt(user_prompt)
 
-        # Call VLM
-        resp = self.llm.chat(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": [
-                    {"type": "text", "text": user_prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{self._load_img_b64(image_path)}"}}
-                ]}
-            ],
-            temperature=0.1,
-            max_tokens=2000,
-            task_type="vision"
+        @retry(
+            max_attempts=3,
+            strategy=RetryStrategy.EXPONENTIAL,
+            base_delay=2.0,
+            max_delay=15.0,
+            on_retry=lambda attempt, err: logger.warning(f"Stage 2 retry {attempt}/3: {err}")
         )
+        def _call_vlm_stage2():
+            resp = self.llm.chat(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": user_prompt},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{self._load_img_b64(image_path)}"}}
+                    ]}
+                ],
+                temperature=0.1,
+                max_tokens=2000,
+                task_type="vision"
+            )
+            if isinstance(resp, dict) and "error" in resp:
+                raise RuntimeError(f"VLM Stage 2 failed: {resp['error']}")
+            return resp
+
+        try:
+            resp = _call_vlm_stage2()
+        except Exception as e:
+            logger.error(f"Stage 2 final failure: {e}")
+            # Simplified fallback for stage 2
+            return DetailedExtractionResult(
+                document_identity={
+                    "type": stage1_result.document_type.value,
+                    "sheet_number": stage1_result.sheet_number,
+                    "revision": stage1_result.revision,
+                    "project": stage1_result.project_name
+                },
+                geometric_data=[],
+                technical_systems=[],
+                cross_references=[],
+                specifications=[],
+                notes_and_legends=[f"Error in extraction: {str(e)}"],
+                quality_assessment={
+                    "stage1_confidence": stage1_result.confidence,
+                    "completeness": "failed"
+                },
+                raw_response={"error": str(e)}
+            )
         
         content = (resp.get("choices") or [{}])[0].get("message", {}).get("content", "")
         stage2_data = self._parse_stage2_json(content)

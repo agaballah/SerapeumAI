@@ -73,31 +73,58 @@ class PromptOptimizer:
     """
     
     def __init__(self, db=None, correction_collector=None, confidence_learner=None):
-        """Initialize optimizer with optional services."""
+        """Initialize optimizer with optional services and persona adapters."""
         self.db = db
         self.correction_collector = correction_collector
         self.confidence_learner = confidence_learner
+        
+        # Initialize legacy persona adapters for fortification
+        from src.domain.personas.contractor_adapter import ContractorAdapter
+        from src.domain.personas.owner_adapter import OwnerAdapter
+        from src.domain.personas.pmc_adapter import PMCAdapter
+        from src.domain.personas.technical_consultant_adapter import TechnicalConsultantAdapter
+        
+        self.adapters = {
+            "contractor": ContractorAdapter(),
+            "owner": OwnerAdapter(),
+            "pmc": PMCAdapter(),
+            "technical_consultant": TechnicalConsultantAdapter()
+        }
         
         # Template cache and loader
         from src.domain.templates.loader import get_template_loader
         self.loader = get_template_loader()
         self.templates: Dict[str, PromptTemplate] = {}
         self._initialize_templates()
+
+    def _get_persona_refinement(self, role: str, query: str = "", project_context: Dict = None) -> str:
+        """Get refinement string from legacy adapters."""
+        adapter = self.adapters.get(role.lower())
+        if adapter and hasattr(adapter, "refine"):
+            # Some adapters might not need all args, but we provide them for compatibility
+            return adapter.refine(query, "", project_context or {})
+        return query
+
+    def _get_persona_system_guidance(self, role: str, project_json: str = "") -> str:
+        """Get system-level persona guidance."""
+        adapter = self.adapters.get(role.lower())
+        if adapter and hasattr(adapter, "system_prompt"):
+            return adapter.system_prompt(role, "", project_json)
+        return ""
+
+    def postprocess_result(self, role: str, llm_answer: str, project_context: Dict = None) -> str:
+        """Apply persona-specific post-processing to the LLM answer."""
+        adapter = self.adapters.get(role.lower())
+        if adapter and hasattr(adapter, "postprocess"):
+            return adapter.postprocess(llm_answer, "", project_context or {})
+        return llm_answer
     
     def generate_stage1_prompt(self, 
                               unified_context: str,
                               document_type: str = "unknown",
                               role: str = "general") -> OptimizedPrompt:
         """
-        Generate Stage 1 (classification) prompt.
-        
-        Args:
-            unified_context: Unified context from consolidation service
-            document_type: Document type for better classification
-            role: User role for context-aware classification
-            
-        Returns:
-            OptimizedPrompt with full prompt and metadata
+        Generate Stage 1 (classification) prompt fortified with persona logic.
         """
         template_key = f"stage1_{document_type}_{role}"
         template = self.templates.get(template_key)
@@ -106,9 +133,15 @@ class PromptOptimizer:
             # Fallback to generic template
             template = self.templates.get("stage1_unknown_general", self._default_stage1_template())
         
+        # Fortify with persona-specific system guidance
+        persona_guidance = self._get_persona_system_guidance(role)
+        base_template = template.base_template
+        if persona_guidance:
+            base_template = f"{persona_guidance}\n\n{base_template}"
+
         # Build prompt by substituting template variables
         full_prompt = self._substitute_template(
-            template.base_template,
+            base_template,
             {
                 "unified_context": unified_context,
                 "document_type": document_type,
@@ -125,7 +158,7 @@ class PromptOptimizer:
             document_type=document_type,
             role=role,
             includes_examples=False,
-            dynamic_adjustments=[]
+            dynamic_adjustments=["injected_persona_guidance"] if persona_guidance else []
         )
     
     def generate_stage2_prompt(self,
@@ -136,18 +169,7 @@ class PromptOptimizer:
                               model_name: str = "Qwen2-VL-7B",
                               add_examples: bool = True) -> OptimizedPrompt:
         """
-        Generate Stage 2 (specialized extraction) prompt.
-        
-        Args:
-            unified_context: Unified context from consolidation
-            field_name: Field to extract (e.g., "equipment_name", "system_type")
-            document_type: Document type
-            role: User role
-            model_name: Model that will execute the prompt
-            add_examples: Whether to include few-shot examples
-            
-        Returns:
-            OptimizedPrompt with full prompt and metadata
+        Generate Stage 2 (specialized extraction) prompt fortified with persona logic.
         """
         template_key = f"stage2_{document_type}_{field_name}_{role}"
         template = self.templates.get(template_key)
@@ -160,8 +182,18 @@ class PromptOptimizer:
             # Ultimate fallback
             template = self._default_stage2_template(field_name)
         
-        # Start with base template
-        full_prompt = template.base_template
+        # Start with persona-fortified system guidance
+        persona_guidance = self._get_persona_system_guidance(role)
+        full_prompt = ""
+        if persona_guidance:
+            full_prompt = f"{persona_guidance}\n\n"
+        
+        full_prompt += template.base_template
+        
+        # Apply persona-specific refinement (e.g., adding "Focus on constructability")
+        refinement = self._get_persona_refinement(role)
+        if refinement:
+            full_prompt += f"\n\nAdditional Guidance: {refinement}"
         
         # Apply field guidance if available
         if field_name in template.field_guidance:
@@ -310,6 +342,43 @@ class PromptOptimizer:
         # Stage 1: Classification templates
         self.templates["stage1_unknown_general"] = self._default_stage1_template()
         
+        # Specialist Agent Templates (Stage 2 Style)
+        self.templates["stage2_doc_text"] = PromptTemplate(
+            name="text_agent", stage="stage2", document_type="doc", role="general",
+            base_template="You answer based ONLY on document text. Be factual.",
+            instructions=["Cite specific sections.", "If not in text, say exactly 'No information available'."],
+            examples=[], field_guidance={}, confidence_hints="Report high confidence only if verbatim match."
+        )
+        self.templates["stage2_doc_layout"] = PromptTemplate(
+            name="layout_agent", stage="stage2", document_type="doc", role="general",
+            base_template="You are an AECO spatial reasoning agent. Use OCR and layout cues.",
+            instructions=["Look for table headers.", "Notice spatial relationships (above/below)."],
+            examples=[], field_guidance={}, confidence_hints="Lower confidence if OCR is garbled."
+        )
+        self.templates["stage2_doc_compliance"] = PromptTemplate(
+            name="compliance_agent", stage="stage2", document_type="doc", role="general",
+            base_template="You are a standards/compliance auditor.",
+            instructions=["Check for references to SBC/IBC.", "Flag missing mandatory clauses."],
+            examples=[], field_guidance={}, confidence_hints="Cite specific standard numbers."
+        )
+        self.templates["stage2_meta_synthesis"] = PromptTemplate(
+            name="meta_agent", stage="stage2", document_type="any", role="general",
+            base_template="You are a Meta-Agent Synthesis Engine. Choose the most reliable pieces.",
+            instructions=["Prioritize higher reliability scores.", "Note conflicts clearly."],
+            examples=[], field_guidance={}, confidence_hints="Final synthesis should be engineering-grade."
+        )
+        self.templates["stage2_main_contract"] = PromptTemplate(
+            name="main_contract", stage="stage2", document_type="any", role="general",
+            base_template="You are a World-Class Agentic Brain for AECO. SSOT §7 Strict Chat Protocol.",
+            instructions=[
+                "Answer ONLY from the 'CERTIFIED FACTS' block below. Do NOT invent data.",
+                "If no certified facts are provided, say exactly: 'No certified facts available...'",
+                "Cite each fact used: [Fact <fact_id>].",
+                "If CONFLICTS are flagged, DISCLOSE both values."
+            ],
+            examples=[], field_guidance={}, confidence_hints="Disclose both values if conflicts exist."
+        )
+
         # Stage 2: Extraction templates for common fields
         for field in ["equipment_name", "system_type", "capacity", "material", "location"]:
             self.templates[f"stage2_unknown_{field}_general"] = \

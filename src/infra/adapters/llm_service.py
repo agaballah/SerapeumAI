@@ -95,7 +95,7 @@ class LLMService:
             from src.infra.adapters.lm_studio_service import LMStudioService
             from src.infra.adapters.model_router import ModelRouter
 
-            self.lm_studio = LMStudioService(config)
+            self.lm_studio = LMStudioService(config, db=self.db)
 
             # Router uses global_db for benchmarks/preferences if available, falls back to project db
             target_db = global_db or db

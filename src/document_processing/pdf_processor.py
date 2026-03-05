@@ -82,11 +82,8 @@ class PDFProcessor:
             ]
 
         # [P0-2] OCR Fallback Logic
-        # Check if we have enough native text. If not, we SHOULD try OCR on rendered images.
-        native_text_total = sum(len(p.get("py_text", "")) for p in pages)
-        needs_ocr = native_text_total < 100
-        if needs_ocr:
-            logger.info(f"   [PDFProcessor] Low native text ({native_text_total} chars). Enabling OCR fallback.")
+        # Render all pages or just ones without text? We'll render visually-heavy pages.
+        # But we don't know page is visually heavy without rendering. Let's render all.
 
         # 2) Render page images (optional; requires poppler for pdf2image)
         # If rendering fails, vision can still work for native-text PDFs.
@@ -123,11 +120,12 @@ class PDFProcessor:
                 page_rec["image_path"] = png_path
                 page_rec["has_raster"] = 1
                 
-                # Run OCR if needed
-                if needs_ocr and ocr_engine:
+                # Run OCR if needed per-page (e.g. text < 50 chars)
+                page_text_len = len(page_rec.get("py_text") or "")
+                page_needs_ocr = page_text_len < 100
+                
+                if page_needs_ocr and ocr_engine:
                     try:
-                        # Only OCR if this page didn't have good text? Or just overwrite?
-                        # Fallback means we assume native is bad.
                         page_ocr = ocr_engine.recognize(png_path, lang_hint="eng+ara")
                         if page_ocr and len(page_ocr) > 10:
                             page_rec["ocr_text"] = page_ocr

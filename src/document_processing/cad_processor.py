@@ -47,9 +47,9 @@ class CADProcessor:
                 msp = doc.modelspace()
 
                 # Cap entities to avoid huge payloads during ingestion
-                cap = 5000
+                cap = None
                 for i, e in enumerate(msp):
-                    if i >= cap: break
+                    if cap and i >= cap: break
                     try:
                         etype = e.dxftype()
                         layer = e.dxf.layer if hasattr(e, "dxf") and hasattr(e.dxf, "layer") else "0"

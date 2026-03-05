@@ -20,15 +20,15 @@ class ExcelProcessor:
         structured: List[Dict[str, Any]] = []
 
         # caps to prevent exploding DB/content_text
-        max_rows = 300
-        max_cols = 30
+        max_rows = None
+        max_cols = None
 
         if ext in {".csv", ".tsv"}:
             delimiter = "," if ext == ".csv" else "\t"
             try:
                 with open(abs_path, "r", encoding="utf-8", errors="replace") as f:
                     for i, line in enumerate(f):
-                        if i >= max_rows:
+                        if max_rows and i >= max_rows:
                             break
                         text += line
             except Exception as e:
@@ -37,19 +37,31 @@ class ExcelProcessor:
             try:
                 import openpyxl
 
-                wb = openpyxl.load_workbook(abs_path, read_only=True, data_only=True)
+                wb = openpyxl.load_workbook(abs_path, data_only=True) # Removed read_only to allow image extraction
                 buf = StringIO()
-                for sname in wb.sheetnames[:10]:
+                for sname in wb.sheetnames:
                     ws = wb[sname]
                     buf.write(f"## Sheet: {sname}\n")
+                    
+                    try:
+                        for idx, img in enumerate(getattr(ws, '_images', [])):
+                            img_path = os.path.join(export_root, f"excel_{sname}_img_{idx}.png")
+                            with open(img_path, "wb") as f:
+                                f.write(img._data())
+                            from src.vision.ocr_backends import TesseractBackend
+                            ocr_text = TesseractBackend().recognize(img_path, lang_hint="eng")
+                            if ocr_text:
+                                buf.write(f"[Image OCR] {ocr_text.strip()}\n")
+                    except Exception as e:
+                        pass
 
                     for r_i, row in enumerate(ws.iter_rows(values_only=True), start=1):
-                        if r_i > max_rows:
+                        if max_rows and r_i > max_rows:
                             buf.write("... (row cap reached)\n")
                             break
                         vals = []
                         for c_i, v in enumerate(row, start=1):
-                            if c_i > max_cols:
+                            if max_cols and c_i > max_cols:
                                 break
                             if v is None:
                                 vals.append("")

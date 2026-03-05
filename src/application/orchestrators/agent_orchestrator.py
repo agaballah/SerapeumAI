@@ -58,13 +58,38 @@ class AgentOrchestrator:
         self.fact_repo = FactRepository(db)
 
         # SSOT Enforcement Layer
+        from src.infra.telemetry.metrics_collector import MetricsCollector
+        self.metrics = MetricsCollector(db)
         self.coverage_gate = CoverageGate(db)
         self.fact_api = FactQueryAPI(db)
+        
+        # Integration Phase logic: Confidence Learning
+        from src.domain.intelligence.confidence_learner import ConfidenceLearner
+        from src.domain.intelligence.prompt_optimizer import PromptOptimizer
+        self.confidence_learner = ConfidenceLearner(db)
+        self.optimizer = PromptOptimizer(db=db, confidence_learner=self.confidence_learner)
 
         # Artifact Folder
         import os
         artifact_root = os.path.join(db.root_dir, ".serapeum", "artifacts")
         self.artifact_service = ArtifactService(output_dir=artifact_root)
+
+        # Semantic Tools (Fortification Phase)
+        from src.tools.bim_query_tool import BIMQueryTool
+        from src.tools.schedule_query_tool import ScheduleQueryTool
+        from src.tools.calculator_tool import CalculatorTool
+        from src.tools.n8n_tool import N8NTool
+        from src.infra.config.configuration_manager import get_config
+        
+        config = get_config()
+        n8n_url = (config.get_section("n8n") or {}).get("webhook_url", "")
+
+        self.tools = {
+            "query_bim": BIMQueryTool(db),
+            "query_schedule": ScheduleQueryTool(db),
+            "calculator": CalculatorTool(),
+            "n8n_workflow": N8NTool(n8n_url)
+        }
 
         # Deep Thinking Agent (for complex multi-step queries)
         try:
@@ -174,32 +199,29 @@ class AgentOrchestrator:
                 pass
 
         # ── Step 5: LLM narrates from certified-facts context only ────────
-        contract_prompt = (
-            "You are a World-Class Agentic Brain for AECO.\n"
-            f"as_of snapshot: {snapshot_id or 'latest'}\n"
-            "STRICT BEHAVIOR CONTRACT (SSOT §7):\n"
-            "1. Answer ONLY from the 'CERTIFIED FACTS' block below. Do NOT invent data.\n"
-            "2. If no certified facts are provided, say exactly: "
-               "'No certified facts available for this query in the current snapshot.'\n"
-            "3. Cite each fact used: [Fact <fact_id>].\n"
-            "4. If CONFLICTS are flagged, DISCLOSE both values — never choose silently.\n"
-            "5. Respect the user's format exactly. No extra boilerplate.\n"
-            "\nOUTPUT FORMAT (JSON):\n"
-            "{\n"
-            "  'thinking': 'step-by-step reasoning',\n"
-            "  'answer': 'final answer (markdown)',\n"
-            "  'citations': [{'source': '...', 'quote': '...'}],\n"
-            "  'compliance_status': '',\n"
-            "  'suggested_actions': []\n"
-            "}\n"
-            + conflict_notice
-        )
-
+        # ── Step 5: LLM narrates from certified-facts context only ────────
         certified_block = (
             fact_context or
             (f"[RAG Discovery Context — not certified]\n{rag_context}" if rag_context else
              "[No certified facts found in this snapshot]")
         )
+
+        # Fortified SSOT Contract via Optimizer
+        # Resolve user role from DB if available, default to general
+        user_role = getattr(self.db, 'user_role', 'general')
+        
+        op = self.optimizer.generate_stage2_prompt(
+            unified_context=certified_block,
+            field_name="main_contract",
+            document_type="any",
+            role=user_role,
+            model_name=self.llm.model
+        )
+        
+        contract_prompt = op.full_prompt
+        if conflict_notice:
+            contract_prompt += f"\n\n{conflict_notice}"
+
         user_prompt = (
             f"USER INSTRUCTION: {query}\n\n"
             f"CERTIFIED FACTS:\n{certified_block}"
@@ -422,21 +444,39 @@ class AgentOrchestrator:
         except Exception as e:
             return f"Error during synthesis: {str(e)}"
 
+    def _get_tool_schemas(self) -> str:
+        """Collate tool schemas for prompt injection."""
+        schemas = {}
+        for name, tool in self.tools.items():
+            schemas[name] = {
+                "description": tool.description,
+                "parameters": tool.get_parameters_schema()
+            }
+        return json.dumps(schemas, indent=2)
+
     # ------------------------------------------------------------------
     # TEXT AGENT
     # ------------------------------------------------------------------
 
     def _text_agent(self, doc_id: str, query: str) -> Dict[str, Any]:
+        start_ts = time.time()
         payload = self.db.get_document_payload(doc_id)
         text = payload.get("text") or ""
 
-        sys = (
-            "You answer based ONLY on document text. "
-            "Be factual. Return JSON: {\"answer\": \"...\", \"confidence\": 0..1}"
+        # Using Optimizer for Fortified Prompting
+        op = self.optimizer.generate_stage2_prompt(
+            unified_context=text[:6000],
+            field_name="text",
+            document_type="doc",
+            role="general",
+            model_name=self.llm.model
         )
-        user = f"QUERY:\n{query}\n\nTEXT:\n{text[:6000]}"
+        
+        # Inject tool schemas manually as PromptOptimizer currently formats instructions separately
+        full_sys = f"{op.full_prompt}\nYou also have access to: {self._get_tool_schemas()}"
 
-        out = self.llm.chat_json(system=sys, user=user)
+        out = self.llm.chat_json(system=full_sys, user=f"QUERY:\n{query}")
+        self.metrics.record_latency("agent_text", time.time() - start_ts)
         return {"source": "text", "data": out}
 
     # ------------------------------------------------------------------
@@ -444,6 +484,7 @@ class AgentOrchestrator:
     # ------------------------------------------------------------------
 
     def _layout_agent(self, doc_id: str, query: str) -> Dict[str, Any]:
+        start_ts = time.time()
         payload = self.db.get_document_payload(doc_id)
         pages = payload.get("pages") or []
 
@@ -453,14 +494,18 @@ class AgentOrchestrator:
             if t:
                 snippets.append(t[:1000])
 
-        sys = (
-            "You are an AECO spatial reasoning agent. "
-            "Use OCR and layout cues. "
-            "Return JSON: {\"analysis\": \"...\", \"confidence\": 0..1}"
+        op = self.optimizer.generate_stage2_prompt(
+            unified_context="\n\n".join(snippets[:8]),
+            field_name="layout",
+            document_type="doc",
+            role="general",
+            model_name=self.llm.model
         )
-        user = f"QUERY:\n{query}\n\nOCR SNIPPETS:\n" + "\n\n".join(snippets[:8])
+        
+        full_sys = f"{op.full_prompt}\nYou also have access to: {self._get_tool_schemas()}"
 
-        out = self.llm.chat_json(system=sys, user=user)
+        out = self.llm.chat_json(system=full_sys, user=f"QUERY:\n{query}")
+        self.metrics.record_latency("agent_layout", time.time() - start_ts)
         return {"source": "layout", "data": out}
 
     # ------------------------------------------------------------------
@@ -468,20 +513,22 @@ class AgentOrchestrator:
     # ------------------------------------------------------------------
 
     def _compliance_agent(self, doc_id: str, query: str) -> Dict[str, Any]:
+        start_ts = time.time()
         comp = self.db.get_compliance(doc_id) or {}
         issues = comp.get("gaps") or []
         refs = comp.get("references") or []
 
-        sys = (
-            "You are a standards/compliance agent. "
-            "Return JSON: {\"compliance\": \"...\", \"confidence\": 0..1}"
+        context = json.dumps({"refs": refs, "gaps": issues}, ensure_ascii=False)
+        op = self.optimizer.generate_stage2_prompt(
+            unified_context=context,
+            field_name="compliance",
+            document_type="doc",
+            role="general",
+            model_name=self.llm.model
         )
 
-        user = f"QUERY:\n{query}\n\nCOMPLIANCE DATA:\n" + json.dumps(
-            {"refs": refs, "gaps": issues}, ensure_ascii=False
-        )
-
-        out = self.llm.chat_json(system=sys, user=user)
+        out = self.llm.chat_json(system=op.full_prompt, user=f"QUERY:\n{query}")
+        self.metrics.record_latency("agent_compliance", time.time() - start_ts)
         return {"source": "compliance", "data": out}
 
     # ------------------------------------------------------------------
@@ -495,22 +542,38 @@ class AgentOrchestrator:
         layout_ans: Dict[str, Any],
         comp_ans: Dict[str, Any],
     ) -> Dict[str, Any]:
+        start_ts = time.time()
+        
+        # Integration Phase logic: Use ConfidenceLearner to weight inputs
+        agent_data = {
+            "text": text_ans,
+            "layout": layout_ans,
+            "compliance": comp_ans
+        }
+        
+        reliability_weighted_inputs = {}
+        for source, ans in agent_data.items():
+            reported_conf = (ans.get("data") or {}).get("confidence", 0.5)
+            learned_score = self.confidence_learner.compute_learned_confidence(
+                field_name=source,
+                model_name=self.llm.model,
+                vlm_reported_confidence=reported_conf
+            )
+            reliability_weighted_inputs[source] = {
+                "answer": ans.get("data"),
+                "reliability_score": learned_score.learned_confidence,
+                "confidence_level": learned_score.confidence_level,
+                "uncertainty_factors": learned_score.uncertainty_factors
+            }
 
-        sys = (
-            "You merge answers from three agents (text, layout, compliance). "
-            "Choose the most reliable pieces. "
-            "Return: {\"final_answer\": \"...\", \"source\": \"text|layout|compliance\", \"confidence\": 0..1}"
+        op = self.optimizer.generate_stage2_prompt(
+            unified_context=json.dumps(reliability_weighted_inputs, indent=2),
+            field_name="meta_synthesis",
+            document_type="any",
+            role="general",
+            model_name=self.llm.model
         )
 
-        user = json.dumps(
-            {
-                "query": query,
-                "text_agent": text_ans,
-                "layout_agent": layout_ans,
-                "compliance_agent": comp_ans,
-            },
-            ensure_ascii=False,
-        )
-
-        out = self.llm.chat_json(system=sys, user=user)
+        out = self.llm.chat_json(system=op.full_prompt, user=f"QUERY:\n{query}")
+        self.metrics.record_latency("agent_meta", time.time() - start_ts)
         return out or {"final_answer": "", "source": "none", "confidence": 0.0}

@@ -461,6 +461,13 @@ class ConfigurationManager:
         Switch active project override layer to:
             <PROJECT_ROOT>/.serapeum/config.yaml
         """
+        # Close any lingering connections from the old project
+        try:
+            from src.infra.persistence.database_manager import DatabaseManager
+            DatabaseManager.close_all_instances()
+        except ImportError:
+            pass
+
         proj = Path(project_root).resolve()
         self.project_root = proj
         self._project_override_path = self._ensure_project_override_file(proj)
@@ -470,6 +477,13 @@ class ConfigurationManager:
         """
         Disable project override layer.
         """
+        # Close any lingering connections
+        try:
+            from src.infra.persistence.database_manager import DatabaseManager
+            DatabaseManager.close_all_instances()
+        except ImportError:
+            pass
+
         self.project_root = None
         self._project_override_path = None
         self._reload_layers()

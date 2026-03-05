@@ -20,18 +20,49 @@ class PPTProcessor:
         if ext == ".pptx":
             try:
                 from pptx import Presentation
+                from pptx.enum.shapes import MSO_SHAPE_TYPE
 
                 prs = Presentation(abs_path)
                 for i, slide in enumerate(prs.slides):
                     parts: List[str] = []
+                    
+                    if slide.shapes.title and slide.shapes.title.text:
+                        parts.append(f"[Title] {slide.shapes.title.text.strip()}")
+
                     for shape in slide.shapes:
                         try:
-                            if hasattr(shape, "text") and shape.text:
+                            if shape == slide.shapes.title:
+                                continue
+                                
+                            if shape.shape_type == MSO_SHAPE_TYPE.TABLE:
+                                parts.append("[Table]")
+                                for row in shape.table.rows:
+                                    row_data = [cell.text.strip().replace('\n', ' ') for cell in row.cells]
+                                    parts.append(" | ".join(row_data))
+                            elif hasattr(shape, "text") and shape.text:
                                 t = str(shape.text).strip()
                                 if t:
-                                    parts.append(t)
+                                    parts.append(f"[Body] {t}")
+                            elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+                                try:
+                                    image_bytes = shape.image.blob
+                                    img_path = os.path.join(export_root, f"slide_{i}_img_{shape.shape_id}.png")
+                                    with open(img_path, "wb") as f:
+                                        f.write(image_bytes)
+                                    from src.vision.ocr_backends import TesseractBackend
+                                    ocr_text = TesseractBackend().recognize(img_path, lang_hint="eng")
+                                    if ocr_text:
+                                        parts.append(f"[Image OCR] {ocr_text.strip()}")
+                                except Exception:
+                                    pass
                         except Exception:
                             continue
+                            
+                    if slide.has_notes_slide and slide.notes_slide.notes_text_frame.text:
+                        notes = slide.notes_slide.notes_text_frame.text.strip()
+                        if notes:
+                            parts.append(f"[Speaker Notes] {notes}")
+
                     slide_text = "\n".join(parts).strip()
                     if slide_text:
                         full_text_parts.append(slide_text)
