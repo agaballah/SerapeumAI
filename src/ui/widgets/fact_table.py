@@ -2,36 +2,37 @@
 import customtkinter as ctk
 from tkinter import ttk
 import tkinter as tk
+from src.ui.styles.theme import Theme
 
 class FactTable(ctk.CTkFrame):
     def __init__(self, parent, db_window):
-        super().__init__(parent)
+        super().__init__(parent, fg_color=Theme.BG_DARKER, corner_radius=0)
         self.db = db_window
         
         # Style Treeview
         style = ttk.Style()
         style.theme_use("clam")
         
-        # Dark Mode Colors
-        bg_color = "#2b2b2b"
-        fg_color = "#DCE4EE"
-        hl_color = "#1f6aa5"
+        # Noir Mode Colors
+        bg_color = Theme.BG_DARKER
+        fg_color = Theme.TEXT_MAIN
+        hl_color = Theme.PRIMARY
         
         style.configure("Treeview", 
                         background=bg_color, 
                         foreground=fg_color, 
                         fieldbackground=bg_color, 
-                        bordercolor="#2b2b2b", 
+                        bordercolor=bg_color, 
                         borderwidth=0,
-                        font=("Arial", 11))
+                        font=Theme.FONT_BODY)
                         
         style.map("Treeview", background=[("selected", hl_color)], foreground=[("selected", "#ffffff")])
         
         style.configure("Treeview.Heading", 
-                        background="#343638", 
-                        foreground="#ffffff", 
+                        background=Theme.BG_DARK, 
+                        foreground=Theme.TEXT_MAIN, 
                         relief="flat",
-                        font=("Arial", 12, "bold"))
+                        font=Theme.FONT_H3)
         
         # Columns
         columns = ("fact_id", "type", "subject", "value", "status")
@@ -89,15 +90,15 @@ class FactTable(ctk.CTkFrame):
         if not self.db or self.is_loading: return
         self.is_loading = True
         
-        import threading
-        threading.Thread(target=self._query_and_populate, daemon=True).start()
-
-    def _query_and_populate(self):
-        # Get filter from controller (MainApp)
+        # Fetch filter from controller (MainApp) on MAIN THREAD
         snapshot_date = "Current"
         if hasattr(self.master, 'controller'):
              snapshot_date = self.master.controller.combo_snapshot.get()
-             
+
+        import threading
+        threading.Thread(target=self._query_and_populate, args=(snapshot_date,), daemon=True).start()
+
+    def _query_and_populate(self, snapshot_date):
         query = """
             SELECT fact_id, fact_type, subject_id, 
                    COALESCE(value_text, CAST(value_num AS TEXT), value_json) as val, 

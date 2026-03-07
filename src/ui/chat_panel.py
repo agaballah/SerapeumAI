@@ -28,16 +28,10 @@ from typing import Dict, Any, List, Optional, Callable
 import tkinter as tk
 from tkinter import ttk as tk_ttk, messagebox
 
-# Attempt to import ttkbootstrap for nicer widgets; fallback to plain tkinter.
+from tkinter import ttk
+ScrolledText = tk.Text
+
 _USING_TTKBOOTSTRAP = False
-try:
-    import ttkbootstrap as ttk  # type: ignore
-    from ttkbootstrap.constants import *  # noqa: F403
-    from ttkbootstrap.widgets.scrolled import ScrolledText  # type: ignore
-    _USING_TTKBOOTSTRAP = True
-except ImportError:
-    ttk = tk_ttk  # type: ignore
-    ScrolledText = tk.Text  # Fallback
 
 logger = logging.getLogger(__name__)
 

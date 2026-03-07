@@ -1,9 +1,9 @@
-
 import os
 import sys
 import threading
 import logging
 import customtkinter as ctk
+import tkinter as tk
 from typing import Optional
 
 # Config
@@ -38,21 +38,21 @@ from src.ui.pages.truth_map_page import TruthMapPage
 
 from src.utils.hardening import safe_ui_command
 
+from src.ui.styles.theme import Theme
+
 logger = logging.getLogger(__name__)
 
-ctk.set_appearance_mode("Dark")
-ctk.set_default_color_theme("blue")
+Theme.apply_to_all()
 
 class MainApp(ctk.CTk):
     def __init__(self, root_dir: str = None):
         super().__init__()
-        
-        # Force theme again to ensure all late-loading widgets comply
-        ctk.set_appearance_mode("Dark")
-        
-        self.title("Serapeum V02 | Engineering Truth Engine")
+        self.title("Serapeum AI | Engineering Truth Engine")
         self.geometry("1400x900")
-        self.configure(fg_color="#1e1e1e") # Deep dark root
+        
+        # Absolute Nuclear Hardening
+        self.configure(bg=Theme.BG_DARKEST)
+        ctk.set_appearance_mode("dark")
         
         # State
         self.config = get_config()
@@ -90,12 +90,15 @@ class MainApp(ctk.CTk):
              self._open_project_dialog()
 
     def _build_sidebar(self):
-        self.frame_sidebar = ctk.CTkFrame(self, width=200, corner_radius=0, fg_color="#121212") # Very dark sidebar
+        self.frame_sidebar = ctk.CTkFrame(self, width=220, corner_radius=0, fg_color=Theme.BG_DARKER, border_width=0)
         self.frame_sidebar.grid(row=0, column=0, sticky="nsew")
-        self.frame_sidebar.grid_rowconfigure(10, weight=1) # Push status to bottom
+        self.frame_sidebar.grid_rowconfigure(10, weight=1)
         
-        self.lbl_logo = ctk.CTkLabel(self.frame_sidebar, text="SERAPEUM", font=("Arial", 24, "bold"), text_color="#DCE4EE", fg_color="transparent")
-        self.lbl_logo.grid(row=0, column=0, padx=20, pady=(20, 10))
+        # Logo using standard tk.Label to bypass CTK white-box bug
+        self.lbl_logo = tk.Label(self.frame_sidebar, text="SERAPEUM", font=Theme.FONT_H1, 
+                                 fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKER, 
+                                 padx=0, pady=0, borderwidth=0, highlightthickness=0)
+        self.lbl_logo.grid(row=0, column=0, padx=20, pady=(30, 20))
         
         self.btn_dashboard = self._nav_btn("🏠 Dashboard", "dashboard", 1)
         self.btn_facts = self._nav_btn("🏛️ Facts", "facts", 2)
@@ -105,34 +108,56 @@ class MainApp(ctk.CTk):
         self.btn_truth_map = self._nav_btn("🌐 Truth Map", "truth_map", 6)
         
         # Primary Action
-        self.lbl_snapshot = ctk.CTkLabel(self.frame_sidebar, text="Snapshot (As-Of)", anchor="w", text_color="#DCE4EE", fg_color="transparent")
+        self.lbl_snapshot = tk.Label(self.frame_sidebar, text="Snapshot (As-Of)", anchor="w", 
+                                     fg=Theme.TEXT_MUTED, bg=Theme.BG_DARKER, font=Theme.FONT_BODY,
+                                     borderwidth=0, highlightthickness=0)
         self.lbl_snapshot.grid(row=6, column=0, padx=20, pady=(20, 0), sticky="w")
         
-        self.combo_snapshot = ctk.CTkComboBox(self.frame_sidebar, values=["Current"], command=self._on_snapshot_change)
+        self.combo_snapshot = ctk.CTkComboBox(self.frame_sidebar, values=["Current"], command=self._on_snapshot_change, 
+                                            fg_color=Theme.BG_DARKEST, 
+                                            bg_color=Theme.BG_DARKER,
+                                            border_color=Theme.BG_DARK,
+                                            button_color=Theme.BG_DARK, button_hover_color=Theme.ACCENT)
         self.combo_snapshot.grid(row=7, column=0, padx=20, pady=(5, 10), sticky="ew")
         
-        # Helper frame for buttons to stack them nicely
-        self.frame_actions = ctk.CTkFrame(self.frame_sidebar, fg_color="transparent")
+        # Helper frame for buttons
+        self.frame_actions = ctk.CTkFrame(self.frame_sidebar, fg_color=Theme.BG_DARKER, bg_color=Theme.BG_DARKER)
         self.frame_actions.grid(row=8, column=0, sticky="ew", padx=0)
         
-        self.btn_sync = ctk.CTkButton(self.frame_actions, text="⚡ Sync Project", command=self._run_full_scan)
-        # self.btn_sync.pack... (Packed on load)
+        self.btn_sync = ctk.CTkButton(self.frame_actions, text="⚡ Sync Project", 
+                                    fg_color=Theme.PRIMARY, hover_color=Theme.ACCENT,
+                                    bg_color=Theme.BG_DARKER,
+                                    command=self._run_full_scan)
         
-        self.switch_auto = ctk.CTkSwitch(self.frame_actions, text="Auto-Ingest")
+        self.switch_auto = ctk.CTkSwitch(self.frame_actions, text="Auto-Ingest", 
+                                        fg_color=Theme.BG_DARKER, 
+                                        bg_color=Theme.BG_DARKER,
+                                        progress_color=Theme.PRIMARY)
         
-        self.btn_close = ctk.CTkButton(self.frame_actions, text="Close Project", fg_color="firebrick", command=self._close_project)
+        self.btn_close = ctk.CTkButton(self.frame_actions, text="Close Project", 
+                                     fg_color="#991B1B", hover_color="#7F1D1D", 
+                                     bg_color=Theme.BG_DARKER,
+                                     command=self._close_project)
         
         # Bottom Status
-        self.lbl_status = ctk.CTkLabel(self.frame_sidebar, text="Not Loaded", text_color="gray")
+        self.lbl_status = tk.Label(self.frame_sidebar, text="Not Loaded", 
+                                   fg=Theme.TEXT_MUTED, bg=Theme.BG_DARKER,
+                                   borderwidth=0, highlightthickness=0)
         self.lbl_status.grid(row=10, column=0, padx=20, pady=10)
 
     def _nav_btn(self, text, page_name, row):
-        btn = ctk.CTkButton(self.frame_sidebar, text=text, command=lambda: self.show_page(page_name), fg_color="transparent", border_width=2, text_color="#DCE4EE")
-        btn.grid(row=row, column=0, padx=20, pady=10, sticky="ew")
+        # We explicitly set fg_color AND bg_color to match the sidebar frame hex
+        btn = ctk.CTkButton(self.frame_sidebar, text=text, command=lambda: self.show_page(page_name), 
+                           fg_color=Theme.BG_DARKER, 
+                           bg_color=Theme.BG_DARKER,
+                           border_width=1, border_color=Theme.BG_DARK,
+                           text_color=Theme.TEXT_MAIN, hover_color=Theme.BG_DARK, font=Theme.FONT_BODY,
+                           anchor="w")
+        btn.grid(row=row, column=0, padx=15, pady=3, sticky="ew")
         return btn
 
     def _build_content_area(self):
-        self.frame_content = ctk.CTkFrame(self, corner_radius=0, fg_color="#1e1e1e") # Content root
+        self.frame_content = ctk.CTkFrame(self, corner_radius=0, fg_color=Theme.BG_DARKEST)
         self.frame_content.grid(row=0, column=1, sticky="nsew")
         self.frame_content.grid_columnconfigure(0, weight=1)
         self.frame_content.grid_rowconfigure(0, weight=1)
@@ -147,6 +172,7 @@ class MainApp(ctk.CTk):
         
         for p in self.pages.values():
             p.grid(row=0, column=0, sticky="nsew")
+            p.configure(fg_color=Theme.BG_DARKEST) # Explicit enforcement
         
         self.show_page("dashboard")
 
@@ -174,7 +200,7 @@ class MainApp(ctk.CTk):
     @safe_ui_command("Project Sync Error")
     def _run_full_scan(self):
         if not self.project_root: return
-        self.lbl_status.configure(text="Scanning...", text_color="orange")
+        self.lbl_status.configure(text="Scanning...", fg="orange")
         
         # Background Thread for Walking
         def _scan():
@@ -191,7 +217,7 @@ class MainApp(ctk.CTk):
                         self.job_manager.submit(job)
                         count += 1
             
-            self.lbl_status.configure(text=f"Queued {count} files", text_color="green")
+            self.after(0, lambda: self.lbl_status.configure(text=f"Queued {count} files", fg="green"))
             # Trigger dashboard refresh
             self.after(2000, lambda: self.pages["dashboard"].on_show())
             
@@ -233,7 +259,7 @@ class MainApp(ctk.CTk):
                 rag=self.rag_service
             )
             
-            self.lbl_status.configure(text=f"Project: {self.active_project_id}", text_color="green")
+            self.lbl_status.configure(text=f"Project: {self.active_project_id}", fg="green")
             
             # Show Controls
             self.btn_sync.pack(pady=5, padx=20, fill="x")
@@ -253,7 +279,8 @@ class MainApp(ctk.CTk):
             for page in self.pages.values():
                 page.controller = self # Refresh ref
                 if hasattr(page, 'db'): page.db = self.db # Deprecated but safe
-                if hasattr(page, 'on_show'): page.on_show()
+                if hasattr(page, 'on_show'): 
+                    self.after(0, page.on_show)
                 
             print(f"Project Loaded: {self.active_project_id}")
             if self.switch_auto.get() == 1:
@@ -261,7 +288,7 @@ class MainApp(ctk.CTk):
             
         except Exception as e:
             print(f"Error loading project: {e}")
-            self.lbl_status.configure(text="Error Loading Project", text_color="red")
+            self.lbl_status.configure(text="Error Loading Project", fg="red")
             print(f"Error: {e}")
 
     def _close_project(self):

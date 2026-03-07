@@ -8,18 +8,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox
 
-try:
-    import ttkbootstrap as ttk  # type: ignore
-    _HAS_TTKB = True
-except ImportError:
-    from tkinter import ttk  # type: ignore
-    _HAS_TTKB = False
-
-
-def _kw(**kwargs):
-    if not _HAS_TTKB:
-        kwargs.pop("bootstyle", None)
-    return kwargs
+from tkinter import ttk
 
 
 from src.infra.config.configuration_manager import get_config
@@ -72,8 +61,8 @@ class SettingsDialog(tk.Toplevel):
         btn_frame = ttk.Frame(main, padding=(10, 0, 10, 10))  # type: ignore[attr-defined]
         btn_frame.pack(fill=tk.X)
 
-        ttk.Button(btn_frame, text="Save", command=self._save, **_kw(bootstyle="success")).pack(side=tk.RIGHT, padx=5)
-        ttk.Button(btn_frame, text="Cancel", command=self.destroy, **_kw(bootstyle="secondary")).pack(side=tk.RIGHT)
+        ttk.Button(btn_frame, text="Save", command=self._save).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(btn_frame, text="Cancel", command=self.destroy).pack(side=tk.RIGHT)
 
     def _build_general_tab(self):
         tab = ttk.Frame(self.notebook, padding=20)  # type: ignore[attr-defined]
@@ -132,8 +121,7 @@ class SettingsDialog(tk.Toplevel):
             enable_frame,
             text="Enable LM Studio Integration",
             variable=self.lm_studio_enabled,
-            command=self._toggle_lm_studio,
-            **_kw(bootstyle="success-round-toggle"),
+            command=self._toggle_lm_studio
         ).pack(side=tk.LEFT)
 
         conn_frame = ttk.Labelframe(tab, text="Connection", padding=15)  # type: ignore[attr-defined]
@@ -143,7 +131,7 @@ class SettingsDialog(tk.Toplevel):
         row1.pack(fill=tk.X, pady=5)
         ttk.Label(row1, text="Server URL:", width=15).pack(side=tk.LEFT)
         ttk.Entry(row1, textvariable=self.lm_studio_url, width=40).pack(side=tk.LEFT, padx=5)
-        ttk.Button(row1, text="Test", command=self._test_lm_studio, **_kw(bootstyle="info-outline")).pack(side=tk.LEFT, padx=5)
+        ttk.Button(row1, text="Test", command=self._test_lm_studio).pack(side=tk.LEFT, padx=5)
 
         status_frame = ttk.Frame(tab)  # type: ignore[attr-defined]
         status_frame.pack(fill=tk.X, pady=(10, 0))
@@ -228,7 +216,7 @@ class SettingsDialog(tk.Toplevel):
                     var = tk.BooleanVar(value=(role, disc, domain) in existing_policies)
                     self.governance_vars[(role, disc, domain)] = var
                     
-                    cb = ttk.Checkbutton(matrix_frame, variable=var, **_kw(bootstyle="round-toggle"))
+                    cb = ttk.Checkbutton(matrix_frame, variable=var)
                     cb.grid(row=row_idx, column=col_idx+1, padx=5, pady=2)
                 
                 row_idx += 1

@@ -1,17 +1,14 @@
-# -*- coding: utf-8 -*-
-"""
-artifact_panel.py — Displays structured outputs (reports, tables, code)
----------------------------------------------------------------------
-"""
+import customtkinter as ctk
 import tkinter as tk
-from tkinter import ttk
-import os # Added for path operations
-import platform # Added for platform detection
-import subprocess # Added for external process calls
+from typing import Optional, List
+import os 
+import platform 
+import subprocess 
+from src.ui.styles.theme import Theme
 
-class ArtifactPanel(ttk.Frame):
+class ArtifactPanel(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+        super().__init__(parent, fg_color=Theme.BG_DARKEST, corner_radius=0)
         self.current_path = None
         self.artifacts_list = [] # List of {title, path, type}
         
@@ -20,10 +17,11 @@ class ArtifactPanel(ttk.Frame):
         self.paned.pack(fill="both", expand=True)
 
         # 1. Left Sidebar (Artifact List)
-        self.sidebar = ttk.Frame(self.paned, width=250, padding=5)
-        self.paned.add(self.sidebar, weight=1)
-
-        ttk.Label(self.sidebar, text="📂 Project Deliverables", font=("Segoe UI", 10, "bold")).pack(fill="x", pady=(0, 5))
+        self.sidebar = ctk.CTkFrame(self, width=250, fg_color=Theme.BG_DARKER, corner_radius=0)
+        self.sidebar.pack(side="left", fill="y")
+        
+        tk.Label(self.sidebar, text="📜 History", font=Theme.FONT_H3, 
+                 fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKER).pack(pady=15, padx=10)
         
         self.listbox = tk.Listbox(
             self.sidebar, 
@@ -36,33 +34,36 @@ class ArtifactPanel(ttk.Frame):
         self.listbox.bind("<<ListboxSelect>>", self._on_artifact_select)
 
         # 2. Right Pane (Preview & Controls)
-        self.main_pane = ttk.Frame(self.paned, padding=5)
-        self.paned.add(self.main_pane, weight=4)
+        self.main_pane = ctk.CTkFrame(self, fg_color=Theme.BG_DARKEST, corner_radius=0)
+        self.main_pane.pack(side="right", fill="both", expand=True)
 
         # Header with Controls
-        self.header = ttk.Frame(self.main_pane)
-        self.header.pack(fill="x", pady=(0, 5))
+        self.header = ctk.CTkFrame(self.main_pane, fg_color=Theme.BG_DARKEST)
+        self.header.pack(fill="x", pady=15, padx=20)
         
-        self.lbl_title = ttk.Label(self.header, text="Preview", font=("Segoe UI", 11, "bold"))
+        self.lbl_title = tk.Label(self.header, text="Preview", font=Theme.FONT_H2, 
+                                  fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKEST)
         self.lbl_title.pack(side="left")
 
         # Actions
-        self.btn_reveal = ttk.Button(self.header, text="📁 Reveal", command=self._reveal_in_explorer, state="disabled", bootstyle="outline")
-        self.btn_reveal.pack(side="right", padx=2)
+        self.btn_reveal = ctk.CTkButton(self.header, text="📁 Reveal", width=100, command=self._reveal_in_explorer, state="disabled")
+        self.btn_reveal.pack(side="right", padx=10)
         
-        self.btn_open = ttk.Button(self.header, text="📖 Open", command=self._open_file, state="disabled", bootstyle="outline")
-        self.btn_open.pack(side="right", padx=2)
+        self.btn_open = ctk.CTkButton(self.header, text="📖 Open", width=100, command=self._open_file, state="disabled")
+        self.btn_open.pack(side="right", padx=10)
 
         # Content Area
+        import tkinter as tk
         self.text_area = tk.Text(
             self.main_pane,
             wrap="word",
-            font=("Consolas", 10),
-            bg="#1e1e1e",
-            fg="#d4d4d4",
+            font=Theme.FONT_MONO,
+            bg=Theme.BG_DARKEST,
+            fg=Theme.TEXT_MAIN,
             insertbackground="white",
             state="disabled",
-            padx=10, pady=10
+            padx=20, pady=20,
+            borderwidth=0, highlightthickness=0
         )
         self.text_area.pack(fill="both", expand=True)
         

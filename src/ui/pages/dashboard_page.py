@@ -1,7 +1,11 @@
 import os
+import logging
 import customtkinter as ctk
+import tkinter as tk
 from src.ui.pages.base_page import BasePage
-from src.ui.widgets.fact_table import FactTable
+from src.ui.styles.theme import Theme
+
+logger = logging.getLogger(__name__)
 
 class DashboardPage(BasePage):
     def __init__(self, parent, controller):
@@ -11,36 +15,62 @@ class DashboardPage(BasePage):
         self.grid_rowconfigure(0, weight=1)
         
         # Main Scrollable Body
-        self.scroll_body = ctk.CTkScrollableFrame(self, fg_color="#1e1e1e", bg_color="#1e1e1e")
+        self.scroll_body = ctk.CTkScrollableFrame(self, fg_color=Theme.BG_DARKEST, bg_color=Theme.BG_DARKEST)
         self.scroll_body.grid(row=0, column=0, sticky="nsew")
         self.scroll_body.grid_columnconfigure(0, weight=1)
         
-        # Header
-        self.lbl_title = ctk.CTkLabel(self.scroll_body, text="Project Dashboard", font=("Arial", 28, "bold"), text_color="#DCE4EE", fg_color="transparent")
-        self.lbl_title.grid(row=0, column=0, pady=(30, 10), padx=30, sticky="w")
+        # Header Section
+        self.frame_header = ctk.CTkFrame(self.scroll_body, fg_color=Theme.BG_DARKEST)
+        self.frame_header.grid(row=0, column=0, pady=(40, 20), padx=40, sticky="ew")
         
-        # Stats Cards
-        self.frame_stats = ctk.CTkFrame(self.scroll_body, fg_color="#2b2b2b", corner_radius=15, border_width=1, border_color="#333333")
-        self.frame_stats.grid(row=1, column=0, sticky="ew", padx=30, pady=20)
+        self.lbl_title = tk.Label(self.frame_header, text="Project Intelligence Dashboard", 
+                                  font=Theme.FONT_H1, fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKEST,
+                                  borderwidth=0, highlightthickness=0)
+        self.lbl_title.pack(side="left")
         
-        self.lbl_files = ctk.CTkLabel(self.frame_stats, text="Files Ingested: --", font=("Arial", 18, "bold"), text_color="#ffffff", fg_color="transparent")
-        self.lbl_files.pack(side="left", padx=30, pady=30)
+        # Stats Grid
+        self.grid_stats = ctk.CTkFrame(self.scroll_body, fg_color=Theme.BG_DARKEST)
+        self.grid_stats.grid(row=1, column=0, sticky="ew", padx=40, pady=10)
+        self.grid_stats.grid_columnconfigure((0, 1, 2), weight=1, pad=20)
         
-        self.lbl_facts = ctk.CTkLabel(self.frame_stats, text="Facts Qualified: --", font=("Arial", 18, "bold"), text_color="#ffffff", fg_color="transparent")
-        self.lbl_facts.pack(side="left", padx=30, pady=30)
+        self.card_files = self._create_stat_card(self.grid_stats, "📂 Files Ingested", "0", 0)
+        self.card_facts = self._create_stat_card(self.grid_stats, "🏛️ Facts Qualified", "0", 1)
+        self.card_links = self._create_stat_card(self.grid_stats, "🔗 Knowledge Links", "0", 2)
         
-        # Recent Activity (Logs)
-        self.frame_logs = ctk.CTkFrame(self.scroll_body, fg_color="#1e1e1e")
-        self.frame_logs.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
-        self.frame_logs.grid_columnconfigure(0, weight=1)
-        self.frame_logs.grid_rowconfigure(1, weight=1)
+        # Activity Section
+        self.frame_activity = ctk.CTkFrame(self.scroll_body, fg_color=Theme.BG_DARKER, corner_radius=15, 
+                                         border_width=1, border_color=Theme.BG_DARK)
+        self.frame_activity.grid(row=2, column=0, sticky="nsew", padx=40, pady=30)
+        self.frame_activity.grid_columnconfigure(0, weight=1)
         
-        ctk.CTkLabel(self.frame_logs, text="Mission Control Activity Log", font=("Arial", 16, "bold"), text_color="#DCE4EE", fg_color="transparent").grid(row=0, column=0, pady=(20, 10), padx=30, sticky="w")
-        self.txt_logs = ctk.CTkTextbox(self.frame_logs, font=("Consolas", 11), text_color="#00FF00", fg_color="#121212", border_width=1, border_color="#333333", height=300)
-        self.txt_logs.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
-        self.txt_logs.insert("0.0", "System Initialized. Waiting for project load...\n")
+        tk.Label(self.frame_activity, text="Mission Control Activity Log", 
+                 font=Theme.FONT_H2, fg=Theme.TEXT_MAIN, 
+                 bg=Theme.BG_DARKER, borderwidth=0, highlightthickness=0).grid(row=0, column=0, pady=(25, 15), padx=25, sticky="w")
+        
+        self.txt_logs = ctk.CTkTextbox(self.frame_activity, font=Theme.FONT_MONO, 
+                                     text_color=Theme.SUCCESS, fg_color=Theme.BG_DARKEST, 
+                                     border_width=1, border_color=Theme.BG_DARK, height=400)
+        self.txt_logs.grid(row=1, column=0, sticky="nsew", padx=25, pady=(0, 25))
+        self.txt_logs.insert("0.0", ">>> System Ready. Waiting for project telemetry...\n")
         self.txt_logs.configure(state="disabled")
         
+    def _create_stat_card(self, master, title, value, col):
+        card = ctk.CTkFrame(master, fg_color=Theme.BG_DARKER, corner_radius=12, 
+                           border_width=1, border_color=Theme.BG_DARK)
+        card.grid(row=0, column=col, sticky="nsew", padx=5)
+        
+        lbl_t = tk.Label(card, text=title, font=Theme.FONT_BODY, fg=Theme.TEXT_MUTED, bg=Theme.BG_DARKER,
+                         borderwidth=0, highlightthickness=0)
+        lbl_t.pack(pady=(20, 0), padx=20)
+        
+        lbl_v = tk.Label(card, text=value, font=Theme.FONT_H1, fg=Theme.PRIMARY, bg=Theme.BG_DARKER,
+                         borderwidth=0, highlightthickness=0)
+        lbl_v.pack(pady=(5, 20), padx=20)
+        
+        # Store ref for updates
+        setattr(self, f"lbl_val_{col}", lbl_v)
+        return card
+
     def on_show(self):
         self.update_stats()
         
@@ -51,20 +81,21 @@ class DashboardPage(BasePage):
         # Run DB work in background
         threading.Thread(target=self._fetch_stats_bg, daemon=True).start()
         
-        # Schedule next update (Live UI)
-        self.after(2000, self.update_stats)
+        # Schedule next update
+        self.after(3000, self.update_stats)
 
     def _fetch_stats_bg(self):
-        if not self.controller.db: return
+        if not self.controller or not self.controller.db: return
         
         try:
             db = self.controller.db
             f_count = db.execute("SELECT count(*) FROM file_versions").fetchone()[0]
             fact_count = db.execute("SELECT count(*) FROM facts").fetchone()[0]
+            link_count = db.execute("SELECT count(*) FROM links").fetchone()[0]
             
             log_entries = []
             
-            # Extraction Runs - Optimized with JOIN to avoid N+1
+            # Extraction Runs
             query_ext = """
                 SELECT er.started_at, fv.source_path, er.status 
                 FROM extraction_runs er
@@ -76,31 +107,18 @@ class DashboardPage(BasePage):
                 fname = os.path.basename(r[1])
                 log_entries.append((r[0], f"Extract: {fname}", r[2]))
             
-            # Job Queue
-            job_runs = db.execute("SELECT type_name, status, updated_at, payload_json FROM job_queue ORDER BY updated_at DESC LIMIT 5").fetchall()
-            for jr in job_runs:
-                j_type = jr[0]
-                j_status = jr[1]
-                try:
-                    import json as _json
-                    payload = _json.loads(jr[3])
-                    ref = payload.get("doc_id") or payload.get("builder_type") or "Job"
-                    log_entries.append((jr[2], f"{j_type}: {ref}", j_status))
-                except:
-                    log_entries.append((jr[2], j_type, j_status))
+            # Job Queue (Staging)
+            try:
+                job_runs = db.execute("SELECT type_name, status, updated_at FROM job_queue ORDER BY updated_at DESC LIMIT 5").fetchall()
+                for jr in job_runs:
+                    log_entries.append((jr[2], jr[0], jr[1]))
+            except: pass
 
-            # Ensure all timestamps are consistent types (int) for sorting
+            # Sort logs by timestamp
             final_log = []
             for ts, label, status in log_entries:
                 try:
-                    # Try to parse as float/int if it looks like a timestamp
-                    if isinstance(ts, str) and "-" in ts: # ISO string
-                        from datetime import datetime
-                        # Basic ISO parse
-                        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-                        ts_val = int(dt.timestamp())
-                    else:
-                        ts_val = int(float(ts)) if ts else 0
+                    ts_val = int(float(ts)) if ts else 0
                     final_log.append((ts_val, label, status))
                 except:
                     final_log.append((0, label, status))
@@ -108,23 +126,25 @@ class DashboardPage(BasePage):
             final_log.sort(key=lambda x: x[0], reverse=True)
             
             # Update UI on main thread
-            self.after(0, lambda: self._update_ui_elements(f_count, fact_count, final_log))
+            self.after(0, lambda: self._update_ui_elements(f_count, fact_count, link_count, final_log))
                 
         except Exception as e:
-            import traceback
-            logger.error(f"Dashboard Refresh Error: {e}\n{traceback.format_exc()}")
+            import logging
+            logging.getLogger(__name__).error(f"Dashboard Refresh Error: {e}")
 
-    def _update_ui_elements(self, f_count, fact_count, log_entries):
+    def _update_ui_elements(self, f_count, fact_count, link_count, log_entries):
         if not self.winfo_exists(): return
         
-        self.lbl_files.configure(text=f"Files Ingested: {f_count}")
-        self.lbl_facts.configure(text=f"Facts Qualified: {fact_count}")
+        self.lbl_val_0.configure(text=str(f_count))
+        self.lbl_val_1.configure(text=str(fact_count))
+        self.lbl_val_2.configure(text=str(link_count))
         
         if log_entries:
             log_text = ""
-            for ts, label, status in log_entries[:10]:
-                 status_icon = "✓" if status in ('SUCCESS', 'COMPLETED') else "x" if status == 'FAILED' else "..."
-                 log_text += f"[{status_icon}] {label} ({status})\n"
+            for ts, label, status in log_entries[:12]:
+                 icon = "✔" if status in ('SUCCESS', 'COMPLETED') else "✖" if status == 'FAILED' else "➤"
+                 status_color = "[DONE]" if status in ('SUCCESS', 'COMPLETED') else f"[{status}]"
+                 log_text += f"{icon} {label.ljust(40)} {status_color}\n"
             
             self.txt_logs.configure(state="normal")
             self.txt_logs.delete("0.0", "end")

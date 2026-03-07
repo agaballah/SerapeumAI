@@ -1,5 +1,7 @@
 import customtkinter as ctk
+import tkinter as tk
 from src.ui.pages.base_page import BasePage
+from src.ui.styles.theme import Theme
 from src.ui.panels.p6_visualizer import P6Visualizer
 
 class SchedulePage(BasePage):
@@ -9,15 +11,18 @@ class SchedulePage(BasePage):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
-        self.scroll_body = ctk.CTkScrollableFrame(self, fg_color="#1e1e1e")
+        self.scroll_body = ctk.CTkScrollableFrame(self, fg_color=Theme.BG_DARKEST, bg_color=Theme.BG_DARKEST)
         self.scroll_body.grid(row=0, column=0, sticky="nsew")
+        self.scroll_body.grid_columnconfigure(0, weight=1)
         
-        self.lbl_title = ctk.CTkLabel(self.scroll_body, text="Schedule Explorer (P6)", font=("Arial", 24, "bold"), text_color="#DCE4EE", fg_color="transparent")
-        self.lbl_title.pack(anchor="w", pady=20, padx=20)
+        # Header
+        self.lbl_title = tk.Label(self.scroll_body, text="Project Schedule & Milestones", 
+                                  font=Theme.FONT_H2, fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKEST)
+        self.lbl_title.grid(row=0, column=0, pady=30, padx=40, sticky="w")
         
         # Visualizer
         self.visualizer = P6Visualizer(self.scroll_body, controller.db)
-        self.visualizer.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        self.visualizer.grid(row=1, column=0, sticky="nsew", padx=40, pady=20)
         
     def on_show(self):
         # Trigger load

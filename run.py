@@ -63,9 +63,8 @@ def main() -> int:
     app_root = get_app_root()
 
     # Set Global UI Theme immediately
-    import customtkinter as ctk
-    ctk.set_appearance_mode("Dark")
-    ctk.set_default_color_theme("blue")
+    from src.ui.styles.theme import Theme
+    Theme.apply_to_all()
 
     # Early check for system tools (Tesseract, Poppler)
     try:

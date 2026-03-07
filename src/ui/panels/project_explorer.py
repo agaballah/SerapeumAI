@@ -1,32 +1,48 @@
-# -*- coding: utf-8 -*-
 import os
+import customtkinter as ctk
+import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Optional
+from src.ui.styles.theme import Theme
 
-class ProjectExplorer(ttk.Frame):
+class ProjectExplorer(ctk.CTkFrame):
     def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+        super().__init__(parent, fg_color=Theme.BG_DARKER, corner_radius=0)
         
         # Header
-        self.header = ttk.Frame(self)
-        self.header.pack(fill="x", padx=5, pady=5)
-        ttk.Label(self.header, text="📁 Explorer", font=("Segoe UI", 10, "bold")).pack(side="left")
+        self.header = ctk.CTkFrame(self, fg_color=Theme.BG_DARKER)
+        self.header.pack(fill="x", padx=10, pady=10)
+        tk.Label(self.header, text="📁 Explorer", font=Theme.FONT_H3, 
+                 fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKER).pack(side="left")
         
-        self.btn_refresh = ttk.Button(self.header, text="🔄", width=3, command=self.refresh)
+        self.btn_refresh = ctk.CTkButton(self.header, text="🔄", width=30, 
+                                        fg_color=Theme.BG_DARK, hover_color=Theme.ACCENT,
+                                        command=self.refresh)
         self.btn_refresh.pack(side="right")
 
+        # Treeview Styling
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("Treeview", 
+                        background=Theme.BG_DARKER, 
+                        foreground=Theme.TEXT_MAIN, 
+                        fieldbackground=Theme.BG_DARKER,
+                        borderwidth=0,
+                        rowheight=25)
+        style.map("Treeview", background=[('selected', Theme.PRIMARY)])
+
         # Treeview
-        self.tree = ttk.Treeview(self, selectmode="browse")
+        self.tree = ttk.Treeview(self, selectmode="browse", style="Treeview", show="tree")
         self.tree.pack(fill="both", expand=True, padx=5, pady=5)
         
-        # Scrollbar
-        self.scrollbar = ttk.Scrollbar(self.tree, orient="vertical", command=self.tree.yview)
+        # Scrollbar (Standard ttk is fine if themed)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=self.scrollbar.set)
         self.scrollbar.pack(side="right", fill="y")
         
         # Setup Icons (Tags)
-        self.tree.tag_configure("folder", font=("Segoe UI", 9, "bold"))
-        self.tree.tag_configure("file", font=("Segoe UI", 9))
+        self.tree.tag_configure("folder", font=Theme.FONT_BODY)
+        self.tree.tag_configure("file", font=Theme.FONT_BODY)
 
         # Bindings
         self.tree.bind("<<TreeviewSelect>>", self._on_select)

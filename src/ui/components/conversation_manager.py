@@ -4,11 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Any
 
-# Duck typing for ScrolledText
-try:
-    from ttkbootstrap.widgets.scrolled import ScrolledText
-except ImportError:
-    ScrolledText = tk.Text
+ScrolledText = tk.Text
 
 class ConversationManager:
     def __init__(self, db: Any, project_id: str, history_frame: ttk.Frame):

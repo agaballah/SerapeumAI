@@ -1,7 +1,8 @@
-# -*- coding: utf-8 -*-
 import customtkinter as ctk
+import tkinter as tk
 from src.ui.pages.base_page import BasePage
 from tkinter import ttk
+from src.ui.styles.theme import Theme
 
 class ValidationQueuePage(BasePage):
     """
@@ -15,14 +16,16 @@ class ValidationQueuePage(BasePage):
         self.grid_rowconfigure(1, weight=1)
         
         # Header
-        self.frame_header = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_header.grid(row=0, column=0, sticky="ew", padx=20, pady=20)
+        self.frame_header = ctk.CTkFrame(self, fg_color=Theme.BG_DARKEST)
+        self.frame_header.grid(row=0, column=0, sticky="ew", padx=30, pady=(20, 10))
         
-        self.lbl_title = ctk.CTkLabel(self.frame_header, text="Validation Queue", font=("Arial", 22, "bold"), text_color="#DCE4EE")
+        self.lbl_title = tk.Label(self.frame_header, text="Validation Queue", 
+                                  font=Theme.FONT_H1, fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKEST)
         self.lbl_title.pack(side="left")
         
-        self.lbl_count = ctk.CTkLabel(self.frame_header, text="(0 items)", font=("Arial", 12), text_color="gray")
-        self.lbl_count.pack(side="left", padx=10)
+        self.lbl_count = tk.Label(self.frame_header, text="(0 items)", 
+                                  font=Theme.FONT_BODY, fg=Theme.TEXT_MUTED, bg=Theme.BG_DARKEST)
+        self.lbl_count.pack(side="left", padx=15)
         
         # New: Confidence Filter
         self.combo_filter = ctk.CTkComboBox(
@@ -37,8 +40,9 @@ class ValidationQueuePage(BasePage):
         self.lbl_filter.pack(side="right", padx=5)
 
         # Table for Candidates
-        self.frame_table = ctk.CTkFrame(self, fg_color="#1e1e1e")
-        self.frame_table.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
+        self.frame_table = ctk.CTkFrame(self, fg_color=Theme.BG_DARKER, corner_radius=15, 
+                                      border_width=1, border_color=Theme.BG_DARK)
+        self.frame_table.grid(row=1, column=0, sticky="nsew", padx=30, pady=0)
         
         # Columns
         columns = ("id", "status", "domain", "type", "description", "confidence", "tier")
@@ -55,23 +59,25 @@ class ValidationQueuePage(BasePage):
         self.tree.column("confidence", width=80)
         self.tree.column("tier", width=80)
         
-        # Configure Row Colors (Tags)
-        self.tree.tag_configure("VALIDATED", background="#2a4b2a", foreground="white")  # Dark Green
-        self.tree.tag_configure("DRAFT", background="#5b4814", foreground="white")      # Dark Yellow/Gold
-        self.tree.tag_configure("REJECTED", background="#5c1e1e", foreground="white")    # Dark Red
-        self.tree.tag_configure("SUPERSEDED", background="#333333", foreground="#a0a0a0") # Dim Gray
-        self.tree.tag_configure("CANDIDATE", background="#1e3a5f", foreground="white")    # Dark Blue
+        # Configure Row Colors (Tags - Subtle Dark Shades)
+        self.tree.tag_configure("VALIDATED", background="#064e3b", foreground="white") 
+        self.tree.tag_configure("DRAFT", background="#78350f", foreground="white")     
+        self.tree.tag_configure("REJECTED", background="#7f1d1d", foreground="white")   
+        self.tree.tag_configure("SUPERSEDED", background="#18181b", foreground="#52525b") 
+        self.tree.tag_configure("CANDIDATE", background="#1e3a8a", foreground="white")    
         
         self.tree.pack(side="left", fill="both", expand=True)
         
         # Buttons
-        self.frame_controls = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_controls.grid(row=2, column=0, sticky="ew", padx=20, pady=20)
+        self.frame_controls = ctk.CTkFrame(self, fg_color=Theme.BG_DARKEST)
+        self.frame_controls.grid(row=3, column=0, sticky="ew", padx=30, pady=20)
         
-        self.btn_approve = ctk.CTkButton(self.frame_controls, text="Certify Selection", fg_color="green", command=self._on_approve)
+        self.btn_approve = ctk.CTkButton(self.frame_controls, text="Certify Selection", 
+                                       fg_color=Theme.SUCCESS, hover_color="#16a34a", command=self._on_approve)
         self.btn_approve.pack(side="right", padx=10)
         
-        self.btn_reject = ctk.CTkButton(self.frame_controls, text="Reject", fg_color="firebrick", command=self._on_reject)
+        self.btn_reject = ctk.CTkButton(self.frame_controls, text="Reject", 
+                                      fg_color=Theme.DANGER, hover_color="#dc2626", command=self._on_reject)
         self.btn_reject.pack(side="right", padx=10)
 
     def on_show(self):

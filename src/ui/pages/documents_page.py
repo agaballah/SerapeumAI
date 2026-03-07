@@ -1,5 +1,8 @@
+import os
 import customtkinter as ctk
+import tkinter as tk
 from src.ui.pages.base_page import BasePage
+from src.ui.styles.theme import Theme
 from src.ui.widgets.smart_import_wizard import SmartImportWizard
 from src.application.jobs.ingest_file_job import IngestFileJob
 
@@ -12,25 +15,43 @@ class DocumentsPage(BasePage):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
         
-        self.scroll_body = ctk.CTkScrollableFrame(self, fg_color="#1e1e1e")
+        self.scroll_body = ctk.CTkScrollableFrame(self, fg_color=Theme.BG_DARKEST, bg_color=Theme.BG_DARKEST)
         self.scroll_body.grid(row=0, column=0, sticky="nsew")
+        self.scroll_body.grid_columnconfigure(0, weight=1)
         
-        self.lbl_title = ctk.CTkLabel(self.scroll_body, text="Documents & Registers", font=("Arial", 24, "bold"), text_color="#ffffff", fg_color="transparent")
-        self.lbl_title.pack(anchor="w", pady=20, padx=20)
+        # Header Section
+        self.frame_header = ctk.CTkFrame(self.scroll_body, fg_color=Theme.BG_DARKEST)
+        self.frame_header.grid(row=0, column=0, pady=(40, 20), padx=40, sticky="ew")
+        
+        self.lbl_title = tk.Label(self.frame_header, text="Project Document Center", 
+                                  font=Theme.FONT_H1, fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKEST)
+        self.lbl_title.pack(side="left")
         
         # Toolbar
-        self.frame_tools = ctk.CTkFrame(self.scroll_body, fg_color="#1a1a1a")
-        self.frame_tools.pack(fill="x", padx=20)
+        self.frame_tools = ctk.CTkFrame(self.scroll_body, fg_color=Theme.BG_DARKER, border_width=1, border_color=Theme.BG_DARK)
+        self.frame_tools.grid(row=1, column=0, sticky="ew", padx=40, pady=10)
+        self.frame_tools.grid_columnconfigure(0, weight=0) # Import button
+        self.frame_tools.grid_columnconfigure(1, weight=0) # Refresh button
+        self.frame_tools.grid_columnconfigure(2, weight=1) # Empty space to push buttons left
         
-        self.btn_import = ctk.CTkButton(self.frame_tools, text="Smart Import (Wizard)", command=self.open_wizard)
-        self.btn_import.pack(side="left", padx=10, pady=10)
+        self.btn_import = ctk.CTkButton(self.frame_tools, text="➕ Import Documents", 
+                                      fg_color=Theme.PRIMARY, hover_color=Theme.ACCENT,
+                                      bg_color=Theme.BG_DARKER,
+                                      command=self.open_wizard)
+        self.btn_import.grid(row=0, column=0, padx=20, pady=15)
         
         self.btn_refresh = ctk.CTkButton(self.frame_tools, text="Refresh", command=self.refresh_list)
-        self.btn_refresh.pack(side="left", padx=10, pady=10)
+        self.btn_refresh.grid(row=0, column=1, padx=10, pady=15)
+        
+        # Main Grid / Table Area
+        self.frame_main = ctk.CTkFrame(self.scroll_body, fg_color="transparent")
+        self.frame_main.grid(row=2, column=0, sticky="nsew", padx=40, pady=20)
+        self.frame_main.grid_columnconfigure(0, weight=1)
         
         # File List Area
-        self.file_list_frame = ctk.CTkFrame(self.scroll_body, fg_color="#1a1a1a")
-        self.file_list_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        self.file_list_frame = ctk.CTkFrame(self.frame_main, fg_color="#1a1a1a")
+        self.file_list_frame.grid(row=0, column=0, sticky="nsew")
+        self.file_list_frame.grid_columnconfigure(0, weight=1) # Ensure content expands
         
         self.scroll_files = self.file_list_frame # Reuse name to avoid deep changes
         

@@ -3,12 +3,13 @@ import pandas as pd
 import json
 import logging
 import os
+from src.ui.styles.theme import Theme
 
 logger = logging.getLogger(__name__)
 
 class FileDetailPanel(ctk.CTkToplevel):
     def __init__(self, parent, db, file_id=None, file_path=None):
-        super().__init__(parent)
+        super().__init__(parent, fg_color=Theme.BG_DARKEST)
         
         self.db = db
         self.file_path = file_path
@@ -23,8 +24,9 @@ class FileDetailPanel(ctk.CTkToplevel):
         
         # 1. Header
         filename = os.path.basename(file_path) if file_path else "Unknown"
-        self.lbl_title = ctk.CTkLabel(self, text=f"Inspecting: {filename}", font=("Arial", 18, "bold"), text_color="white")
-        self.lbl_title.grid(row=0, column=0, pady=10, padx=20, sticky="w")
+        self.lbl_title = ctk.CTkLabel(self, text=f"Inspecting: {filename}", 
+                                    font=Theme.FONT_H2, text_color=Theme.TEXT_MAIN, fg_color=Theme.BG_DARKEST)
+        self.lbl_title.grid(row=0, column=0, pady=20, padx=30, sticky="w")
         
         # 2. Tabs
         self.tabview = ctk.CTkTabview(self)
@@ -38,19 +40,26 @@ class FileDetailPanel(ctk.CTkToplevel):
         self.tabview.set("Preview")
         
         # 3. Content - Preview
-        self.txt_preview = ctk.CTkTextbox(self.tab_preview, font=("Consolas", 12), text_color="#DCE4EE", fg_color="#2b2b2b")
+        self.txt_preview = ctk.CTkTextbox(self.tab_preview, font=Theme.FONT_MONO, 
+                                        text_color=Theme.TEXT_MAIN, fg_color=Theme.BG_DARKER,
+                                        border_width=1, border_color=Theme.BG_DARK)
         self.txt_preview.pack(fill="both", expand=True, padx=5, pady=5)
         
         # 4. Content - Metadata
-        self.txt_meta = ctk.CTkTextbox(self.tab_meta, font=("Consolas", 12), text_color="#DCE4EE", fg_color="#2b2b2b")
+        self.txt_meta = ctk.CTkTextbox(self.tab_meta, font=Theme.FONT_MONO, 
+                                     text_color=Theme.TEXT_MAIN, fg_color=Theme.BG_DARKER,
+                                     border_width=1, border_color=Theme.BG_DARK)
         self.txt_meta.pack(fill="both", expand=True, padx=5, pady=5)
         
         # 5. Content - Extraction (Table)
-        self.txt_extract = ctk.CTkTextbox(self.tab_extract, text_color="#DCE4EE", fg_color="#2b2b2b") # Placeholder for now
+        self.txt_extract = ctk.CTkTextbox(self.tab_extract, text_color=Theme.TEXT_MAIN, 
+                                        fg_color=Theme.BG_DARKER, border_width=1, border_color=Theme.BG_DARK) 
         self.txt_extract.pack(fill="both", expand=True, padx=5, pady=5)
         
         # 6. Content - Vision Analysis
-        self.txt_vision = ctk.CTkTextbox(self.tab_vision, font=("Consolas", 11), text_color="#DCE4EE", fg_color="#2b2b2b")
+        self.txt_vision = ctk.CTkTextbox(self.tab_vision, font=Theme.FONT_MONO, 
+                                       text_color=Theme.TEXT_MAIN, fg_color=Theme.BG_DARKER,
+                                       border_width=1, border_color=Theme.BG_DARK)
         self.txt_vision.pack(fill="both", expand=True, padx=5, pady=5)
         
         # Load Data

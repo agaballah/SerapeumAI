@@ -86,6 +86,10 @@ def ensure_global_db(db_path: str) -> None:
                         with open(m_file, "r", encoding="utf-8") as f:
                             sql = f.read()
                             conn.executescript(sql)
+                        
+                        # Record the applied version
+                        conn.execute("INSERT OR IGNORE INTO schema_version (version) VALUES (?)", (v_num,))
+                        conn.commit()
                         logger.info(f"✓ Global migration {m_file.name} applied.")
                 except (ValueError, IndexError):
                     continue

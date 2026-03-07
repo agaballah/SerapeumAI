@@ -2,19 +2,8 @@
 import tkinter as tk
 from typing import Dict, Any, List, Optional, Callable
 
-try:
-    import ttkbootstrap as ttk
-    from ttkbootstrap.constants import *
-    _USING_TTKBOOTSTRAP = True
-except ImportError:
-    from tkinter import ttk
-    _USING_TTKBOOTSTRAP = False
+from tkinter import ttk
 
-def _strip_bootstyle(kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    if _USING_TTKBOOTSTRAP:
-        return kwargs
-    kwargs.pop("bootstyle", None)
-    return kwargs
 
 class ChatToolbar(ttk.Frame):
     def __init__(
@@ -103,8 +92,7 @@ class ChatToolbar(ttk.Frame):
             self,
             text="History",
             variable=self.show_history,
-            command=self.on_history_toggle,
-            **_strip_bootstyle({"bootstyle": "round-toggle"})
+            command=self.on_history_toggle
         )
         cb.pack(side="right", padx=(0, 10))
 
@@ -112,8 +100,7 @@ class ChatToolbar(ttk.Frame):
         cb = ttk.Checkbutton(
             self, 
             text=text, 
-            variable=variable,
-            **_strip_bootstyle({"bootstyle": "round-toggle"})
+            variable=variable
         )
         cb.pack(side="left", padx=(0, 10))
 
@@ -122,8 +109,7 @@ class ChatToolbar(ttk.Frame):
             self, 
             text=text, 
             command=command, 
-            width=width,
-            **_strip_bootstyle({"bootstyle": bootstyle})
+            width=width
         )
         btn.pack(side=side, padx=(0, 5))
 

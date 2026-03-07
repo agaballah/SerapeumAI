@@ -2,23 +2,10 @@
 import tkinter as tk
 from typing import Dict, Any, List, Optional, Callable
 
-try:
-    import ttkbootstrap as ttk
-    from ttkbootstrap.constants import *
-    from ttkbootstrap.scrolled import ScrolledText
-    _USING_TTKBOOTSTRAP = True
-except ImportError:
-    from tkinter import ttk
-    ScrolledText = tk.Text
-    _USING_TTKBOOTSTRAP = False
+from tkinter import ttk
+ScrolledText = tk.Text
 
 from src.ui.components.attachment_handler import AttachmentHandler
-
-def _strip_bootstyle(kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    if _USING_TTKBOOTSTRAP:
-        return kwargs
-    kwargs.pop("bootstyle", None)
-    return kwargs
 
 class ChatInputArea(ttk.Frame):
     def __init__(
@@ -49,16 +36,14 @@ class ChatInputArea(ttk.Frame):
         self.btn_send = ttk.Button(
             self,
             text="Send",
-            command=self.on_send,
-            **_strip_bootstyle({"bootstyle": "primary"})
+            command=self.on_send
         )
         self.btn_send.grid(row=0, column=2, padx=(5, 0), sticky="sw")
 
         self.btn_cancel = ttk.Button(
             self,
             text="Cancel",
-            command=self.on_cancel,
-            **_strip_bootstyle({"bootstyle": "danger-outline"})
+            command=self.on_cancel
         )
         self.btn_cancel.grid(row=0, column=3, padx=(5, 0), sticky="sw")
 
@@ -82,15 +67,9 @@ class ChatInputArea(ttk.Frame):
 
     def toggle_send_button(self, stop: bool):
         if stop:
-            self.btn_send.configure(
-                text="Stop",
-                **_strip_bootstyle({"bootstyle": "danger"})
-            )
+            self.btn_send.configure(text="Stop")
         else:
-            self.btn_send.configure(
-                text="Send",
-                **_strip_bootstyle({"bootstyle": "primary"})
-            )
+            self.btn_send.configure(text="Send")
 
     def get_attachments(self) -> List[str]:
         return self.attachment_handler.get_attachments()

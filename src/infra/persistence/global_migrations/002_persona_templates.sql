@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS persona_templates (
 );
 
 -- Sample Templates: CONTRACTOR - MECH - RISK
-INSERT INTO persona_templates (template_id, role, discipline, intent, system_instructions, created_at)
+INSERT OR IGNORE INTO persona_templates (template_id, role, discipline, intent, system_instructions, created_at)
 VALUES (
     'tmpl_cnt_mech_risk', 'Contractor', 'Mech', 'RISK',
     'Persona: Mechanical Contractor. Focus: Equipment delivery lead times, site clearances, MEP coordination clashes, and commissioning prerequisites.',
@@ -19,7 +19,7 @@ VALUES (
 );
 
 -- Sample Templates: OWNER - PM - RISK
-INSERT INTO persona_templates (template_id, role, discipline, intent, system_instructions, created_at)
+INSERT OR IGNORE INTO persona_templates (template_id, role, discipline, intent, system_instructions, created_at)
 VALUES (
     'tmpl_own_pm_risk', 'Owner', 'Project Manager', 'RISK',
     'Persona: Owner PM. Focus: Budget contingencies, critical path milestones (Finish Date), and high-level handover/O&M risks.',
@@ -27,7 +27,7 @@ VALUES (
 );
 
 -- Default templates if specialized ones missing
-INSERT INTO persona_templates (template_id, role, discipline, intent, system_instructions, created_at)
+INSERT OR IGNORE INTO persona_templates (template_id, role, discipline, intent, system_instructions, created_at)
 VALUES (
     'tmpl_default_risk', '*', '*', 'RISK',
     'Persona: General Project Intel. Focus: Schedule delays, cost overruns, and coordination gaps.',

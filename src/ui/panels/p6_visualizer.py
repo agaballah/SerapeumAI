@@ -4,21 +4,22 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
 from datetime import datetime
+from src.ui.styles.theme import Theme
 
 class P6Visualizer(ctk.CTkFrame):
     def __init__(self, parent, db_manager):
-        super().__init__(parent)
+        super().__init__(parent, fg_color=Theme.BG_DARKEST)
         self.db = db_manager
         
         # UI Controls
-        self.frame_ctrl = ctk.CTkFrame(self)
+        self.frame_ctrl = ctk.CTkFrame(self, fg_color=Theme.BG_DARKER, corner_radius=8, border_width=1, border_color=Theme.BG_DARK)
         self.frame_ctrl.pack(fill="x", padx=10, pady=5)
         
         self.btn_load = ctk.CTkButton(self.frame_ctrl, text="Load Gantt", command=self.load_gantt)
         self.btn_load.pack(side="left", padx=10)
         
         # Canvas Area
-        self.frame_canvas = ctk.CTkFrame(self)
+        self.frame_canvas = ctk.CTkFrame(self, fg_color=Theme.BG_DARKEST)
         self.frame_canvas.pack(fill="both", expand=True, padx=10, pady=5)
         
     def load_gantt(self):
@@ -45,11 +46,11 @@ class P6Visualizer(ctk.CTkFrame):
             df['finish'] = pd.to_datetime(df['finish'])
             df['duration'] = (df['finish'] - df['start']).dt.days
             
-            # 3. Plot (Dark Mode)
+            # 3. Plot (Noir Mode)
             plt.style.use('dark_background')
             fig, ax = plt.subplots(figsize=(10, 6))
-            fig.patch.set_facecolor('#1e1e1e') # Exact match for CTk background
-            ax.set_facecolor('#1e1e1e')
+            fig.patch.set_facecolor(Theme.BG_DARKEST) 
+            ax.set_facecolor(Theme.BG_DARKEST)
             
             y_pos = range(len(df))
             ax.barh(y_pos, df['duration'], left=df['start'], height=0.5, color='#1f538d', edgecolor='white')

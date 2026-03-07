@@ -186,3 +186,8 @@ Sheets found: ['SUMMARY', 'DIRECT COST']
 Sheet SUMMARY: Detected Header at Row 4
 Sheet DIRECT COST: Detected Header at Row 3
 Total records: 277
+
+--- Extracting D:/AAC/Essam/نادي ضباط القوات المسلحة/مشروع تأهيل وتشطيب نادي ضباط القوات المسلحة بالطائف 250339016381\جدول الكميات والمواصفات.xlsx ---
+Sheets found: ['ورقة1']
+Sheet ورقة1: Detected Header at Row 0
+Total records: 324

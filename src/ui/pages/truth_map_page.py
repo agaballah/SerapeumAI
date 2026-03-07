@@ -7,45 +7,54 @@ from typing import Dict, List, Any, Optional
 
 from src.domain.intelligence.truth_graph import TruthGraphService
 
+from src.ui.styles.theme import Theme
+
 class TruthMapPage(ctk.CTkFrame):
     def __init__(self, master, controller):
-        super().__init__(master)
+        super().__init__(master, fg_color=Theme.BG_DARKEST)
         self.controller = controller
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
         
-        self.nodes = {} # id -> {x, y, vx, vy, color, label, type}
-        self.links = [] # {from, to, type, confidence}
+        self.nodes = {} 
+        self.links = [] 
         self.selected_node = None
         
         self._build_ui()
         
     def _build_ui(self):
         # Header
-        self.header = ctk.CTkFrame(self, height=60, corner_radius=0, fg_color="#2b2b2b")
+        self.header = ctk.CTkFrame(self, height=60, corner_radius=0, fg_color=Theme.BG_DARKER)
         self.header.grid(row=0, column=0, sticky="ew")
         
-        self.lbl_title = ctk.CTkLabel(self.header, text="🌐 Project Truth Map", font=("Arial", 20, "bold"))
+        self.lbl_title = tk.Label(self.header, text="🌐 Project Truth Map", 
+                                  font=Theme.FONT_H2, fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKER)
         self.lbl_title.pack(side="left", padx=20, pady=10)
         
-        self.btn_refresh = ctk.CTkButton(self.header, text="🔄 Refresh Graph", width=120, command=self.on_show)
+        self.btn_refresh = ctk.CTkButton(self.header, text="🔄 Refresh Graph", 
+                                       fg_color=Theme.PRIMARY, hover_color=Theme.ACCENT,
+                                       command=self.on_show)
         self.btn_refresh.pack(side="right", padx=20, pady=10)
         
         # Main Canvas Area
-        self.canvas_frame = ctk.CTkFrame(self, fg_color="#1e1e1e")
+        self.canvas_frame = ctk.CTkFrame(self, fg_color=Theme.BG_DARKEST)
         self.canvas_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
         
-        self.canvas = tk.Canvas(self.canvas_frame, bg="#1a1a1a", highlightthickness=0)
+        self.canvas = tk.Canvas(self.canvas_frame, bg=Theme.BG_DARKEST, highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
         
-        # Controls / Info Panel (Overlay or Side)
-        self.info_panel = ctk.CTkFrame(self.canvas_frame, width=250, fg_color="#252525", corner_radius=10)
-        self.info_panel.place(relx=1.0, rely=0.0, anchor="ne", padx=20, pady=20)
+        # Controls / Info Panel
+        self.info_panel = ctk.CTkFrame(self.canvas_frame, width=250, fg_color=Theme.BG_DARKER, 
+                                     corner_radius=10, border_width=1, border_color=Theme.BG_DARK)
+        self.info_panel.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=-20)
         
-        self.lbl_info = ctk.CTkLabel(self.info_panel, text="Selection Info", font=("Arial", 14, "bold"))
+        self.lbl_info = tk.Label(self.info_panel, text="Selection Info", 
+                                 font=Theme.FONT_H3, fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKER)
         self.lbl_info.pack(pady=10, padx=10)
         
-        self.txt_details = ctk.CTkTextbox(self.info_panel, height=150, width=220)
+        self.txt_details = ctk.CTkTextbox(self.info_panel, height=150, width=220, 
+                                        fg_color=Theme.BG_DARKEST, text_color=Theme.TEXT_MAIN,
+                                        border_width=1, border_color=Theme.BG_DARK)
         self.txt_details.pack(pady=5, padx=10)
         self.txt_details.insert("1.0", "Click a node to view relationships and confidence tiers.")
         self.txt_details.configure(state="disabled")
@@ -97,15 +106,15 @@ class TruthMapPage(ctk.CTkFrame):
 
     def _get_color(self, entity_type: str) -> str:
         colors = {
-            "activity": "#3b82f6",     # Blue (Schedule)
-            "element": "#10b981",      # Green (BIM)
-            "drawing": "#f59e0b",      # Orange (Docs)
-            "document": "#f59e0b",
-            "fact": "#ef4444",         # Red (Verified Facts)
-            "wbs": "#8b5cf6",          # Purple
-            "zone": "#06b6d4"          # Cyan
+            "activity": "#3B82F6",     # Blue 500
+            "element": "#22C55E",      # Green 500
+            "drawing": "#EAB308",      # Yellow 500
+            "document": "#EAB308",
+            "fact": "#EF4444",         # Red 500
+            "wbs": "#8B5CF6",          # Purple 500
+            "zone": "#06B6D4"          # Cyan 500
         }
-        return colors.get(entity_type, "#94a3b8") # Slate default
+        return colors.get(entity_type, Theme.TEXT_MUTED) 
 
     def _initialize_layout(self):
         # Center nodes initially
