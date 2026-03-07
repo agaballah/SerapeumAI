@@ -27,9 +27,9 @@ class TestIngestionOptimization(unittest.TestCase):
         }
 
     def tearDown(self):
-        # Close DB connection before deleting files (essential on Windows)
-        self.db.close_connection()
-        shutil.rmtree(self.test_dir)
+        # Close all DB connections before deleting files (essential on Windows)
+        self.db.close_all_connections()
+        shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def test_ingestion_skips_hash_on_metadata_match(self):
         # 1. First Ingestion

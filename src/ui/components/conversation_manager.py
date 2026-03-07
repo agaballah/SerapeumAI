@@ -6,7 +6,7 @@ from typing import Any
 
 # Duck typing for ScrolledText
 try:
-    from ttkbootstrap.scrolled import ScrolledText
+    from ttkbootstrap.widgets.scrolled import ScrolledText
 except ImportError:
     ScrolledText = tk.Text
 

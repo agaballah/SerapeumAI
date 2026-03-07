@@ -147,7 +147,7 @@ class DatabaseManager:
 
         # Thread-local storage for connections
         type(self)._instances.add(self)
-        self._all_conns = weakref.WeakSet()
+        self._all_conns = set()
         self._local = threading.local()
 
         # Current transaction connection is now stored in self._local.tx_conn
