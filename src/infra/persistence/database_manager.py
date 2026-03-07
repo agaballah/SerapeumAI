@@ -315,9 +315,7 @@ class DatabaseManager:
     # Internal Helpers (legacy-compatible)
     # --------------------------------------------------------------
 
-    def _connect(self) -> sqlite3.Connection:
-        """Legacy method - returns pooled connection."""
-        return self._get_connection()
+    # Legacy _connect shim removed - SSOT canonical: get_connection / _get_connection
 
     def _exec(self, sql: str, params: Tuple = ()) -> None:
         """
@@ -370,7 +368,16 @@ class DatabaseManager:
             }
 
             # 3) Discover migration files
-            m_dir = self.migrations_dir or os.path.join(os.path.dirname(__file__), "migrations")
+            if self.migrations_dir:
+                m_dir = self.migrations_dir
+            else:
+                # Deterministic selection: global.sqlite3 uses global_migrations folder
+                # to prevent cross-contamination with project baseline migrations.
+                db_filename = os.path.basename(self.db_path)
+                if db_filename == "global.sqlite3":
+                    m_dir = os.path.join(os.path.dirname(__file__), "global_migrations")
+                else:
+                    m_dir = os.path.join(os.path.dirname(__file__), "migrations")
             if not os.path.exists(m_dir):
                 logger.debug(f"Migrations directory not found (skipping): {m_dir}")
                 return
@@ -401,6 +408,15 @@ class DatabaseManager:
                     )
                     conn.commit()
                     logger.info(f"✓ Migration {filename} applied successfully.")
+                except sqlite3.OperationalError as e:
+                    if "duplicate column name" in str(e).lower():
+                        # Already exists (e.g. from baseline). Record version and continue.
+                        conn.execute("INSERT OR IGNORE INTO schema_version (version) VALUES (?)", (version,))
+                        conn.commit()
+                        logger.info(f"✓ Migration {filename} skipped (column exists).")
+                    else:
+                        logger.error(f"Failed to apply migration {filename}: {e}")
+                        raise
                 except Exception as e:
                     logger.error(f"Failed to apply migration {filename}: {e}")
                     raise

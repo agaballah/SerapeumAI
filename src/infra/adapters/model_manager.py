@@ -20,14 +20,8 @@ class ModelManager:
     # Used by inference callers to serialize llama.cpp access
     inference_lock = threading.Lock()
 
-    # Task aliases -> single shared backend model key
-    _TASK_ALIASES = {
-        "vision": "universal-vlm",
-        "analysis": "universal-vlm",
-        "universal": "universal-vlm",
-        "chat": "universal-vlm",
-        "summarization": "universal-vlm",
-    }
+    # Task aliases are removed to prevent collapsing routed model roles.
+    _TASK_ALIASES = {}
 
     def __new__(cls):
         if cls._instance is None:
@@ -41,25 +35,28 @@ class ModelManager:
         t = str(task_type or "").strip().lower() or "universal"
         return self._TASK_ALIASES.get(t, t)
 
-    def get_model(self, task_type: str, auto_load: bool = True) -> Any:
+    def get_model(self, task_type: str, model_path: Optional[str] = None, auto_load: bool = True) -> Any:
         """
-        Load-on-demand. In the current unified architecture, most task types map
-        to a single shared model instance via aliasing.
+        Load-on-demand. Model roles are now kept separate.
         """
         task = self._normalize_task(task_type)
 
         if task in self._models:
             return self._models[task]
 
-        if not auto_load:
+        if not auto_load or not model_path:
             return None
-
-        model_path = "models/Qwen2-VL-7B-Instruct-Q6_K_L.gguf"
 
         # Protect model load (avoid double-load in concurrent startup)
         with self.inference_lock:
             if task in self._models:
                 return self._models[task]
+
+            from src.utils.hardware_utils import reserve_vram, check_resource_availability
+            tier = task # Use task name as tier hint
+            if not check_resource_availability(tier):
+                logger.error(f"Insufficient VRAM to load {task} model: {model_path}")
+                return None
 
             from llama_cpp import Llama  # llama-cpp-python
 
@@ -134,5 +131,5 @@ def unload_model(task_type: str) -> None:
     ModelManager().unload(task_type)
 
 
-def get_model_for_task(task_type: str, auto_load: bool = True) -> Any:
-    return ModelManager().get_model(task_type, auto_load)
+def get_model_for_task(task_type: str, model_path: Optional[str] = None, auto_load: bool = True) -> Any:
+    return ModelManager().get_model(task_type, model_path, auto_load)

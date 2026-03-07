@@ -116,7 +116,16 @@ class CoverageGate:
         # missing but it's not there. For unclassified queries, we cannot know what's missing.
         if intents == ["general"]:
             has_any = self._has_any_certified_facts(project_id, snapshot_id)
-            return self._complete(intents, [], [])  # always pass; LLM handles empty-fact case
+            if not has_any:
+                logger.info(f"[CoverageGate] Refusing general query for project {project_id} - no certified facts found.")
+                return self._incomplete(
+                    intents=intents,
+                    required=["any.certified_fact"],
+                    missing=["any.certified_fact"],
+                    no_facts_at_all=True,
+                    project_id=project_id,
+                )
+            return self._complete(intents, [], [])
 
         # Resolve required fact types for detected intents
         required_types: List[str] = []

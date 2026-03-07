@@ -132,7 +132,7 @@ class LLMService:
         if self.use_lm_studio:
             logger.info("[LLMService] LM Studio mode - models managed by server")
             return None
-        return self._get_model(task_type, auto_load=True)
+        return self._get_model(task_type, model_path=self._legacy_model_path, auto_load=True)
 
     # ------------------------------------------------------------------ #
     # Internal helpers
@@ -276,8 +276,8 @@ class LLMService:
 
         user_prompt_log = ""
         try:
-            # Always get Universal Model
-            model_obj = self._get_model(task_type, auto_load=True)
+            # Always get Universal Model (pass legacy path explicitly)
+            model_obj = self._get_model(task_type, model_path=self._legacy_model_path, auto_load=True)
             if not model_obj:
                 raise RuntimeError("Universal Model failed to load.")
 
@@ -612,7 +612,7 @@ class LLMService:
                 )
                 return self._extract_message_content(resp)
 
-            model_obj = self._get_model("vision", auto_load=True)
+            model_obj = self._get_model("vision", model_path=self._legacy_model_path, auto_load=True)
             if not model_obj:
                 return "[error] Failed to load vision model."
 

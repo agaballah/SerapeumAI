@@ -58,7 +58,8 @@ class VectorStore:
                 # Require 2GB free VRAM for embeddings (conservative threshold)
                 VRAM_THRESHOLD_MB = 2048
                 
-                if gpu_info['available'] and gpu_info['vram_free_mb'] >= VRAM_THRESHOLD_MB:
+                from src.utils.hardware_utils import reserve_vram
+                if gpu_info['available'] and reserve_vram(VRAM_THRESHOLD_MB):
                     device = "cuda"
                     logger.info(
                         f"Loading embedding model: {EMBEDDING_MODEL} on GPU "
@@ -68,7 +69,7 @@ class VectorStore:
                     if gpu_info['available']:
                         logger.info(
                             f"Loading embedding model: {EMBEDDING_MODEL} on CPU "
-                            f"(insufficient VRAM: {gpu_info['vram_free_mb']} MB < {VRAM_THRESHOLD_MB} MB)"
+                            f"(VRAM reserved or insufficient: {gpu_info['vram_free_mb']} MB)"
                         )
                     else:
                         logger.info(f"Loading embedding model: {EMBEDDING_MODEL} on CPU (no GPU detected)")

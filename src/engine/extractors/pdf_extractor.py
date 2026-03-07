@@ -32,12 +32,18 @@ class UniversalPdfExtractor(BaseExtractor):
         records = []
         diagnostics = []
         
+        def update_stage(stage: str, msg: str = ""):
+            if context and "on_stage" in context:
+                context["on_stage"](stage, msg)
+
         try:
+            update_stage("INITIALIZING", "Reading PDF structure")
             reader = PdfReader(file_path)
             full_text = ""
             page_texts = {}  # Track text per page for block attribution
             
             # 1. Extract Text & Pages
+            update_stage("EXTRACTING_TEXT", f"Processing {len(reader.pages)} pages")
             for i, page in enumerate(reader.pages):
                 text = page.extract_text() or ""
                 full_text += text + "\n"
@@ -69,6 +75,7 @@ class UniversalPdfExtractor(BaseExtractor):
             })
             
             # 3. Extract Semantic Blocks for RAG (NEW)
+            update_stage("CHUNKING", "Building semantic blocks")
             doc_id = (context or {}).get("doc_id", "unknown")
             blocks = self._extract_semantic_blocks(full_text, doc_id, page_texts)
             

@@ -46,7 +46,7 @@ class TruthMapPage(ctk.CTkFrame):
         # Controls / Info Panel
         self.info_panel = ctk.CTkFrame(self.canvas_frame, width=250, fg_color=Theme.BG_DARKER, 
                                      corner_radius=10, border_width=1, border_color=Theme.BG_DARK)
-        self.info_panel.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=-20)
+        self.info_panel.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=20)
         
         self.lbl_info = tk.Label(self.info_panel, text="Selection Info", 
                                  font=Theme.FONT_H3, fg=Theme.TEXT_MAIN, bg=Theme.BG_DARKER)

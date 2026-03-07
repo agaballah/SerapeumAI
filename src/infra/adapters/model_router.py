@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Model Router - Automatic per-task model selection (LM Studio) with lightweight benchmarking.
 
@@ -52,7 +52,7 @@ class ModelRouter:
         self._bench_locks: Dict[str, threading.Lock] = {}
         self._bench_locks_guard = threading.Lock()
 
-    # Task → hardware resource tier map
+    # Task â†’ hardware resource tier map
     _TASK_RESOURCE_TIER: Dict[str, str] = {
         # Heavy vision tasks
         "vision": "vision",
@@ -75,13 +75,9 @@ class ModelRouter:
 
     # --------------------------- public API ---------------------------
 
-    def get_best_model(self, task_type: str) -> str:
+    def get_best_model(self, task_type: str, is_explicit_request: bool = False) -> str:
         """
-        Resource-aware model selection. Checks available VRAM before
-        selecting model tier, gracefully degrading heavy tasks if needed.
-
-        Returns:
-            LM Studio model id (string). Always tries to return a real id if possible.
+        Resource-aware model selection.
         """
         task = self._norm_task(task_type)
 
@@ -101,7 +97,6 @@ class ModelRouter:
         if configured and configured.lower() != "auto":
             resolved = self._resolve_to_installed_id(configured)
             self._cache_set(task, resolved)
-            logger.info(f"[ModelRouter] Using explicit config for {task}: {resolved} (from {configured})")
             return resolved
 
         # 3) user preference in DB (always honored)
@@ -109,11 +104,10 @@ class ModelRouter:
         if preferred:
             resolved = self._resolve_to_installed_id(preferred)
             self._cache_set(task, resolved)
-            logger.info(f"[ModelRouter] Using DB preference for {task}: {resolved}")
             return resolved
 
-        # 4) auto-selection via BenchmarkService (may benchmark + persist)
-        if self._auto_select_enabled():
+        # 4) auto-selection via BenchmarkService (ONLY if explicit)
+        if is_explicit_request and self._auto_select_enabled():
             chosen = self._auto_select(task)
             if chosen:
                 self._cache_set(task, chosen)
@@ -124,13 +118,15 @@ class ModelRouter:
         if winner:
             resolved = self._resolve_to_installed_id(winner)
             self._cache_set(task, resolved)
-            logger.info(f"[ModelRouter] Using benchmark history for {task}: {resolved}")
             return resolved
 
-        # 6) fallback
+        # 6) fallback (Safe refusal if nothing fit)
         fallback = self._fallback_model()
+        if fallback == "auto" or not self._is_task_capable(fallback, task):
+            logger.warning(f"[ModelRouter] No capable model found for {task}. Refusing.")
+            return "refused"
+
         self._cache_set(task, fallback)
-        logger.warning(f"[ModelRouter] Falling back for {task} -> {fallback}")
         return fallback
 
     def get_resource_tier(self, task_type: str) -> str:
@@ -514,6 +510,21 @@ class ModelRouter:
         return None
 
     # --------------------------- misc helpers ---------------------------
+
+    def _is_task_capable(self, model_id: str, task: str) -> bool:
+        """Heuristic to prevent routing weak/base models to tasks they can't handle."""
+        m = model_id.lower()
+        t = task.lower()
+
+        # Vision tasks REQUIRE vision-capable models
+        if t.startswith("vision") or t in ("vlm", "ocr"):
+            return "vl" in m or "vision" in m
+
+        # Chat/Analysis tasks REQUIRE instruction-tuned models (not raw base models)
+        if any(x in t for x in ("chat", "qa", "analysis", "reasoning", "summarization")):
+            return "instruct" in m or "chat" in m or "r1" in m
+
+        return True
 
     def _norm_task(self, task_type: str) -> str:
         t = str(task_type or "").strip().lower()

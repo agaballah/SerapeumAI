@@ -220,7 +220,6 @@ CREATE TABLE IF NOT EXISTS file_versions (
     file_ext TEXT,
     imported_at INTEGER NOT NULL,
     source_path TEXT,
-    last_modified_at REAL,  -- Added in migration 015 for ingestion optimization
     FOREIGN KEY(file_id) REFERENCES file_registry(file_id)
 );
 
@@ -516,7 +515,6 @@ CREATE INDEX IF NOT EXISTS idx_facts_status ON facts(status, created_at);
 -- File versioning indexes
 CREATE INDEX IF NOT EXISTS idx_file_versions_hash ON file_versions(sha256);
 CREATE INDEX IF NOT EXISTS idx_file_versions_file ON file_versions(file_id);
-CREATE INDEX IF NOT EXISTS idx_file_versions_metadata ON file_versions(source_path, size_bytes, last_modified_at);  -- Migration 015 optimization
 
 -- Link indexes
 CREATE INDEX IF NOT EXISTS idx_links_from ON links(from_kind, from_id);

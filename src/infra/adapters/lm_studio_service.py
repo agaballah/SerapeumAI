@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
-lm_studio_service.py — LM Studio v1 REST + OpenAI-compat integration (headless-capable)
+lm_studio_service.py â€” LM Studio v1 REST + OpenAI-compat integration (headless-capable)
 -------------------------------------------------------------------------------------
 
 Goals for SerapeumAI:
@@ -89,7 +89,7 @@ class LMStudioService:
         self.cors: bool = bool(lm_config.get("cors", False))
 
         self._startup_attempted: bool = False
-        
+
         # Telemetry
         self.db = db
         self.metrics = MetricsCollector(db=db)
@@ -152,7 +152,7 @@ class LMStudioService:
         if found:
             return found
 
-        # lms not in PATH — try to auto-install via npm
+        # lms not in PATH â€” try to auto-install via npm
         logger.warning("[LMStudio] `lms` CLI not found in PATH. Attempting auto-install via npm...")
         installed = self._auto_install_lms_cli()
         if installed:
@@ -168,7 +168,7 @@ class LMStudioService:
         npm = shutil.which("npm")
         if not npm:
             logger.error(
-                "[LMStudio] npm not found — cannot auto-install `lms`. "
+                "[LMStudio] npm not found â€” cannot auto-install `lms`. "
                 "Please install Node.js from https://nodejs.org/, then run: "
                 "npm install -g @lmstudio/lms"
             )
@@ -470,7 +470,7 @@ class LMStudioService:
             openai_payload = self._prepare_openai_chatcompletions_payload(payload)
             if previous_response_id:
                 logger.warning("[LMStudio] previous_response_id not supported for /v1/chat/completions streaming; ignored.")
-            
+
             # Streaming telemetry is handled within the generator
             return self._chat_completions_stream(openai_payload, call_id, start_time, profile)
 
@@ -497,7 +497,7 @@ class LMStudioService:
             ).json()
 
             result = self._native_chat_to_openai_chatcompletions(native_resp, model=target_model)
-            
+
             # Log Response
             duration = time.time() - start_time
             usage = result.get("usage", {})
@@ -525,10 +525,10 @@ class LMStudioService:
             raise
 
     def _chat_completions_stream(
-        self, 
-        openai_payload: Dict[str, Any], 
-        call_id: str, 
-        start_time: float, 
+        self,
+        openai_payload: Dict[str, Any],
+        call_id: str,
+        start_time: float,
         profile: str
     ) -> Iterator[Dict[str, Any]]:
         resp = self._request(
@@ -562,7 +562,7 @@ class LMStudioService:
                     yield chunk
                 except json.JSONDecodeError:
                     continue
-            
+
             # Log successful stream completion
             duration = time.time() - start_time
             self.llm_logger.log_response(
@@ -708,15 +708,37 @@ class LMStudioService:
         if not self.enabled:
             raise RuntimeError("LM Studio integration is disabled")
 
-        logger.info(f"[LMStudio] Loading model: {model_name}")
+        # â”€â”€ VRAM Governance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        from src.utils.hardware_utils import reserve_vram, check_resource_availability
+        lowered = model_name.lower()
+        is_vision = "vl" in lowered or "vision" in lowered
+        tier = "vision" if is_vision else "analysis"
+
+        # Estimate reservation (4GB for vision, 2GB for others)
+        reserve_mb = 4096 if is_vision else 2048
+
+        if not check_resource_availability(tier):
+            logger.error(f"[LMStudio] Insufficient VRAM to load {model_name} (tier: {tier})")
+            return {"error": "insufficient_vram", "tier": tier}
+
+        if not reserve_vram(reserve_mb):
+            logger.error(f"[LMStudio] VRAM reservation failed for {model_name} ({reserve_mb}MB)")
+            return {"error": "vram_reservation_failed", "mb": reserve_mb}
+
+        logger.info(f"[LMStudio] Loading model: {model_name} (reserved {reserve_mb}MB)")
         payload = {"model": model_name}
-        return self._request(
-            "POST",
-            "/api/v1/models/load",
-            token_type="admin",
-            json_body=payload,
-            timeout=120,
-        ).json()
+        try:
+            return self._request(
+                "POST",
+                "/api/v1/models/load",
+                token_type="admin",
+                json_body=payload,
+                timeout=120,
+            ).json()
+        except Exception as e:
+            from src.utils.hardware_utils import release_vram
+            release_vram(reserve_mb) # Cleanup reservation on failure
+            raise e
 
     def unload_model(self, instance_id: Optional[str] = None) -> Dict[str, Any]:
         if not self.enabled:
@@ -730,13 +752,21 @@ class LMStudioService:
 
         logger.info(f"[LMStudio] Unloading model instance: {instance_id}")
         payload = {"instance_id": instance_id}
-        return self._request(
+        resp = self._request(
             "POST",
             "/api/v1/models/unload",
             token_type="admin",
             json_body=payload,
             timeout=60,
         ).json()
+
+        # Release ALL reserved VRAM from the orchestration layer upon explicit unload
+        from src.utils.hardware_utils import release_vram
+        # We don't know the exact MB, so we release the maximum likely reserved (4GB)
+        # hardware_utils.release_vram handles the floor at 0.
+        release_vram(4096)
+
+        return resp
 
     # ----------------------------
     # Download management
@@ -829,7 +859,7 @@ class LMStudioService:
             return {"loaded": False, "model": None, "connected": False}
 
         loaded = self._get_loaded_instance()
-        
+
         # Get GPU/VRAM information
         try:
             from src.utils.hardware_utils import get_gpu_info
@@ -842,7 +872,7 @@ class LMStudioService:
             vram_total_mb = 0
             vram_used_mb = 0
             vram_free_mb = 0
-        
+
         if not loaded:
             return {
                 "loaded": False,

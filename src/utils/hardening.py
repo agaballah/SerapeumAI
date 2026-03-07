@@ -90,12 +90,12 @@ def safe_ui_command(error_title: str = "Application Error"):
             except Exception as e:
                 logger.error(f"UI Command Error in {func.__name__}: {e}", exc_info=True)
                 
-                # Try to show error silently or via messagebox if in main thread
-                try:
-                    # Tkinter check (best effort)
-                    messagebox.showerror(error_title, f"An unexpected error occurred:\n{str(e)}")
-                except:
-                    pass
+                # Only show messagebox if on main thread to avoid crashes
+                if threading.current_thread() is threading.main_thread():
+                    try:
+                        messagebox.showerror(error_title, f"An unexpected error occurred:\n{str(e)}")
+                    except:
+                        pass
                 return None
         return wrapper
     return decorator

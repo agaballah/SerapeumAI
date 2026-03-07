@@ -17,6 +17,13 @@ class Theme:
     TEXT_MAIN      = "#FFFFFF"
     TEXT_MUTED     = "#A1A1AA"
     TEXT_HIGHLIGHT = "#3B82F6"
+
+    # UI Element specific
+    DANGER_RED     = "#991B1B"
+    DANGER_DARK    = "#7F1D1D"
+    SURFACE        = "#2B2B2B"
+    BORDER_DIM     = "#3A3A3A"
+    TEXT_OFFWHITE  = "#DCE4EE"
     
     # ---------------------------------------------------------
     # Fonts (Standard safe fonts to avoid fallback glitches)

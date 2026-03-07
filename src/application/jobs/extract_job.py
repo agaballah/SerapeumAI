@@ -121,9 +121,17 @@ class ExtractJob(Job):
             doc_id = doc_id_row["doc_id"] if doc_id_row else f"doc_{self.file_version_id}"
             
             # 5. Run Extraction with context
+            def _on_stage(stage_name, message=""):
+                db.execute(
+                    "UPDATE extraction_runs SET status=?, diagnostics_json=? WHERE run_id=?",
+                    (f"RUNNING:{stage_name}", json.dumps({"message": message}), run_id)
+                )
+                db.commit()
+
             extraction_context = {
                 "doc_id": doc_id,
-                "file_version_id": self.file_version_id
+                "file_version_id": self.file_version_id,
+                "on_stage": _on_stage
             }
             result = extractor.extract(source_path, context=extraction_context)
             
@@ -131,6 +139,7 @@ class ExtractJob(Job):
                 raise Exception(f"Extraction failed: {result.diagnostics}")
                 
             # 5. Persist Records (Staging)
+            _on_stage("PERSISTING", f"Saving {len(result.records)} items")
             # This logic depends on the record 'type' returned by P6Extractor
             with db.transaction():
                 for rec in result.records:
@@ -178,9 +187,14 @@ class ExtractJob(Job):
             
         except Exception as e:
             end_ts = db._ts()
+            error_details = {
+                "error": str(e),
+                "type": type(e).__name__,
+                "ts": end_ts
+            }
             db.execute(
                 "UPDATE extraction_runs SET status='FAILED', ended_at=?, diagnostics_json=? WHERE run_id=?",
-                (end_ts, json.dumps([str(e)]), run_id)
+                (end_ts, json.dumps(error_details), run_id)
             )
             db.commit()
             raise

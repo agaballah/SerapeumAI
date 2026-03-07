@@ -44,7 +44,7 @@ from typing import Dict, Any, List, Optional, Callable
 
 from src.infra.persistence.database_manager import DatabaseManager
 from src.domain.models.page_record import PageRecord
-from src.document_processing.generic_processor import GenericProcessor
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ class DocumentService:
         self.global_ks = global_ks
         self.job_manager = job_manager
         self.project_root = os.path.abspath(project_root)
-        self.generic = GenericProcessor()  # no DB argument
+        # self.generic = GenericProcessor()  # No longer used in canonical job path
 
         # per-project export dir
         self.export_root = os.path.join(
@@ -279,166 +279,19 @@ class DocumentService:
                 )
                 self.job_manager.submit(job)
                 logger.info(f"[DocumentService] Submitted V02 Ingest Job for {rel_path}")
+                # [Phase 3] Stop duplicate synchronous V01 processing.
+                # The JobManager will handle the extraction and telemetry.
+                return doc_id_override or f"doc_{file_hash[:12]}"
 
-            # 3) Process file (V01 Legacy Path - Keep active for UI feedback)
-            payload = self.generic.process(
-                abs_path=abs_path,
-                rel_path=rel_path,
-                export_root=self.export_root,
-                doc_id_override=doc_id_override,
-                project_root=self.project_root,
-            )
 
-            # Validate payload structure
-            if not payload or "doc_id" not in payload:
-                raise ValueError(f"Processor returned invalid payload (missing doc_id): {rel_path}")
+            # 3) Process file (V01 Legacy Path - DEPRECATED / REMOVED)
+            # Unified extraction is now handled exclusively by the canonical ExtractJob.
+            # Bypassing the synchronous legacy processor loop to prevent resource contention.
+            if not self.job_manager:
+                logger.error(f"Critical Engine Error: No Job Manager present to ingest {rel_path}")
+                raise RuntimeError("Job Manager required for canonical extraction")
             
-            doc_id = payload["doc_id"]
-            now = int(time.time())
-            ext = os.path.splitext(abs_path)[1].lower()
-            meta = payload.get("meta") or {}
-            # Stamp processor version so future runs can detect upgrades.
-            try:
-                from src.document_processing.processor_utils import get_processor_version
-
-                meta["processor_version"] = get_processor_version()
-            except Exception:
-                pass
-            doc_title = meta.get("doc_title") or meta.get("document_title")
-
-            # --- SMART ROUTING (Standards vs. Project) ---
-            content = payload.get("text", "")
-            keywords = ["NFPA", "ASHRAE", "ISO", "ASME", "ANSI", "SBC", "ASTM", "IBC", "IEC", "NEC", "SAUDI BUILDING CODE"]
-            filename_upper = os.path.basename(abs_path).upper()
-            content_sample = content[:2000].upper()
-            
-            # Use word boundaries to avoid false positives (e.g. NEC in CONNECTION)
-            pattern = r"\b(" + "|".join(re.escape(k) for k in keywords) + r")\b"
-            is_standard = bool(re.search(pattern, filename_upper)) or bool(re.search(pattern, content_sample))
-            
-            if is_standard and self.global_ks:
-                logger.info(f"Routing standard to Global DB: {rel_path}")
-                self.global_ks.ingest_standard_document(
-                    standard_id=doc_id, # Or extract a cleaner ID
-                    title=doc_title or os.path.basename(abs_path),
-                    content=content
-                )
-                if on_progress:
-                    on_progress("ingest.global", {"file": rel_path, "doc_id": doc_id})
-                # We still record it in project DB for reference, or should we skip?
-                # User said: "Project Database ... scoped strictly to one project's documents"
-                # "Codes & Standards Database ... shared across all projects"
-                # If it's a standard, it belongs in the Global DB. 
-                # Let's still keep a 'reference' in the Project DB so it appears in the UI.
-
-            # 4) Document Classification (P2.2)
-            from src.document_processing.classifier import DocumentClassifier
-            classifier = DocumentClassifier()
-            doc_type = classifier.classify(os.path.basename(abs_path))
-
-            if not is_standard:
-                logger.info(f"Ingesting document: {rel_path} [{doc_type}]")
-            
-            # 4b) Document Record
-            self.db.upsert_document(
-                doc_id=doc_id,
-                project_id=project_id,
-                file_name=os.path.basename(abs_path),
-                rel_path=rel_path,
-                abs_path=abs_path,
-                file_ext=ext,
-                created=now,
-                updated=now,
-                meta_json=json.dumps(meta, ensure_ascii=False),
-                content_text=content,
-                file_hash=file_hash,
-                file_size=file_size,
-                file_mtime=file_mtime,
-                doc_title=doc_title,
-                doc_type=doc_type,
-            )
-
-            # 5) Pages
-            for p in payload.get("pages", []):
-                try:
-                    u_text = p.get("unified_text") or p.get("py_text") or ""
-                    page_rec = PageRecord(
-                        doc_id=doc_id,
-                        page_index=p["page_index"],
-                        width=p.get("width"),
-                        height=p.get("height"),
-                        ocr_text=p.get("ocr_text"),
-                        text_hint=p.get("text_hint"),
-                        image_path=p.get("image_path"),
-                        quality=p.get("quality", "queued"),
-                        has_raster=bool(p.get("has_raster", 0)),
-                        has_vector=bool(p.get("has_vector", 0)),
-                        py_text=u_text,
-                        py_text_len=len(u_text),
-                        py_text_extracted=bool(u_text),
-                        layout_json=json.dumps(p.get("layout")) if p.get("layout") else None,
-                    )
-                    self.db.upsert_page(page_rec)
-                except Exception as e:
-                    logger.error(f"[ingest.page] Error for page {p.get('page_index')}: {e}", exc_info=True)
-
-            # 6) Blocks
-            blocks = payload.get("blocks") or []
-            if blocks:
-                try: self.db.insert_doc_blocks(doc_id, blocks, source_type=ext.lstrip("."))
-                except Exception as e: logger.error(f"[ingest.blocks] Error: {e}", exc_info=True)
-
-            # 7) Structured Data
-            structured_data = payload.get("structured_data") or []
-            if structured_data:
-                try:
-                    source_type = meta.get("source", "")
-                    if ext in [".ifc"] or source_type == "ifc-processor":
-                        self.db.insert_bim_elements(doc_id, structured_data)
-                    elif ext in [".xer", ".xml", ".mpp"] or source_type == "schedule-processor":
-                        self.db.insert_schedule_activities(doc_id, structured_data)
-                except Exception as e: logger.error(f"[ingest.structured] Error: {e}", exc_info=True)
-
-            # 8) XREFs (Recursive)
-            xrefs = payload.get("xrefs") or []
-            for xref in xrefs:
-                x_abs = xref.get("abs_path")
-                x_rel = xref.get("rel_path")
-                if x_abs and os.path.exists(x_abs):
-                    child_id = self.ingest_document(
-                        abs_path=x_abs,
-                        project_id=project_id,
-                        on_progress=on_progress,
-                        force=force,
-                        visited_xrefs=visited_xrefs
-                    )
-                    if child_id:
-                        # Link parent to child in the links table
-                        self.db.insert_link(
-                            project_id=project_id,
-                            from_kind="document",
-                            from_id=doc_id,
-                            to_kind="document",
-                            to_id=child_id,
-                            link_type="CAD_XREF"
-                        )
-
-            # [User Request] Verbose logging of what happened
-            n_pages = len(payload.get("pages", []))
-            n_blocks = len(blocks)
-            n_data = len(structured_data)
-            n_xrefs = len(xrefs)
-            
-            total_py_text = sum(len(p.get("py_text") or "") for p in payload.get("pages", []))
-            total_ocr_text = sum(len(p.get("ocr_text") or "") for p in payload.get("pages", []))
-            
-            logger.info(f"   -> Extracted {n_pages} pages | {n_blocks} blocks | {n_data} structured items | {n_xrefs} XREFs")
-            logger.info(f"   -> Stats: {total_py_text} chars (Native), {total_ocr_text} chars (OCR)")
-
-            if on_progress:
-                on_progress("ingest.doc", {"file": rel_path, "doc_id": doc_id})
-            
-            return doc_id
+            return doc_id_override or f"doc_{file_hash[:12]}"
         
         except Exception as e:
             logger.error(f"[ingest.fatal] Critical error ingesting {rel_path}: {e}", exc_info=True)

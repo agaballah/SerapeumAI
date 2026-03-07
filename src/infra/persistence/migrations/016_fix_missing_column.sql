@@ -9,6 +9,9 @@
 -- Fresh databases will skip this entirely (baseline handles everything).
 -- =======================================================================
 
--- No schema changes needed - column exists in baseline
+-- Fix for existing databases missing the ingestion optimization column
+ALTER TABLE file_versions ADD COLUMN last_modified_at REAL;
+CREATE INDEX IF NOT EXISTS idx_file_versions_metadata ON file_versions(source_path, size_bytes, last_modified_at);
+
 -- Just mark version as applied
 INSERT OR IGNORE INTO schema_version (version) VALUES (16);

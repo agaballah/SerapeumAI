@@ -91,8 +91,8 @@ def main() -> int:
 
     # Global standards & preferences DB
     try:
-        gdb_path = global_db_path()
-        ensure_global_db(gdb_path)
+        gdb_path = global_db_path(app_root)
+        ensure_global_db(gdb_path, app_root)
         logging.getLogger("run").info(f"Global DB ready at {gdb_path}")
     except Exception as e:
         logging.getLogger("run").error(

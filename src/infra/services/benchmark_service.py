@@ -353,16 +353,11 @@ class BenchmarkService:
                 results[model] = {"error": "embedding_model_skipped"}
                 continue
 
-            logger.info(f"[Benchmark] Testing model: {model}")
-
-            # ── VRAM hardware gate (Issue #3) ─────────────────────────────────
-            free_vram = _get_free_vram_mb()
-            if free_vram < 256:
-                logger.warning(
-                    f"[Benchmark] Insufficient VRAM ({free_vram:.0f} MB free < 256 MB). "
-                    f"Skipping {model!r} to protect system stability."
-                )
-                results[model] = {"error": f"vram_insufficient_{free_vram:.0f}mb"}
+            # ── VRAM hardware gate (Federated with hardware_utils) ───────────
+            from src.utils.hardware_utils import check_resource_availability
+            if not check_resource_availability(t):
+                logger.warning(f"[Benchmark] Insufficient VRAM to benchmark {model} for task {t}.")
+                results[model] = {"error": "vram_insufficient"}
                 continue
 
             try:
@@ -371,7 +366,6 @@ class BenchmarkService:
             except Exception as e:
                 logger.error(f"[Benchmark] Failed to load {model}: {e}")
                 results[model] = {"error": str(e)}
-                _clear_cuda_cache()  # clear even on load failure
                 continue
 
             outputs: List[str] = []
@@ -442,7 +436,12 @@ class BenchmarkService:
             }
             speeds_for_norm.append(avg_speed)
 
-            # ── CUDA cache clear after each model swap (Issue #3) ─────────────
+            # ── Model Unload (Prevent Storms) ─────────────────────────
+            try:
+                if hasattr(self.lms, "unload_model"):
+                    self.lms.unload_model()
+            except Exception:
+                pass
             _clear_cuda_cache()
 
         valid = {m: r for m, r in results.items() if isinstance(r, dict) and "error" not in r}
