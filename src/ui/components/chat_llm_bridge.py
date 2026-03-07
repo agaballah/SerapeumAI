@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-chat_llm_bridge.py — LLM Interaction Logic for ChatPanel
----------------------------------------------------------
-Extracted from chat_panel.py for better code organization and testability.
-Handles intent classification, mode instructions, and LLM reasoning.
-"""
-
-from typing import Dict, Any, List
+import sqlite3
+import logging
+from typing import Dict, Any, List, Optional
 from src.infra.adapters.cancellation import CancellationToken
 
+logger = logging.getLogger(__name__)
 
 class ChatLLMBridge:
     """Handles LLM interaction logic for the chat interface."""
@@ -24,84 +19,103 @@ class ChatLLMBridge:
     
     def classify_intent(self, query: str) -> Dict[str, Any]:
         """
-        Classify user query intent to determine response mode.
-        
-        Args:
-            query: User query string
-            
-        Returns:
-            Dict with mode, strict, scope, and desc keys
+        Classify user query intent for Truth Engine V2.
+        """
+    def classify_intent(self, query: str) -> Dict[str, Any]:
+        """
+        Classify user query intent for Truth Engine V2.
         """
         q = query.lower()
-        
-        # Hard Force: Mode F for deliverables/artifacts
-        artifact_triggers = ["artifact", "deliverable", "full sow", "write sow", "generate sow", "export", "docx", "pdf"]
-        if any(w in q for w in artifact_triggers):
-             return {"mode": "Mode F", "strict": False, "scope": "local_only", "desc": "Actionable Deliverables / Artifact (Deterministic)"}
+        role = self.panel.role_var.get()
+        spec = self.panel.spec_var.get()
 
-        if self.panel.compliance_var.get():
-            return {"mode": "Mode C", "strict": False, "scope": "local+web", "desc": "Compliance / Standards Check (Forced)"}
+        # Intent Mapping (Simplified for V2 Routing)
+        intent = "GENERAL"
+        mode = "Mode B"
+        desc = "Spec/Doc Summary (General)"
         
-        mode_a_words = [
-            "exact mention", "where exactly", "cite clause", "quote", "exact text",
-            "where", "section", "clause", "page", "as per spec", "show me", "provide citation", "verbatim"
-        ]
-        if any(w in q for w in mode_a_words) or ('"' in query or "'" in query):
-            return {"mode": "Mode A", "strict": True, "scope": "local_only", "desc": "Clause Finder (Strict Evidence)"}
+        if any(w in q for w in ["risk", "priority", "critical", "issue", "danger"]):
+            intent = "RISK"
+        elif any(w in q for w in ["exact mention", "where exactly", "cite clause", "quote"]):
+            intent = "CLAUSE"
+            mode = "Mode A"
+            desc = "Clause Finder (Strict Evidence)"
+        elif any(w in q for w in ["artifact", "deliverable", "export", "write sow"]):
+            intent = "DELIVERABLE"
+            mode = "Mode F"
+            desc = "Actionable Deliverables"
+            
+        # UI Message (Truth Engine V2 Requirement)
+        self.panel.after(0, lambda: self.panel._append("System", f"🧭 Routed to Intent: **{intent}** for Persona: **{role}-{spec}**"))
         
-        if any(w in q for w in ["compliance", "compliant", "nfpa", "ashrae", "per code", "standard requires"]):
-            return {"mode": "Mode C", "strict": False, "scope": "local+web", "desc": "Compliance / Standards Check"}
-        
-        if any(w in q for w in ["conflict", "clash", "inconsistency", "disagree"]):
-            return {"mode": "Mode D", "strict": True, "scope": "local_only", "desc": "Cross-Doc Conflict Detection"}
-        
-        if any(w in q for w in ["ifc", "bim", "p6", "ms project", "activity", "schedule", "duration"]):
-            return {"mode": "Mode E", "strict": False, "scope": "local_only", "desc": "BIM / Schedule Q&A"}
-        
-        if any(w in q for w in ["rfi", "draft", "checklist", "memo", "template", "deliverable", "artifact", "sow"]):
-            return {"mode": "Mode F", "strict": False, "scope": "local_only", "desc": "Actionable Deliverables"}
-        
-        return {"mode": "Mode B", "strict": False, "scope": "local_only", "desc": "Spec/Doc Summary (General)"}
+        return {
+            "mode": mode,
+            "intent": intent, 
+            "role": role, 
+            "discipline": spec,
+            "strict": mode == "Mode A",
+            "scope": "local_only",
+            "desc": desc
+        }
+
+    def _fetch_persona_template(self, role: str, disc: str, intent: str) -> Optional[str]:
+        from src.infra.persistence.global_db_initializer import global_db_path
+        try:
+            conn = sqlite3.connect(global_db_path())
+            # Try specific match
+            row = conn.execute(
+                "SELECT system_instructions FROM persona_templates WHERE role = ? AND discipline = ? AND intent = ?",
+                (role, disc, intent)
+            ).fetchone()
+            if row: 
+                conn.close()
+                return row[0]
+            
+            # Try default match for intent
+            row = conn.execute(
+                "SELECT system_instructions FROM persona_templates WHERE role = '*' AND discipline = '*' AND intent = ?",
+                (intent,)
+            ).fetchone()
+            if row:
+                conn.close()
+                return row[0]
+            
+            conn.close()
+        except Exception as e:
+            logger.warning(f"Failed to fetch persona template: {e}")
+        return None
 
     def get_mode_instructions(self, mode_info: Dict[str, Any], query: str = "") -> str:
         """
-        Generate system instructions based on classified mode using PromptOptimizer.
-        
-        Args:
-            mode_info: Dict with mode, desc, strict, scope keys
-            query: User query string
-            
-        Returns:
-            Instruction string for LLM system prompt
+        Generate system instructions including Persona Templates from the Global DB.
         """
         mode = mode_info["mode"]
+        intent = mode_info.get("intent", "GENERAL")
+        role = mode_info.get("role", "PMC")
+        disc = mode_info.get("discipline", "Project Manager")
         
-        # If orchestrator is available, use its optimizer for fortified prompting
+        # 1. Fetch Global Persona Template
+        template_instr = self._fetch_persona_template(role, disc, intent)
+        
+        # 2. Get Agent Instructions
         if hasattr(self.panel, 'orchestrator') and self.panel.orchestrator:
             try:
-                # Stage 1 prompt from optimizer provides better fortification
                 op = self.panel.orchestrator.optimizer.generate_stage1_prompt(
                     query=query,
-                    user_role=getattr(self.panel.db, 'user_role', 'general'),
+                    user_role=role,
                     model_name=self.panel.llm.model
                 )
-                return op.full_prompt
+                base_instr = op.full_prompt
             except Exception as e:
-                logger.warning(f"[ChatLLMBridge] Optimizer failed, using legacy instructions: {e}")
+                logger.warning(f"[ChatLLMBridge] Optimizer failed: {e}")
+                base_instr = f"You are a helpful {role} specializing in {disc}."
 
-        # Legacy fallback
-        desc, strict, scope = mode_info["desc"], mode_info["strict"], mode_info["scope"]
-        instr = f"You are operating in '{mode}: {desc}' mode. "
-        if strict:
-            instr += "Find and cite EXACT mentions/clauses. DO NOT paraphrase. State clearly if evidence is missing. "
         else:
-            instr += "Summarize and synthesize based on context. "
-        if scope == "local_only":
-            instr += "Focus EXCLUSIVELY on project documents. No web search unless tool-specific. "
-        else:
-            instr += "You may use web search for standards/general info. "
-        instr += "Always provide a procedural <plan> only (steps + tools). No private reasoning."
-        return instr
+            base_instr = f"Summarize and synthesize based on context as a {role}."
+
+        # Merge
+        final_instr = f"FORCE PERSONALITY: {template_instr}\n\n{base_instr}" if template_instr else base_instr
+        return final_instr
 
     def run_llm_logic(self, user_query: str, attachments: List[str], token: CancellationToken) -> None:
         """

@@ -18,11 +18,23 @@ class ValidationQueuePage(BasePage):
         self.frame_header = ctk.CTkFrame(self, fg_color="transparent")
         self.frame_header.grid(row=0, column=0, sticky="ew", padx=20, pady=20)
         
-        self.lbl_title = ctk.CTkLabel(self.frame_header, text="Validation Queue", font=("Arial", 24, "bold"), text_color="#DCE4EE")
+        self.lbl_title = ctk.CTkLabel(self.frame_header, text="Validation Queue", font=("Arial", 22, "bold"), text_color="#DCE4EE")
         self.lbl_title.pack(side="left")
         
-        self.lbl_count = ctk.CTkLabel(self.frame_header, text="(0 items pending)", font=("Arial", 14), text_color="gray")
+        self.lbl_count = ctk.CTkLabel(self.frame_header, text="(0 items)", font=("Arial", 12), text_color="gray")
         self.lbl_count.pack(side="left", padx=10)
+        
+        # New: Confidence Filter
+        self.combo_filter = ctk.CTkComboBox(
+            self.frame_header, 
+            values=["Candidates Only", "Show All", "Auto-Validated Only"],
+            command=lambda _: self._load_queue()
+        )
+        self.combo_filter.set("Candidates Only")
+        self.combo_filter.pack(side="right", padx=10)
+        
+        self.lbl_filter = ctk.CTkLabel(self.frame_header, text="Filter:", font=("Arial", 12))
+        self.lbl_filter.pack(side="right", padx=5)
 
         # Table for Candidates
         self.frame_table = ctk.CTkFrame(self, fg_color="#1e1e1e")
@@ -68,6 +80,8 @@ class ValidationQueuePage(BasePage):
     def _load_queue(self):
         if not self.controller.db: return
         
+        filter_mode = self.combo_filter.get()
+        
         # Clear
         for i in self.tree.get_children():
             self.tree.delete(i)
@@ -76,13 +90,25 @@ class ValidationQueuePage(BasePage):
         facts = self.controller.db.execute("SELECT fact_id, status, domain, fact_type, COALESCE(value_text, CAST(value_num AS TEXT)) as val, confidence FROM facts ORDER BY created_at DESC LIMIT 100").fetchall()
         for f in facts:
             status = f[1] or "UNKNOWN"
+            # Currently facts don't have tiers as prominently as links, but we apply status filtering if needed
             self.tree.insert("", "end", values=(f[0], status, f[2], f[3], f[4], f"{f[5]:.2f}", "N/A"), tags=(status,))
             
-        # 2. Fetch ALL links
-        links = self.controller.db.execute("SELECT link_id, status, 'LINK' as domain, link_type, from_id || ' -> ' || to_id, confidence, confidence_tier FROM links ORDER BY created_at DESC LIMIT 100").fetchall()
+        # 2. Fetch ALL links with Tier filtering
+        q_links = "SELECT link_id, status, 'LINK' as domain, link_type, from_id || ' -> ' || to_id, confidence, confidence_tier FROM links"
+        params = []
+        
+        if filter_mode == "Candidates Only":
+            q_links += " WHERE confidence_tier != 'AUTO_VALIDATED'"
+        elif filter_mode == "Auto-Validated Only":
+            q_links += " WHERE confidence_tier = 'AUTO_VALIDATED'"
+            
+        q_links += " ORDER BY created_at DESC LIMIT 100"
+        
+        links = self.controller.db.execute(q_links, params).fetchall()
         for l in links:
             status = l[1] or "UNKNOWN"
-            self.tree.insert("", "end", values=(l[0], status, l[2], l[3], l[4], f"{l[5]:.2f}", l[6]), tags=(status,))
+            tier = l[6] or "CANDIDATE"
+            self.tree.insert("", "end", values=(l[0], status, l[2], l[3], l[4], f"{l[5]:.2f}", tier), tags=(status,))
             
         self.lbl_count.configure(text=f"({len(self.tree.get_children())} items total)")
 

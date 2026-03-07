@@ -2,6 +2,8 @@ import os
 import logging
 from typing import Dict, Any, List
 from src.application.jobs.job_base import Job
+from src.domain.facts.models import Link, LinkStatus
+from src.domain.facts.repository import FactRepository
 from src.domain.models.relationship_types import RelationshipType
 
 logger = logging.getLogger(__name__)
@@ -96,34 +98,33 @@ class FileLinkerJob(Job):
                 )
                 
                 if parent_id and child_id:
-                    # Check if link exists
-                    exists = db.execute(
-                        "SELECT 1 FROM file_relations WHERE parent_file_id=? AND child_file_id=?", 
-                        (parent_id, child_id)
-                    ).fetchone()
+                    v_parent = self._get_latest_version(db, parent_id)
+                    v_child = self._get_latest_version(db, child_id)
                     
-                    if not exists:
-                        # Need `file_relations` table (Was defined in 007 as `file_relation` with version ids?)
-                        # 007 said: file_relation(parent_file_version_id, ...). 
-                        # Wait, the spec said "file_relation" links versions. 
-                        # But we are linking Files (Concepts) or specific Versions?
-                        # Ideally specific versions, but for now we Link Registry Files or Latest Versions?
-                        # Let's link LATEST versions for now.
+                    if v_parent and v_child:
+                        repo = FactRepository(db)
+                        link_id = f"link_file_auto_{v_parent[:8]}_{v_child[:8]}"
                         
-                        v_parent = self._get_latest_version(db, parent_id)
-                        v_child = self._get_latest_version(db, child_id)
+                        # Truth Engine V2: Set to AUTO_VALIDATED for highly deterministic basename matches
+                        new_link = Link(
+                            link_id=link_id,
+                            project_id=self.project_id,
+                            link_type="REPRESENTATION_OF",
+                            from_kind="file_version",
+                            from_id=v_parent,
+                            to_kind="file_version",
+                            to_id=v_child,
+                            status=LinkStatus.AUTO_VALIDATED,
+                            confidence=1.0,
+                            confidence_tier="AUTO_VALIDATED",
+                            method_id="heuristic_exact_basename_v2",
+                            created_at=db._ts(),
+                            validated_at=db._ts()
+                        )
                         
-                        if v_parent and v_child:
-                            db.execute(
-                                """
-                                INSERT INTO file_relations 
-                                (parent_file_version_id, child_file_version_id, relation_type)
-                                VALUES (?, ?, ?)
-                                """,
-                                (v_parent, v_child, "REPRESENTATION_OF")
-                            )
-                            linked_count += 1
-                            logger.info(f"Linked {parent_id} -> {child_id} (REPRESENTATION_OF)")
+                        repo.save_links([new_link])
+                        linked_count += 1
+                        logger.info(f"Auto-validated link: {v_parent} -> {v_child}")
 
         return {"status": "success", "linked": linked_count}
 

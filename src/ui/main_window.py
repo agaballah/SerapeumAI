@@ -34,6 +34,7 @@ from src.ui.pages.facts_page import FactsPage
 from src.ui.pages.documents_page import DocumentsPage
 from src.ui.pages.schedule_page import SchedulePage
 from src.ui.pages.chat_page import ChatPage
+from src.ui.pages.truth_map_page import TruthMapPage
 
 from src.utils.hardening import safe_ui_command
 
@@ -101,6 +102,7 @@ class MainApp(ctk.CTk):
         self.btn_schedule = self._nav_btn("📅 Schedule", "schedule", 3)
         self.btn_docs = self._nav_btn("📂 Documents", "documents", 4)
         self.btn_chat = self._nav_btn("🤖 Expert Chat", "chat", 5)
+        self.btn_truth_map = self._nav_btn("🌐 Truth Map", "truth_map", 6)
         
         # Primary Action
         self.lbl_snapshot = ctk.CTkLabel(self.frame_sidebar, text="Snapshot (As-Of)", anchor="w", text_color="#DCE4EE", fg_color="transparent")
@@ -141,6 +143,7 @@ class MainApp(ctk.CTk):
         self.pages["documents"] = DocumentsPage(self.frame_content, self)
         self.pages["schedule"] = SchedulePage(self.frame_content, self)
         self.pages["chat"] = ChatPage(self.frame_content, self)
+        self.pages["truth_map"] = TruthMapPage(self.frame_content, self)
         
         for p in self.pages.values():
             p.grid(row=0, column=0, sticky="nsew")

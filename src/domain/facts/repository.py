@@ -1,7 +1,7 @@
 import json
 import logging
 from typing import List, Dict, Any, Optional
-from src.domain.facts.models import Fact
+from src.domain.facts.models import Fact, Link
 from src.infra.persistence.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,26 @@ class FactRepository:
                         """,
                         (fact.fact_id, inp.file_version_id, json.dumps(inp.location), inp.input_kind)
                     )
+
+    def save_links(self, links: List[Link]):
+        if not links:
+            return
+
+        with self.db.transaction():
+            for link in links:
+                self.db.execute(
+                    """
+                    INSERT OR REPLACE INTO links 
+                    (link_id, project_id, link_type, from_kind, from_id, to_kind, to_id, 
+                     status, confidence, confidence_tier, method_id, created_at, validated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        link.link_id, link.project_id, link.link_type, link.from_kind, link.from_id,
+                        link.to_kind, link.to_id, link.status.value, link.confidence, 
+                        link.confidence_tier, link.method_id, link.created_at, link.validated_at
+                    )
+                )
     
     def query_facts(
         self,

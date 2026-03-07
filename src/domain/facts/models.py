@@ -57,6 +57,32 @@ class Fact:
     created_at: int = 0
     updated_at: int = 0
 
+class LinkStatus(str, Enum):
+    CANDIDATE = "CANDIDATE"
+    VALIDATED = "VALIDATED"
+    AUTO_VALIDATED = "AUTO_VALIDATED" # New for Truth Engine V2
+    REJECTED = "REJECTED"
+
+@dataclass
+class Link:
+    """
+    Standardized Cross-Domain Link.
+    Corresponds to 'links' table.
+    """
+    link_id: str
+    project_id: str
+    link_type: str
+    from_kind: str
+    from_id: str
+    to_kind: str
+    to_id: str
+    status: LinkStatus = LinkStatus.CANDIDATE
+    confidence: float = 1.0
+    confidence_tier: str = "CANDIDATE" # 'CANDIDATE', 'AUTO_VALIDATED', 'MANUAL_CERTIFIED'
+    method_id: Optional[str] = None
+    created_at: int = 0
+    validated_at: Optional[int] = None
+
     def to_dict(self):
         return {
             "fact_id": self.fact_id,
@@ -66,4 +92,43 @@ class Fact:
             "subject_id": self.subject_id,
             "value": self.value,
             "status": self.status.value
+        }
+
+class LinkStatus(str, Enum):
+    CANDIDATE = "CANDIDATE"
+    VALIDATED = "VALIDATED"
+    AUTO_VALIDATED = "AUTO_VALIDATED"
+    REJECTED = "REJECTED"
+
+@dataclass
+class Link:
+    """
+    Standardized Cross-Domain Link.
+    Corresponds to 'links' table.
+    """
+    link_id: str
+    project_id: str
+    link_type: str
+    from_kind: str
+    from_id: str
+    to_kind: str
+    to_id: str
+    status: LinkStatus = LinkStatus.CANDIDATE
+    confidence: float = 1.0
+    confidence_tier: str = "CANDIDATE" # 'CANDIDATE', 'AUTO_VALIDATED', 'MANUAL_CERTIFIED'
+    method_id: Optional[str] = None
+    created_at: int = 0
+    validated_at: Optional[int] = None
+
+    def to_dict(self):
+        return {
+            "link_id": self.link_id,
+            "project_id": self.project_id,
+            "link_type": self.link_type,
+            "from_kind": self.from_kind,
+            "from_id": self.from_id,
+            "to_kind": self.to_kind,
+            "to_id": self.to_id,
+            "status": self.status.value,
+            "confidence_tier": self.confidence_tier
         }

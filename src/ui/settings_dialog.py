@@ -66,6 +66,7 @@ class SettingsDialog(tk.Toplevel):
 
         self._build_general_tab()
         self._build_lm_studio_tab()
+        self._build_governance_tab()
         self._build_advanced_tab()
 
         btn_frame = ttk.Frame(main, padding=(10, 0, 10, 10))  # type: ignore[attr-defined]
@@ -163,6 +164,75 @@ class SettingsDialog(tk.Toplevel):
         ttk.Spinbox(row1, from_=0, to=10000, textvariable=self.vector_val, width=10).pack(side=tk.LEFT, padx=5)
         ttk.Label(row1, text="operations", foreground="gray").pack(side=tk.LEFT)
 
+    def _build_governance_tab(self):
+        """
+        Builds the Governance tab - Role/Discipline vs Fact Domain matrix.
+        Persists to authority_policies in the Project DB.
+        """
+        tab = ttk.Frame(self.notebook, padding=20)
+        self.notebook.add(tab, text="Governance")
+
+        lbl_instr = ttk.Label(tab, text="Define which Personas can certify specific Fact Domains:", font=("Arial", 11, "bold"))
+        lbl_instr.pack(fill=tk.X, pady=(0, 10))
+
+        # Core Taxonomy
+        ROLES = ["Owner", "Contractor", "PMC", "Consultant"]
+        DISCIPLINES = ["Arch", "Str", "Mech", "Elec", "Project Manager"]
+        DOMAINS = ["SCHEDULE", "BIM", "DOC_CONTROL", "REGISTERS", "FIELD", "COMPLETION"]
+
+        # Container for the grid
+        grid_container = ttk.Frame(tab)
+        grid_container.pack(fill=tk.BOTH, expand=True)
+
+        # Scrollable area (using a canvas for the matrix)
+        canvas = tk.Canvas(grid_container, borderwidth=0, highlightthickness=0)
+        scroll_y = ttk.Scrollbar(grid_container, orient="vertical", command=canvas.yview)
+        scroll_x = ttk.Scrollbar(grid_container, orient="horizontal", command=canvas.xview)
+        
+        matrix_frame = ttk.Frame(canvas)
+        matrix_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        
+        canvas.create_window((0, 0), window=matrix_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
+
+        # Layout scrollbars
+        canvas.pack(side="top", fill="both", expand=True)
+        scroll_y.pack(side="right", fill="y", before=canvas)
+        scroll_x.pack(side="bottom", fill="x")
+
+        # Header Row (Domains)
+        ttk.Label(matrix_frame, text="Persona (Role-Disc) \\ Domain", font=("Arial", 9, "bold"), width=30).grid(row=0, column=0, padx=5, pady=5)
+        for i, domain in enumerate(DOMAINS):
+            ttk.Label(matrix_frame, text=domain, font=("Arial", 9, "bold"), width=15).grid(row=0, column=i+1, padx=5, pady=5)
+
+        # Data Rows (Persona)
+        self.governance_vars = {} # (role, disc, domain) -> BooleanVar
+        
+        # Load existing policies if Project DB is available
+        existing_policies = set()
+        try:
+            if hasattr(self.parent, "db") and self.parent.db:
+                rows = self.parent.db.execute("SELECT role, discipline, domain FROM authority_policies WHERE can_certify = 1").fetchall()
+                for r in rows:
+                    existing_policies.add((r[0], r[1], r[2]))
+        except Exception as e:
+            logger.warning(f"Failed to load existing governance policies: {e}")
+
+        row_idx = 1
+        for role in ROLES:
+            for disc in DISCIPLINES:
+                persona_label = f"{role} - {disc}"
+                ttk.Label(matrix_frame, text=persona_label, width=30).grid(row=row_idx, column=0, padx=5, pady=2, sticky="w")
+                
+                for col_idx, domain in enumerate(DOMAINS):
+                    var = tk.BooleanVar(value=(role, disc, domain) in existing_policies)
+                    self.governance_vars[(role, disc, domain)] = var
+                    
+                    cb = ttk.Checkbutton(matrix_frame, variable=var, **_kw(bootstyle="round-toggle"))
+                    cb.grid(row=row_idx, column=col_idx+1, padx=5, pady=2)
+                
+                row_idx += 1
+
     def _toggle_lm_studio(self):
         if self.lm_studio_enabled.get():
             self.lm_status_label.config(text="Status: Enabled (restart may be required)", foreground="orange")
@@ -210,6 +280,23 @@ class SettingsDialog(tk.Toplevel):
             self.config.set("lm_studio.url", str(self.lm_studio_url.get()), scope="local")
 
             saved_path = self.config.save(scope="local")
+
+            # Governance Persistence (Truth Engine V2)
+            if hasattr(self.parent, "db") and self.parent.db:
+                try:
+                    with self.parent.db.transaction():
+                        for (role, disc, domain), var in self.governance_vars.items():
+                            can_certify = 1 if var.get() else 0
+                            self.parent.db.execute(
+                                """
+                                INSERT OR REPLACE INTO authority_policies 
+                                (role, discipline, domain, can_certify, updated_at)
+                                VALUES (?, ?, ?, ?, strftime('%s','now'))
+                                """,
+                                (role, disc, domain, can_certify)
+                            )
+                except Exception as e:
+                    logger.error(f"Failed to save governance policies to DB: {e}")
 
             messagebox.showinfo(
                 "Success",
