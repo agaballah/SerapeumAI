@@ -35,3 +35,4 @@ test_scaling_project/
 # OS
 .DS_Store
 Thumbs.db
+.aider*

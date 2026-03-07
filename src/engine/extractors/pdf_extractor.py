@@ -69,7 +69,6 @@ class UniversalPdfExtractor(BaseExtractor):
             })
             
             # 3. Extract Semantic Blocks for RAG (NEW)
-            # Get doc_id from context if provided (set by ExtractJob)
             doc_id = (context or {}).get("doc_id", "unknown")
             blocks = self._extract_semantic_blocks(full_text, doc_id, page_texts)
             
@@ -84,7 +83,15 @@ class UniversalPdfExtractor(BaseExtractor):
                 })
                 diagnostics.append(f"Extracted {len(blocks)} semantic blocks for RAG")
             
-            return ExtractionResult(records=records, diagnostics=diagnostics, success=True)
+            # 4. Compile Metrics
+            metadata = {
+                "page_count": len(reader.pages),
+                "char_count": len(full_text),
+                "block_count": len(blocks),
+                "image_count": sum(len(p.images) for p in reader.pages)
+            }
+            
+            return ExtractionResult(records=records, diagnostics=diagnostics, metadata=metadata, success=True)
             
         except Exception as e:
             logger.error(f"PDF Extraction failed: {e}")

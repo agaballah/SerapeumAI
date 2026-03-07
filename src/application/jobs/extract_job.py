@@ -139,8 +139,8 @@ class ExtractJob(Job):
             # 6. Success
             end_ts = db._ts()
             db.execute(
-                "UPDATE extraction_runs SET status='SUCCESS', ended_at=? WHERE run_id=?",
-                (end_ts, run_id)
+                "UPDATE extraction_runs SET status='SUCCESS', ended_at=?, diagnostics_json=? WHERE run_id=?",
+                (end_ts, json.dumps(result.metadata), run_id)
             )
             db.commit()
             

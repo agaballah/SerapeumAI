@@ -97,7 +97,7 @@ class DashboardPage(BasePage):
             
             # Extraction Runs
             query_ext = """
-                SELECT er.started_at, fv.source_path, er.status 
+                SELECT er.started_at, fv.source_path, er.status, er.diagnostics_json
                 FROM extraction_runs er
                 JOIN file_versions fv ON er.file_version_id = fv.file_version_id
                 ORDER BY er.started_at DESC LIMIT 5
@@ -105,23 +105,23 @@ class DashboardPage(BasePage):
             ext_runs = db.execute(query_ext).fetchall()
             for r in ext_runs:
                 fname = os.path.basename(r[1])
-                log_entries.append((r[0], f"Extract: {fname}", r[2]))
+                log_entries.append((r[0], f"Extract: {fname}", r[2], r[3]))
             
             # Job Queue (Staging)
             try:
                 job_runs = db.execute("SELECT type_name, status, updated_at FROM job_queue ORDER BY updated_at DESC LIMIT 5").fetchall()
                 for jr in job_runs:
-                    log_entries.append((jr[2], jr[0], jr[1]))
+                    log_entries.append((jr[2], jr[0], jr[1], None))
             except: pass
 
             # Sort logs by timestamp
             final_log = []
-            for ts, label, status in log_entries:
+            for ts, label, status, diag in log_entries:
                 try:
                     ts_val = int(float(ts)) if ts else 0
-                    final_log.append((ts_val, label, status))
+                    final_log.append((ts_val, label, status, diag))
                 except:
-                    final_log.append((0, label, status))
+                    final_log.append((0, label, status, diag))
 
             final_log.sort(key=lambda x: x[0], reverse=True)
             
@@ -141,10 +141,20 @@ class DashboardPage(BasePage):
         
         if log_entries:
             log_text = ""
-            for ts, label, status in log_entries[:12]:
+            for ts, label, status, diag in log_entries[:12]:
                  icon = "✔" if status in ('SUCCESS', 'COMPLETED') else "✖" if status == 'FAILED' else "➤"
                  status_color = "[DONE]" if status in ('SUCCESS', 'COMPLETED') else f"[{status}]"
                  log_text += f"{icon} {label.ljust(40)} {status_color}\n"
+                 
+                 # Detailed Metrics for Extracts
+                 if diag and status == 'SUCCESS' and label.startswith("Extract:"):
+                     try:
+                         m = json.loads(diag)
+                         if isinstance(m, dict) and "page_count" in m:
+                             metrics = f"  └─ {m['page_count']} pages, {m['char_count'] // 1000}k chars, {m['image_count']} images, {m['block_count']} blocks"
+                             log_text += f"{metrics}\n"
+                     except:
+                         pass
             
             self.txt_logs.configure(state="normal")
             self.txt_logs.delete("0.0", "end")
