@@ -1,0 +1,38 @@
+# Fact Templates - Domain-aware truth requirements
+# These templates define what facts are needed to answer specific engineering questions.
+
+templates:
+  milestone_risk:
+    description: "Analyze risks to a specific schedule milestone"
+    required_domains:
+      - SCHEDULE
+      - PROCUREMENT
+    required_facts:
+      - schedule_milestone_date
+      - submittal_approval_status
+      - equipment_lead_time
+    intent_keywords: ["milestone", "risk", "delay", "handover", "completion"]
+
+  spatial_readiness:
+    description: "Verify if a zone is ready for installation"
+    required_domains:
+      - BIM
+      - FIELD
+      - PROCUREMENT
+    required_facts:
+      - zone_element_inventory
+      - inspection_status
+      - material_delivery_status
+    intent_keywords: ["readiness", "install", "zone", "area", "equipment"]
+
+  revision_compliance:
+    description: "Check if installed elements match latest drawings"
+    required_domains:
+      - BIM
+      - DOC_CONTROL
+      - FIELD
+    required_facts:
+      - latest_revision_id
+      - element_revision_link
+      - installation_confirmation
+    intent_keywords: ["compliance", "latest", "revision", "superseded", "drawing"]

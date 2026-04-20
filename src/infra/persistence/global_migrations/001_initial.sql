@@ -1,0 +1,1 @@
+-- Placeholder for canonical global migration chain. Actual schema is managed in global_schema.py.

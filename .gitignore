@@ -1,0 +1,11 @@
+.serapeum/
+build/
+dist/
+models/
+**/__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/

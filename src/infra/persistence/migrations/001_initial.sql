@@ -1,0 +1,1 @@
+-- Placeholder for canonical migration chain. Actual schema is managed in project_schema.py.

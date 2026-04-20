@@ -1,0 +1,50 @@
+{
+  "standards": [
+    {
+      "id": "SBC-201",
+      "title": "Saudi Building Code - General",
+      "region": "KSA",
+      "version": "2018",
+      "meta": {"category": "Building"}
+    },
+    {
+      "id": "NFPA-70",
+      "title": "National Electrical Code",
+      "region": "USA/International",
+      "version": "2020",
+      "meta": {"category": "Electrical"}
+    },
+    {
+      "id": "IBC-2021",
+      "title": "International Building Code",
+      "region": "International",
+      "version": "2021",
+      "meta": {"category": "Building"}
+    }
+  ],
+  "clauses": [
+    {
+      "id": "SBC-201-1004.1",
+      "standard_id": "SBC-201",
+      "path": "1004.1",
+      "text": "Design Occupant Load: In determining means of egress requirements, the number of occupants for whom means of egress facilities are to be provided shall be determined in accordance with this section.",
+      "meta": {}
+    },
+    {
+      "id": "NFPA-70-210.8",
+      "standard_id": "NFPA-70",
+      "path": "210.8",
+      "text": "Ground-Fault Circuit-Interrupter Protection for Personnel. Ground-fault circuit-interrupter protection for personnel shall be provided as required in 210.8(A) through (F).",
+      "meta": {}
+    },
+    {
+      "id": "IBC-2021-1011.2",
+      "standard_id": "IBC-2021",
+      "path": "1011.2",
+      "text": "Width: The width of stairways shall be determined as specified in Section 1005.1, but the stair width shall not be less than 44 inches (1118 mm).",
+      "meta": {}
+    }
+  ],
+  "mappings": [],
+  "xref": []
+}
