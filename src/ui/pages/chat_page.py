@@ -131,6 +131,20 @@ class ChatPage(BasePage):
         self.attached_files = []
         self._refresh_attachment_label()
 
+    def _is_current_chat_request(self, request_token: int, request_project_id: Optional[str]) -> bool:
+        """Return True only for responses belonging to the current mounted chat session."""
+        if request_token != self._chat_session_token:
+            return False
+        if request_project_id != getattr(self.controller, "active_project_id", None):
+            return False
+        return True
+
+    def _deliver_chat_error(self, request_token: int, request_project_id: Optional[str], error: Exception) -> None:
+        """Drop late worker errors from a closed or changed project session."""
+        if not self._is_current_chat_request(request_token, request_project_id):
+            return
+        self.add_message("System", f"Error: {str(error)}")
+
     def send_message(self, event=None):
         msg = (self.entry_msg.get() or "").strip()
         if not msg and not self.attached_files:
@@ -156,9 +170,7 @@ class ChatPage(BasePage):
                     candidate_fact_suggestions = res.get("candidate_fact_suggestions", [])
                     source_lanes = res.get("source_lanes", {})
                     def _deliver():
-                        if request_token != self._chat_session_token:
-                            return
-                        if request_project_id != getattr(self.controller, "active_project_id", None):
+                        if not self._is_current_chat_request(request_token, request_project_id):
                             return
                         self.add_message(
                             "Serapeum",
@@ -170,7 +182,10 @@ class ChatPage(BasePage):
                         )
                     self.safe_ui_after(0, _deliver)
                 except Exception as e:
-                    self.safe_ui_after(0, lambda: self.add_message("System", f"Error: {str(e)}"))
+                    self.safe_ui_after(
+                        0,
+                        lambda err=e, token=request_token, project=request_project_id: self._deliver_chat_error(token, project, err),
+                    )
 
             threading.Thread(target=_ask, daemon=True).start()
         else:
