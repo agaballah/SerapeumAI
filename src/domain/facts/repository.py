@@ -1,7 +1,7 @@
 import json
 import logging
 from typing import List, Dict, Any, Optional
-from src.domain.facts.models import Fact, Link
+from src.domain.facts.models import Fact, Link, FactStatus, normalize_rejection_status
 from src.infra.persistence.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
@@ -9,6 +9,42 @@ logger = logging.getLogger(__name__)
 class FactRepository:
     def __init__(self, db: DatabaseManager):
         self.db = db
+
+    def update_fact_status(self, fact_id: str, new_status: str) -> bool:
+        """
+        Canonical human-review state transition for facts.
+
+        This is the single domain path used by UI review actions so that
+        Certify/Reject update the same fact.status values consumed by
+        FactQueryAPI, CoverageGate, and chat.
+        """
+        status = normalize_rejection_status(str(new_status or "").upper())
+        allowed = {s.value for s in FactStatus}
+        if status not in allowed:
+            raise ValueError(f"Unsupported fact status: {new_status}")
+
+        existing = self.db.execute(
+            "SELECT fact_id FROM facts WHERE fact_id = ?",
+            (fact_id,),
+        ).fetchone()
+        if not existing:
+            return False
+
+        self.db.execute(
+            "UPDATE facts SET status = ?, updated_at = ? WHERE fact_id = ?",
+            (status, self.db._ts(), fact_id),
+        )
+        self.db.commit()
+        logger.info("Fact %s review status updated to %s", fact_id, status)
+        return True
+
+    def certify_fact(self, fact_id: str) -> bool:
+        """Promote a fact to HUMAN_CERTIFIED so it becomes governing truth."""
+        return self.update_fact_status(fact_id, FactStatus.HUMAN_CERTIFIED.value)
+
+    def reject_fact(self, fact_id: str) -> bool:
+        """Reject a fact so it is excluded from trusted answer paths."""
+        return self.update_fact_status(fact_id, FactStatus.REJECTED.value)
 
     def save_facts(self, facts: List[Fact]):
         if not facts:

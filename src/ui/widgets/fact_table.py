@@ -9,6 +9,7 @@ from src.application.services.fact_review_presentation import (
     build_filter_options,
     filter_fact_rows,
 )
+from src.domain.facts.repository import FactRepository
 from src.ui.styles.theme import Theme
 
 logger = logging.getLogger(__name__)
@@ -442,12 +443,12 @@ class FactTable(ctk.CTkFrame):
             return
 
         try:
-            self.db.execute(
-                "UPDATE facts SET status = ?, updated_at = ? WHERE fact_id = ?",
-                (new_status, self.db._ts(), self.selected_fact_id),
-            )
-            self.db.commit()
-            logger.info("Fact %s status updated to %s", self.selected_fact_id, new_status)
+            repo = FactRepository(self.db)
+            updated = repo.update_fact_status(self.selected_fact_id, new_status)
+            if not updated:
+                self.lbl_selected.configure(text="Update Failed: selected fact was not found", text_color=Theme.DANGER)
+                return
+
             self.load_facts(snapshot_id=self.snapshot_id)
             if self.selected_fact_id in self.row_by_fact_id:
                 self.tree.selection_set(self.selected_fact_id)
