@@ -129,6 +129,23 @@ class LMStudioService:
             except Exception:
                 return False
 
+    def _subprocess_window_options(self) -> Dict[str, Any]:
+        """
+        Return Windows-safe subprocess options that prevent helper CLI calls from
+        flashing transient console windows in packaged/windowed builds.
+        """
+        if os.name != "nt":
+            return {}
+
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = subprocess.SW_HIDE
+
+        return {
+            "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            "startupinfo": startupinfo,
+        }
+
     def _run_cli(self, cmd: List[str], timeout_s: int = 45) -> Tuple[int, str]:
         """Run a command safely and return (exit_code, output)."""
         try:
@@ -139,7 +156,8 @@ class LMStudioService:
                 encoding="utf-8",
                 errors="replace",
                 timeout=timeout_s,
-                check=False
+                check=False,
+                **self._subprocess_window_options(),
             )
             return res.returncode, (res.stdout + res.stderr).strip()
         except subprocess.TimeoutExpired:
