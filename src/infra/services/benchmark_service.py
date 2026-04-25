@@ -34,8 +34,6 @@ from typing import List, Dict, Any, Optional, Callable
 logger = logging.getLogger(__name__)
 
 
-# ----------------------------- Embedding model guard ---------------------- #
-
 def _is_embedding_model(model_id: str) -> bool:
     """
     Returns True if this model ID is an embedding model that does NOT support
@@ -67,7 +65,55 @@ def _get_free_vram_mb() -> float:
             return free / (1024 * 1024)
     except Exception:
         pass
-    return 9999.0  # CPU or unavailable — don't block
+    return 9999.0
+
+
+def get_machine_hardware_snapshot() -> Dict[str, Any]:
+    """
+    Read-only local hardware snapshot for advisory and classification services.
+    """
+    gpu_available = False
+    gpu_name = "No GPU"
+    vram_total_mb = 0
+    detection_method = "none"
+
+    try:
+        import torch
+        if torch.cuda.is_available():
+            device = torch.cuda.current_device()
+            gpu_available = True
+            gpu_name = torch.cuda.get_device_name(device)
+            vram_total_mb = int(torch.cuda.get_device_properties(device).total_memory / (1024 * 1024))
+            detection_method = "torch"
+    except Exception:
+        pass
+
+    ram_total_mb = 0
+    try:
+        import os
+        pages = os.sysconf("SC_PHYS_PAGES")
+        page_size = os.sysconf("SC_PAGE_SIZE")
+        if pages and page_size:
+            ram_total_mb = int((pages * page_size) / (1024 * 1024))
+    except Exception:
+        pass
+
+    if ram_total_mb <= 0:
+        try:
+            import psutil  # type: ignore
+            ram_total_mb = int(psutil.virtual_memory().total / (1024 * 1024))
+        except Exception:
+            ram_total_mb = 0
+
+    return {
+        "gpu_available": gpu_available,
+        "gpu_name": gpu_name,
+        "vram_total_mb": int(vram_total_mb),
+        "vram_free_mb": int(_get_free_vram_mb()) if gpu_available else 0,
+        "ram_total_mb": int(ram_total_mb),
+        "os_name": os.name if "os" in locals() else "unknown",
+        "detection_method": detection_method,
+    }
 
 
 def _clear_cuda_cache() -> None:
@@ -80,8 +126,6 @@ def _clear_cuda_cache() -> None:
     except Exception:
         pass
 
-
-# ----------------------------- Validators --------------------------------- #
 
 def _norm(s: str) -> str:
     return (s or "").strip()
@@ -117,9 +161,6 @@ def _score_bullets(output: str, min_bullets: int = 3) -> float:
 
 
 def _score_jaccard(output: str, expected: str) -> float:
-    """
-    Lightweight fuzzy scoring for legacy test-cases.
-    """
     if not expected:
         return 1.0
     set_output = set((output or "").lower().split())
@@ -128,8 +169,6 @@ def _score_jaccard(output: str, expected: str) -> float:
     uni = set_output | set_expected
     return (len(inter) / len(uni)) if uni else 0.0
 
-
-# ----------------------------- Test cases --------------------------------- #
 
 _ONE_BY_ONE_PNG_RED = (
     "data:image/png;base64,"
@@ -147,9 +186,6 @@ class TestCase:
 
 
 def _default_suite_for_task(task: str) -> List[TestCase]:
-    """
-    Tiny suites. Deterministic scoring; low token budgets.
-    """
     t = (task or "").strip().lower()
 
     if t in ("chat", "qa", "universal"):
@@ -246,8 +282,6 @@ def _default_suite_for_task(task: str) -> List[TestCase]:
     return _default_suite_for_task("qa")
 
 
-# ----------------------------- Benchmark service ---------------------------- #
-
 class BenchmarkService:
     """
     Run comparative benchmarks across multiple models and persist results.
@@ -256,10 +290,8 @@ class BenchmarkService:
     def __init__(self, lm_studio_service, db=None, global_db=None):
         self.lms = lm_studio_service
         self.db = db
-        self.global_db = global_db or db  # Fallback to project db if global not provided
+        self.global_db = global_db or db
         self.config = None
-
-    # -------------------------- Public API -------------------------- #
 
     def get_or_benchmark_winner(
         self,
@@ -270,14 +302,6 @@ class BenchmarkService:
         max_age_seconds: int = 7 * 24 * 3600,
         on_progress: Optional[Callable[[str, int, int], None]] = None,
     ) -> Optional[str]:
-        """
-        Returns the best model for a task.
-
-        - If a recent preference exists and force=False -> reuse it.
-        - Else run a lightweight benchmark suite and persist:
-            * model_benchmarks rows
-            * model_preferences winner row
-        """
         t = (task or "").strip().lower() or "qa"
 
         if not force:
@@ -315,12 +339,6 @@ class BenchmarkService:
         *,
         lightweight: bool = False,
     ) -> Dict[str, Any]:
-        """
-        Backward-compatible benchmark runner.
-
-        If lightweight=True or test_cases is None:
-            uses built-in micro-suite for the task.
-        """
         t = (task or "").strip().lower() or "qa"
 
         if lightweight or test_cases is None:
@@ -344,7 +362,6 @@ class BenchmarkService:
         speeds_for_norm: List[float] = []
 
         for model in models:
-            # ── Embedding model guard (Issue #2) ─────────────────────────────
             if _is_embedding_model(model):
                 logger.warning(
                     f"[Benchmark] Skipping {model!r}: detected as embedding model. "
@@ -353,11 +370,14 @@ class BenchmarkService:
                 results[model] = {"error": "embedding_model_skipped"}
                 continue
 
-            # ── VRAM hardware gate (Federated with hardware_utils) ───────────
-            from src.utils.hardware_utils import check_resource_availability
-            if not check_resource_availability(t):
-                logger.warning(f"[Benchmark] Insufficient VRAM to benchmark {model} for task {t}.")
-                results[model] = {"error": "vram_insufficient"}
+            logger.info(f"[Benchmark] Testing model: {model}")
+            free_vram = _get_free_vram_mb()
+            if free_vram < 256:
+                logger.warning(
+                    f"[Benchmark] Insufficient VRAM ({free_vram:.0f} MB free < 256 MB). "
+                    f"Skipping {model!r} to protect system stability."
+                )
+                results[model] = {"error": f"vram_insufficient_{free_vram:.0f}mb"}
                 continue
 
             try:
@@ -366,6 +386,7 @@ class BenchmarkService:
             except Exception as e:
                 logger.error(f"[Benchmark] Failed to load {model}: {e}")
                 results[model] = {"error": str(e)}
+                _clear_cuda_cache()
                 continue
 
             outputs: List[str] = []
@@ -435,13 +456,6 @@ class BenchmarkService:
                 "outputs": outputs,
             }
             speeds_for_norm.append(avg_speed)
-
-            # ── Model Unload (Prevent Storms) ─────────────────────────
-            try:
-                if hasattr(self.lms, "unload_model"):
-                    self.lms.unload_model()
-            except Exception:
-                pass
             _clear_cuda_cache()
 
         valid = {m: r for m, r in results.items() if isinstance(r, dict) and "error" not in r}
@@ -473,8 +487,6 @@ class BenchmarkService:
             "winner_score": winner_score,
             "recommendation": recommendation,
         }
-
-    # -------------------------- Internal helpers -------------------------- #
 
     def _chat_model(
         self,
@@ -567,8 +579,6 @@ class BenchmarkService:
                 return [m for m in out if m]
         return []
 
-    # -------------------------- DB persistence (schema-tolerant) -------------------------- #
-
     def _table_columns(self, table: str) -> List[str]:
         try:
             rows = self.global_db.execute(f"PRAGMA table_info({table})").fetchall()
@@ -587,10 +597,6 @@ class BenchmarkService:
         output_sample: str,
         case_index: int,
     ) -> None:
-        """
-        Insert one row into model_benchmarks.
-        benchmark_id MUST be unique (PK). We use uuid4 + case_index.
-        """
         try:
             table = "model_benchmarks"
             cols = set(self._table_columns(table))
@@ -601,7 +607,6 @@ class BenchmarkService:
             payload: Dict[str, Any] = {}
 
             if "benchmark_id" in cols:
-                # Use time_ns + unique entropy to avoid PK collisions
                 safe_task = "".join(c for c in task if c.isalnum() or c in ("-", "_"))
                 safe_model = "".join(c for c in model if c.isalnum() or c in ("-", "_"))
                 payload["benchmark_id"] = f"{safe_task}_{safe_model}_{time.time_ns()}_{case_index}_{uuid.uuid4().hex[:6]}"
@@ -634,11 +639,6 @@ class BenchmarkService:
             logger.debug(f"[Benchmark] Failed to save benchmark row: {e}")
 
     def _load_preference(self, *, task: str, max_age_seconds: int) -> Optional[str]:
-        """
-        Supports BOTH schemas:
-          - (task, preferred_model, last_updated)  [your current DB]
-          - (task, model, updated_at/last_updated/created_at)
-        """
         try:
             table = "model_preferences"
             cols = set(self._table_columns(table))
@@ -701,10 +701,6 @@ class BenchmarkService:
             return None
 
     def _save_preference(self, *, task: str, model: str, score: Optional[float] = None) -> None:
-        """
-        Write preference using whatever schema exists.
-        For your DB: INSERT OR REPLACE (task, preferred_model, last_updated)
-        """
         try:
             table = "model_preferences"
             cols = set(self._table_columns(table))
@@ -728,11 +724,6 @@ class BenchmarkService:
                     self.db.commit()
                 return
 
-                if hasattr(self.db, "commit"):
-                    self.db.commit()
-                return
-
-            # Fallback legacy support (can be removed if migration 006 is guaranteed)
             if "model" in cols:
                 ts_col = "updated_at" if "updated_at" in cols else ("last_updated" if "last_updated" in cols else None)
                 if ts_col:
@@ -752,22 +743,18 @@ class BenchmarkService:
         except Exception as e:
             logger.debug(f"[Benchmark] Failed to save preference: {e}")
 
-    # -------------------------- Recommendation string -------------------------- #
-
     def _generate_recommendation(self, results: Dict[str, Dict[str, Any]], winner: str) -> str:
         fastest = max(results.items(), key=lambda x: x[1].get("avg_speed", 0.0))[0]
         best_quality = max(results.items(), key=lambda x: x[1].get("avg_quality", 0.0))[0]
 
         if winner == fastest == best_quality:
-            return f"✅ {winner} is the clear winner (best quality AND speed)"
+            return f"{winner} is the clear winner (best quality AND speed)"
         if winner == best_quality:
             return (
-                f"✅ {winner} has best quality ({results[winner]['avg_quality']:.1%}), "
+                f"{winner} has best quality ({results[winner]['avg_quality']:.1%}), "
                 f"but {fastest} is faster ({results[fastest]['avg_speed']:.1f} tok/s)"
             )
-        return f"✅ {winner} offers best balance. {best_quality} has higher quality, {fastest} is faster."
-
-    # -------------------------- History API (kept) -------------------------- #
+        return f"{winner} offers best balance. {best_quality} has higher quality, {fastest} is faster."
 
     def get_benchmark_history(self, task: Optional[str] = None) -> List[Dict[str, Any]]:
         try:
