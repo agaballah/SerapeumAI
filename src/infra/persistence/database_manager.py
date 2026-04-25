@@ -142,13 +142,18 @@ class DatabaseManager:
                 db_name = DB_NAME
 
         # 2.1 Database Localization Enforcement
-        # Ensure the persistent file is strictly within the .serapeum isolation folder
+        # Ensure persistent DB files are canonicalized under the symbolic .serapeum root.
+        # Legal roots are <Application-root>\.serapeum or <Project-root>\.serapeum.
+        # Avoid fragile directory-listing checks and never let db_name escape the root.
         if db_name != ":memory:":
-            if not self.root_dir.endswith(".serapeum") and ".serapeum" not in os.listdir(self.root_dir or "."):
-                 self.root_dir = os.path.join(self.root_dir, ".serapeum")
-                 os.makedirs(self.root_dir, exist_ok=True)
-            self.db_path = os.path.join(self.root_dir, db_name)
+            input_root = os.path.abspath(root_dir)
+            if os.path.basename(os.path.normpath(input_root)).lower() != ".serapeum":
+                input_root = os.path.join(input_root, ".serapeum")
+            os.makedirs(input_root, exist_ok=True)
+            self.root_dir = input_root
+            self.db_path = os.path.join(self.root_dir, os.path.basename(str(db_name)))
         else:
+            self.root_dir = os.path.abspath(root_dir)
             self.db_path = ":memory:"
 
         # Thread-local storage for connections
