@@ -125,11 +125,37 @@ class LocalRuntimeSetupService:
                 return path
         return None
 
+    def _subprocess_window_options(self) -> Dict[str, Any]:
+        """
+        Return Windows-safe subprocess options that prevent LM Studio helper CLI
+        calls from flashing transient console windows in packaged/windowed builds.
+        """
+        if os.name != "nt":
+            return {}
+
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = subprocess.SW_HIDE
+
+        return {
+            "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            "startupinfo": startupinfo,
+        }
+
     def _run_cli(self, args: List[str], timeout_s: int = 180) -> subprocess.CompletedProcess:
         cli_path = self._find_lms_cli()
         if not cli_path:
             raise RuntimeError("The lms command-line interface is not available.")
-        return subprocess.run([cli_path, *args], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout_s, check=False)
+        return subprocess.run(
+            [cli_path, *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout_s,
+            check=False,
+            **self._subprocess_window_options(),
+        )
 
     def _normalize_token(self, value: Optional[str]) -> str:
         text = str(value or "").strip().lower().replace("\\", "/")
