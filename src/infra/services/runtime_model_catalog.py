@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from src.infra.services.runtime_consent import ConsentAction
 
@@ -242,3 +242,80 @@ def recommend_models_for_hardware(
         constraints=constraints,
         side_effects=_no_side_effects(),
     )
+
+def hardware_snapshot_from_mapping(data: Dict[str, Any], *, ram_total_mb: int = 0) -> HardwareSnapshot:
+    """
+    Convert existing hardware utility output into the model-catalog HardwareSnapshot.
+
+    Expected GPU keys are compatible with src.utils.hardware_utils.get_gpu_info():
+    - available
+    - vram_total_mb
+    - gpu_name
+
+    RAM is supplied separately so tests and future platform-specific collectors can
+    inject it without depending on host hardware.
+    """
+    data = data or {}
+    return HardwareSnapshot(
+        gpu_available=bool(data.get("available", data.get("gpu_available", False))),
+        vram_total_mb=int(data.get("vram_total_mb", 0) or 0),
+        ram_total_mb=int(ram_total_mb or data.get("ram_total_mb", 0) or 0),
+        gpu_name=str(data.get("gpu_name", "") or ""),
+        os_name=str(data.get("os_name", "") or ""),
+    )
+
+
+def detect_hardware_snapshot(
+    *,
+    gpu_info_provider: Optional[Callable[[], Dict[str, Any]]] = None,
+    ram_total_mb_provider: Optional[Callable[[], int]] = None,
+) -> HardwareSnapshot:
+    """
+    Read-only hardware snapshot adapter.
+
+    This function does not benchmark, load models, start providers, download, or
+    mutate config. It only adapts the existing hardware detection seam into the
+    recommendation skeleton's HardwareSnapshot shape.
+    """
+    try:
+        if gpu_info_provider is None:
+            from src.utils.hardware_utils import get_gpu_info
+            gpu_info_provider = get_gpu_info
+
+        gpu_info = gpu_info_provider() or {}
+    except Exception:
+        gpu_info = {}
+
+    try:
+        ram_total_mb = int(ram_total_mb_provider() if ram_total_mb_provider else 0)
+    except Exception:
+        ram_total_mb = 0
+
+    return hardware_snapshot_from_mapping(gpu_info, ram_total_mb=ram_total_mb)
+
+
+def recommend_models_from_detected_hardware(
+    *,
+    provider_reachable: bool = False,
+    gpu_info_provider: Optional[Callable[[], Dict[str, Any]]] = None,
+    ram_total_mb_provider: Optional[Callable[[], int]] = None,
+    catalog: Optional[Iterable[ModelCatalogEntry]] = None,
+) -> ModelRecommendation:
+    """
+    Convenience wrapper for model recommendation using the read-only hardware seam.
+
+    Side-effect rule:
+    - detects hardware only,
+    - returns advisory recommendations,
+    - does not download/install/load/start anything.
+    """
+    snapshot = detect_hardware_snapshot(
+        gpu_info_provider=gpu_info_provider,
+        ram_total_mb_provider=ram_total_mb_provider,
+    )
+    return recommend_models_for_hardware(
+        snapshot,
+        provider_reachable=provider_reachable,
+        catalog=catalog,
+    )
+
