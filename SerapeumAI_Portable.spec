@@ -80,7 +80,13 @@ for package_name in ("customtkinter",):
 
 hiddenimports = []
 try:
-    hiddenimports += collect_submodules("src")
+    # Keep broad app-module discovery for the current portable build, but never
+    # bundle test modules into the shipped application.
+    hiddenimports += [
+        name
+        for name in collect_submodules("src")
+        if not name.startswith("src.tests")
+    ]
 except Exception:
     pass
 
@@ -93,9 +99,13 @@ a = Analysis(
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=[
+        str(ROOT / "packaging" / "runtime_hooks" / "serapeum_runtime_log_hygiene.py"),
+    ],
     excludes=[
         "pytest",
+        "_pytest",
+        "src.tests",
         "setuptools.tests",
         "pip._vendor.pytest",
     ],
