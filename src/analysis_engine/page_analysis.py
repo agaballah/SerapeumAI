@@ -360,6 +360,15 @@ class PageAnalyzer:
 
             print("=" * 80 + "\n")
 
+        except CancellationError as e:
+            # Cooperative cancellation is expected during app/session close.
+            # It must not be recorded as an unhealthy LLM failure or emitted as
+            # an ERROR traceback in packaged shutdown logs.
+            elapsed = time.time() - start_time
+            print(f"\n[INFO] Page {page_idx} analysis cancelled: {e}\n")
+            logger.info("Page %s analysis cancelled: %s", page_idx, e)
+            return
+
         except Exception as e:
             elapsed = time.time() - start_time
             print(f"\n[ERROR] Page {page_idx} failed: {e}\n")
