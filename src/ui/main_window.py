@@ -29,6 +29,8 @@ from src.application.jobs.analyze_doc_job import AnalyzeDocJob
 from src.application.services.rag_service import RAGService
 from src.application.orchestrators.agent_orchestrator import AgentOrchestrator
 from src.infra.services.runtime_setup_service import LocalRuntimeSetupService, STATUS_READY
+from src.infra.services.runtime_platform_read_model import RuntimePlatformReadModelService
+from src.ui.presenters.runtime_platform_presenter import present_runtime_platform_sidebar
 from src.ui.dialogs.runtime_manager_dialog import RuntimeManagerDialog
 
 # Pages
@@ -76,6 +78,7 @@ class MainApp(ctk.CTk):
         self._runtime_status_message: str = "Runtime state unavailable."
         self._runtime_setup_in_progress: bool = False
         self.runtime_setup_service = LocalRuntimeSetupService(self.config)
+        self.runtime_platform_read_model_service = RuntimePlatformReadModelService(config=self.config)
         self.runtime_dialog = None
 
         # Initialize Global DB
@@ -105,6 +108,7 @@ class MainApp(ctk.CTk):
              self._open_project_dialog()
 
         self._safe_after(400, lambda: self._refresh_runtime_status(prompt_if_needed=False))
+        self._safe_after(900, self._refresh_runtime_platform_sidebar)
         self._safe_after(1500, self._poll_runtime_alerts)
 
     def _wrap_safe_callback(self, callback):
@@ -406,6 +410,44 @@ class MainApp(ctk.CTk):
                     self._runtime_setup_prompted = True
                     self._prompt_runtime_setup(state)
             self._safe_after(0, _finish)
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _apply_runtime_platform_sidebar(self, read_model):
+        presented = present_runtime_platform_sidebar(read_model)
+        tone = presented.get("tone", "muted")
+        fg = Theme.TEXT_MUTED
+        if tone == "warning":
+            fg = Theme.WARNING
+        elif tone == "error":
+            fg = Theme.DANGER_RED
+        elif tone == "success":
+            fg = Theme.SUCCESS
+
+        text = presented.get("primary") or "Runtime: status unavailable"
+        secondary = presented.get("secondary") or ""
+        if secondary:
+            text = f"{text}\n{secondary}"
+        self.lbl_runtime.configure(text=text, fg=fg)
+
+    def _refresh_runtime_platform_sidebar(self):
+        def _worker():
+            try:
+                read_model = self.runtime_platform_read_model_service.build_read_model()
+            except Exception as exc:
+                read_model = {
+                    "runtime_status": {
+                        "summary_status": "provider_discovery_unavailable",
+                        "provider_count": 0,
+                        "reachable_provider_count": 0,
+                    },
+                    "model_recommendation": {
+                        "profile_class": "unknown",
+                        "model_posture": "",
+                    },
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+            self._safe_after(0, lambda: self._apply_runtime_platform_sidebar(read_model))
 
         threading.Thread(target=_worker, daemon=True).start()
 
