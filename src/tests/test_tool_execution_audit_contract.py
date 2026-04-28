@@ -147,6 +147,56 @@ def test_request_response_tool_id_mismatch_is_rejected():
         build_tool_execution_audit_event(request=request, response=response)
 
 
+def test_request_response_correlation_id_mismatch_is_rejected():
+    request = _request()
+    response = ToolInvocationResponse(
+        request_id=request.request_id,
+        tool_id=request.tool_id,
+        status=ToolInvocationStatus.SUCCESS,
+        result={"ok": True},
+        correlation_id="different-correlation",
+        can_govern_truth=False,
+    )
+
+    with pytest.raises(ToolExecutionAuditContractError, match="correlation_id"):
+        build_tool_execution_audit_event(request=request, response=response)
+
+
+def test_string_eligibility_reasons_are_rejected():
+    request = _request()
+    response = execute_tool_invocation(request)
+
+    with pytest.raises(ToolExecutionAuditContractError, match="eligibility reasons"):
+        build_tool_execution_audit_event(
+            request=request,
+            response=response,
+            eligibility={"decision": "deny", "reasons": "tool_disabled"},
+        )
+
+
+def test_non_sequence_eligibility_reasons_are_rejected():
+    request = _request()
+    response = execute_tool_invocation(request)
+
+    with pytest.raises(ToolExecutionAuditContractError, match="eligibility reasons"):
+        build_tool_execution_audit_event(
+            request=request,
+            response=response,
+            eligibility={"decision": "deny", "reasons": 123},
+        )
+
+
+def test_blank_eligibility_reason_is_rejected():
+    request = _request()
+    response = execute_tool_invocation(request)
+
+    with pytest.raises(ToolExecutionAuditContractError, match="eligibility reasons"):
+        build_tool_execution_audit_event(
+            request=request,
+            response=response,
+            eligibility={"decision": "deny", "reasons": ["tool_disabled", " "]},
+        )
+
 def test_audit_event_is_json_serializable():
     request = _request()
     response = execute_tool_invocation(request)
@@ -175,6 +225,44 @@ def test_audit_event_cannot_govern_truth():
 
     assert event.to_dict()["can_govern_truth"] is False
 
+
+def test_invalid_created_at_type_is_rejected():
+    from datetime import datetime
+
+    request = _request()
+    response = execute_tool_invocation(request)
+
+    with pytest.raises(ToolExecutionAuditContractError, match="created_at"):
+        build_tool_execution_audit_event(
+            request=request,
+            response=response,
+            created_at=datetime.utcnow(),
+        )
+
+
+def test_blank_created_at_is_rejected():
+    request = _request()
+    response = execute_tool_invocation(request)
+
+    with pytest.raises(ToolExecutionAuditContractError, match="created_at"):
+        build_tool_execution_audit_event(
+            request=request,
+            response=response,
+            created_at="   ",
+        )
+
+
+def test_created_at_is_trimmed_when_valid():
+    request = _request()
+    response = execute_tool_invocation(request)
+
+    event = build_tool_execution_audit_event(
+        request=request,
+        response=response,
+        created_at="  2026-04-28T06:00:00Z  ",
+    ).to_dict()
+
+    assert event["created_at"] == "2026-04-28T06:00:00Z"
 
 def test_invalid_event_id_is_rejected():
     request = _request()
