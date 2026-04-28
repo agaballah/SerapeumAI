@@ -7,6 +7,7 @@ or interact with UI/runtime providers.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Mapping
 
@@ -48,6 +49,7 @@ class ToolExecutionAuditEvent:
         _require_non_empty(self.requested_by, "requested_by")
         _require_non_empty(self.response_status, "response_status")
         _require_non_empty(self.event_source, "event_source")
+        _validate_optional_string(self.created_at, "created_at")
 
         if self.can_govern_truth is not False:
             raise ToolExecutionAuditContractError(
@@ -107,6 +109,10 @@ def build_tool_execution_audit_event(
         raise ToolExecutionAuditContractError(
             "request and response tool_id values must match."
         )
+    if request.correlation_id != response.correlation_id:
+        raise ToolExecutionAuditContractError(
+            "request and response correlation_id values must match."
+        )
 
     eligibility_dict = _eligibility_to_dict(eligibility)
     response_dict = response.to_dict()
@@ -128,11 +134,11 @@ def build_tool_execution_audit_event(
         consent_granted=request.consent_granted,
         response_status=response_dict["status"],
         eligibility_decision=eligibility_dict.get("decision"),
-        eligibility_reasons=tuple(eligibility_dict.get("reasons") or ()),
+        eligibility_reasons=_normalize_reasons(eligibility_dict.get("reasons")),
         error_type=error.get("error_type"),
         can_govern_truth=False,
         event_source=_require_non_empty(event_source, "event_source"),
-        created_at=created_at,
+        created_at=_validate_optional_string(created_at, "created_at"),
     )
     event.validate()
     return event
@@ -152,9 +158,39 @@ def _eligibility_to_dict(
     )
 
 
+def _normalize_reasons(raw_reasons: Any) -> tuple[str, ...]:
+    if raw_reasons is None:
+        return ()
+    if isinstance(raw_reasons, str):
+        raise ToolExecutionAuditContractError(
+            "eligibility reasons must be a sequence of non-empty strings, not a string."
+        )
+    if not isinstance(raw_reasons, Sequence):
+        raise ToolExecutionAuditContractError(
+            "eligibility reasons must be a sequence of non-empty strings."
+        )
+
+    reasons: list[str] = []
+    for reason in raw_reasons:
+        if not isinstance(reason, str) or not reason.strip():
+            raise ToolExecutionAuditContractError(
+                "eligibility reasons must contain only non-empty strings."
+            )
+        reasons.append(reason.strip())
+    return tuple(reasons)
+
 def _derive_event_id(*, request_id: str, tool_id: str, response_status: str) -> str:
     return f"tool-execution:{request_id}:{tool_id}:{response_status}"
 
+
+def _validate_optional_string(value: Any, field_name: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ToolExecutionAuditContractError(
+            f"{field_name} must be None or a non-empty string."
+        )
+    return value.strip()
 
 def _require_non_empty(value: Any, field_name: str) -> str:
     if not isinstance(value, str) or not value.strip():
