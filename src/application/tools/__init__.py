@@ -24,7 +24,14 @@ _ADAPTER_EXPORTS = {
     "adapt_tool_request",
 }
 
-__all__ = sorted(_ORCHESTRATOR_EXPORTS | _ADAPTER_EXPORTS)
+_PRESENTATION_EXPORTS = {
+    "ToolUsePresentationContractError",
+    "ToolUsePresentation",
+    "present_tool_adapter_result",
+    "present_tool_orchestration_result",
+}
+
+__all__ = sorted(_ORCHESTRATOR_EXPORTS | _ADAPTER_EXPORTS | _PRESENTATION_EXPORTS)
 
 
 def __getattr__(name: str) -> Any:
@@ -53,6 +60,22 @@ def __getattr__(name: str) -> Any:
             "ToolRequestAdapterContractError": ToolRequestAdapterContractError,
             "ToolRequestAdapterResult": ToolRequestAdapterResult,
             "adapt_tool_request": adapt_tool_request,
+        }
+        return exports[name]
+
+    if name in _PRESENTATION_EXPORTS:
+        from src.application.tools.tool_use_presentation import (
+            ToolUsePresentationContractError,
+            ToolUsePresentation,
+            present_tool_adapter_result,
+            present_tool_orchestration_result,
+        )
+
+        exports = {
+            "ToolUsePresentationContractError": ToolUsePresentationContractError,
+            "ToolUsePresentation": ToolUsePresentation,
+            "present_tool_adapter_result": present_tool_adapter_result,
+            "present_tool_orchestration_result": present_tool_orchestration_result,
         }
         return exports[name]
 
