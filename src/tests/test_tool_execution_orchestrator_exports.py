@@ -36,11 +36,16 @@ def test_package_boundary_exports_stable_orchestrator_symbols():
 
 
 def test_package_boundary_all_is_explicit_and_minimal():
-    assert tools.__all__ == [
+    assert tools.__all__ == sorted(
+        [
         "ToolExecutionOrchestrationResult",
         "ToolExecutionOrchestratorContractError",
+        "ToolRequestAdapterContractError",
+        "ToolRequestAdapterResult",
+        "adapt_tool_request",
         "execute_tool_with_audit",
     ]
+    )
 
 
 def test_execute_tool_with_audit_works_through_package_import_path():
@@ -97,11 +102,16 @@ def test_plain_package_import_does_not_mutate_decimal_precision():
     try:
         imported_tools = importlib.import_module("src.application.tools")
 
-        assert imported_tools.__all__ == [
-            "ToolExecutionOrchestrationResult",
-            "ToolExecutionOrchestratorContractError",
-            "execute_tool_with_audit",
-        ]
+        assert imported_tools.__all__ == sorted(
+            [
+        "ToolExecutionOrchestrationResult",
+        "ToolExecutionOrchestratorContractError",
+        "ToolRequestAdapterContractError",
+        "ToolRequestAdapterResult",
+        "adapt_tool_request",
+        "execute_tool_with_audit",
+    ]
+        )
         assert decimal.getcontext().prec == 7
     finally:
         decimal.getcontext().prec = original_precision
