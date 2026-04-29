@@ -1,117 +1,116 @@
 from __future__ import annotations
 
+import decimal
+import importlib
+import sys
+
 import src.application.tools as tools
-from src.application.tools import (
-    ToolExecutionOrchestrationResult,
-    ToolExecutionOrchestratorContractError,
-    execute_tool_with_audit,
-)
-from src.application.tools.calculator_tool import TOOL_ID as CALCULATOR_TOOL_ID
-from src.application.tools.tool_execution_orchestrator import (
-    ToolExecutionOrchestrationResult as DirectToolExecutionOrchestrationResult,
-    ToolExecutionOrchestratorContractError as DirectToolExecutionOrchestratorContractError,
-    execute_tool_with_audit as direct_execute_tool_with_audit,
-)
-from src.application.tools.tool_invocation_contract import ToolInvocationRequest
 
 
-def _request():
-    return ToolInvocationRequest(
-        request_id="req-export-001",
-        tool_id=CALCULATOR_TOOL_ID,
-        arguments={"operation": "add", "operands": [1, 2]},
-        correlation_id="chat-export-001",
-        requested_by="test",
-        consent_granted=False,
-    )
-
-
-def test_package_boundary_exports_stable_orchestrator_symbols():
-    assert execute_tool_with_audit is direct_execute_tool_with_audit
-    assert ToolExecutionOrchestrationResult is DirectToolExecutionOrchestrationResult
-    assert (
-        ToolExecutionOrchestratorContractError
-        is DirectToolExecutionOrchestratorContractError
-    )
-
-
-def test_package_boundary_all_is_explicit_and_minimal():
-    assert tools.__all__ == sorted(
-        [
+EXPECTED_PUBLIC_EXPORTS = sorted(
+    [
         "ToolExecutionOrchestrationResult",
         "ToolExecutionOrchestratorContractError",
         "ToolRequestAdapterContractError",
         "ToolRequestAdapterResult",
+        "ToolUsePresentation",
+        "ToolUsePresentationContractError",
         "adapt_tool_request",
         "execute_tool_with_audit",
+        "present_tool_adapter_result",
+        "present_tool_orchestration_result",
     ]
-    )
+)
 
 
-def test_execute_tool_with_audit_works_through_package_import_path():
-    result = execute_tool_with_audit(_request(), event_id="evt-export-001").to_dict()
-
-    assert result["request_id"] == "req-export-001"
-    assert result["tool_id"] == CALCULATOR_TOOL_ID
-    assert result["response_status"] == "success"
-    assert result["audit_accepted"] is True
-    assert result["tool_response"]["result"]["computed_result"] == "3"
-    assert result["can_govern_truth"] is False
-    assert result["tool_response"]["can_govern_truth"] is False
-    assert result["audit_sink_result"]["can_govern_truth"] is False
+def _purge_tool_package_and_lazy_targets() -> None:
+    for module_name in [
+        "src.application.tools",
+        "src.application.tools.tool_execution_orchestrator",
+        "src.application.tools.tool_request_adapter",
+        "src.application.tools.tool_use_presentation",
+    ]:
+        sys.modules.pop(module_name, None)
 
 
-def test_private_orchestrator_helpers_are_not_exported():
-    private_names = {
-        "_validate_request_for_orchestration",
-        "_build_and_accept_audit_event",
-        "_validate_sink",
-        "_sink_name",
-        "_require_non_empty",
-    }
-
-    for name in private_names:
-        assert not hasattr(tools, name)
+def test_package_boundary_all_is_explicit_and_minimal():
+    assert tools.__all__ == EXPECTED_PUBLIC_EXPORTS
 
 
-def test_export_boundary_does_not_introduce_chat_router_or_llm_parser_symbols():
-    forbidden_names = {
-        "chat",
-        "chat_page",
-        "tool_router",
-        "autonomous_tool_router",
-        "llm_tool_call",
-        "parse_llm_tool_call",
-        "mcp",
-        "agent_loop",
-        "audit_persistence",
-    }
+def test_package_boundary_rejects_unknown_symbols():
+    try:
+        getattr(tools, "not_a_public_tool_symbol")
+    except AttributeError as exc:
+        assert "not_a_public_tool_symbol" in str(exc)
+    else:
+        raise AssertionError("Expected unknown package export to raise AttributeError.")
 
-    for name in forbidden_names:
-        assert not hasattr(tools, name)
+
+def test_plain_package_import_does_not_eagerly_load_lazy_targets():
+    _purge_tool_package_and_lazy_targets()
+
+    imported_tools = importlib.import_module("src.application.tools")
+
+    assert imported_tools.__all__ == EXPECTED_PUBLIC_EXPORTS
+    assert "src.application.tools.tool_execution_orchestrator" not in sys.modules
+    assert "src.application.tools.tool_request_adapter" not in sys.modules
+    assert "src.application.tools.tool_use_presentation" not in sys.modules
+
 
 def test_plain_package_import_does_not_mutate_decimal_precision():
-    import decimal
-    import importlib
-    import sys
-
-    sys.modules.pop("src.application.tools", None)
+    _purge_tool_package_and_lazy_targets()
 
     original_precision = decimal.getcontext().prec
     decimal.getcontext().prec = 7
     try:
         imported_tools = importlib.import_module("src.application.tools")
 
-        assert imported_tools.__all__ == sorted(
-            [
-        "ToolExecutionOrchestrationResult",
-        "ToolExecutionOrchestratorContractError",
-        "ToolRequestAdapterContractError",
-        "ToolRequestAdapterResult",
-        "adapt_tool_request",
-        "execute_tool_with_audit",
-    ]
-        )
+        assert imported_tools.__all__ == EXPECTED_PUBLIC_EXPORTS
         assert decimal.getcontext().prec == 7
     finally:
         decimal.getcontext().prec = original_precision
+
+
+def test_lazy_export_import_loads_orchestrator_only_when_requested():
+    _purge_tool_package_and_lazy_targets()
+
+    imported_tools = importlib.import_module("src.application.tools")
+    assert "src.application.tools.tool_execution_orchestrator" not in sys.modules
+
+    _ = imported_tools.execute_tool_with_audit
+
+    assert "src.application.tools.tool_execution_orchestrator" in sys.modules
+
+
+def test_orchestrator_public_symbols_import_through_package_boundary():
+    from src.application.tools import (
+        ToolExecutionOrchestrationResult,
+        ToolExecutionOrchestratorContractError,
+        execute_tool_with_audit,
+    )
+    from src.application.tools.tool_execution_orchestrator import (
+        ToolExecutionOrchestrationResult as DirectResult,
+        ToolExecutionOrchestratorContractError as DirectError,
+        execute_tool_with_audit as direct_execute,
+    )
+
+    assert ToolExecutionOrchestrationResult is DirectResult
+    assert ToolExecutionOrchestratorContractError is DirectError
+    assert execute_tool_with_audit is direct_execute
+
+
+def test_private_orchestrator_helpers_are_not_exported():
+    forbidden_names = {
+        "_as_mapping",
+        "_mapping_or_none",
+        "_from_mapping",
+        "_string_or_none",
+        "_string_or_default",
+        "_invalid_input",
+        "_ORCHESTRATOR_EXPORTS",
+        "_ADAPTER_EXPORTS",
+        "_PRESENTATION_EXPORTS",
+    }
+
+    for name in forbidden_names:
+        assert name not in tools.__all__

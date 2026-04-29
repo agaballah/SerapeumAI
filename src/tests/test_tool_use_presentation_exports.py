@@ -34,7 +34,7 @@ def _purge_tool_package_and_lazy_targets() -> None:
         sys.modules.pop(module_name, None)
 
 
-def test_plain_package_import_does_not_eagerly_load_adapter_or_orchestrator():
+def test_plain_package_import_does_not_eagerly_load_lazy_targets():
     _purge_tool_package_and_lazy_targets()
 
     imported_tools = importlib.import_module("src.application.tools")
@@ -49,78 +49,117 @@ def test_plain_package_import_does_not_mutate_decimal_precision():
     _purge_tool_package_and_lazy_targets()
 
     original_precision = decimal.getcontext().prec
-    decimal.getcontext().prec = 9
+    decimal.getcontext().prec = 11
     try:
         imported_tools = importlib.import_module("src.application.tools")
 
         assert imported_tools.__all__ == EXPECTED_PUBLIC_EXPORTS
-        assert decimal.getcontext().prec == 9
+        assert decimal.getcontext().prec == 11
     finally:
         decimal.getcontext().prec = original_precision
 
 
-def test_adapter_public_symbols_import_through_package_boundary():
+def test_presentation_public_symbols_import_through_package_boundary():
     from src.application.tools import (
-        ToolRequestAdapterContractError,
-        ToolRequestAdapterResult,
-        adapt_tool_request,
+        ToolUsePresentation,
+        ToolUsePresentationContractError,
+        present_tool_adapter_result,
+        present_tool_orchestration_result,
     )
-    from src.application.tools.tool_request_adapter import (
-        ToolRequestAdapterContractError as DirectError,
-        ToolRequestAdapterResult as DirectResult,
-        adapt_tool_request as direct_adapt,
+    from src.application.tools.tool_use_presentation import (
+        ToolUsePresentation as DirectPresentation,
+        ToolUsePresentationContractError as DirectError,
+        present_tool_adapter_result as direct_present_adapter,
+        present_tool_orchestration_result as direct_present_orchestrator,
     )
 
-    assert ToolRequestAdapterContractError is DirectError
-    assert ToolRequestAdapterResult is DirectResult
-    assert adapt_tool_request is direct_adapt
+    assert ToolUsePresentation is DirectPresentation
+    assert ToolUsePresentationContractError is DirectError
+    assert present_tool_adapter_result is direct_present_adapter
+    assert present_tool_orchestration_result is direct_present_orchestrator
 
 
-def test_adapter_import_through_package_boundary_works_and_cannot_govern_truth():
-    from src.application.tools import adapt_tool_request
+def test_present_tool_adapter_result_works_through_package_boundary():
+    from src.application.tools import adapt_tool_request, present_tool_adapter_result
 
-    result = adapt_tool_request(
+    adapter_result = adapt_tool_request(
         {
-            "request_id": "req-adapter-export-001",
+            "request_id": "req-export-presentation",
             "tool_id": CALCULATOR_TOOL_ID,
             "arguments": {"operation": "add", "operands": [1, 2]},
-            "correlation_id": "chat-adapter-export-001",
-            "requested_by": "adapter_export_test",
+            "correlation_id": "chat-export-presentation",
+            "requested_by": "presentation_export_test",
             "consent_granted": False,
         }
-    ).to_dict()
+    )
+    result = present_tool_adapter_result(adapter_result).to_dict()
 
     assert result["status"] == "ready"
-    assert result["tool_request"]["tool_id"] == CALCULATOR_TOOL_ID
+    assert result["tool_id"] == CALCULATOR_TOOL_ID
     assert result["can_govern_truth"] is False
     assert json.loads(json.dumps(result, sort_keys=True)) == result
 
 
-def test_existing_orchestrator_exports_remain_available():
+def test_present_tool_orchestration_result_works_through_package_boundary():
+    from src.application.tools import present_tool_orchestration_result
+
+    result = present_tool_orchestration_result(
+        {
+            "request_id": "req-export-orch",
+            "tool_id": CALCULATOR_TOOL_ID,
+            "correlation_id": "chat-export-orch",
+            "response_status": "success",
+            "audit_accepted": True,
+            "tool_response": {"status": "success", "can_govern_truth": False},
+            "audit_sink_result": {"status": "accepted", "can_govern_truth": False},
+            "can_govern_truth": False,
+        }
+    ).to_dict()
+
+    assert result["status"] == "success"
+    assert result["tool_id"] == CALCULATOR_TOOL_ID
+    assert result["can_govern_truth"] is False
+    assert json.loads(json.dumps(result, sort_keys=True)) == result
+
+
+def test_existing_orchestrator_and_adapter_exports_remain_available():
     from src.application.tools import (
         ToolExecutionOrchestrationResult,
         ToolExecutionOrchestratorContractError,
+        ToolRequestAdapterContractError,
+        ToolRequestAdapterResult,
+        adapt_tool_request,
         execute_tool_with_audit,
     )
     from src.application.tools.tool_execution_orchestrator import (
-        ToolExecutionOrchestrationResult as DirectResult,
-        ToolExecutionOrchestratorContractError as DirectError,
+        ToolExecutionOrchestrationResult as DirectOrchestrationResult,
+        ToolExecutionOrchestratorContractError as DirectOrchestrationError,
         execute_tool_with_audit as direct_execute,
     )
+    from src.application.tools.tool_request_adapter import (
+        ToolRequestAdapterContractError as DirectAdapterError,
+        ToolRequestAdapterResult as DirectAdapterResult,
+        adapt_tool_request as direct_adapt,
+    )
 
-    assert ToolExecutionOrchestrationResult is DirectResult
-    assert ToolExecutionOrchestratorContractError is DirectError
+    assert ToolExecutionOrchestrationResult is DirectOrchestrationResult
+    assert ToolExecutionOrchestratorContractError is DirectOrchestrationError
     assert execute_tool_with_audit is direct_execute
+    assert ToolRequestAdapterContractError is DirectAdapterError
+    assert ToolRequestAdapterResult is DirectAdapterResult
+    assert adapt_tool_request is direct_adapt
 
 
-def test_private_adapter_helpers_are_not_exported():
+def test_private_presentation_helpers_are_not_exported():
     import src.application.tools as tools
 
     forbidden_names = {
+        "_as_mapping",
+        "_mapping_or_none",
+        "_from_mapping",
         "_string_or_none",
         "_string_or_default",
-        "_clarification",
-        "_error",
+        "_invalid_input",
     }
 
     for name in forbidden_names:
