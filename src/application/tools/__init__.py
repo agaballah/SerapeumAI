@@ -12,32 +12,52 @@ from __future__ import annotations
 
 from typing import Any
 
-__all__ = [
+_ORCHESTRATOR_EXPORTS = {
     "ToolExecutionOrchestrationResult",
     "ToolExecutionOrchestratorContractError",
     "execute_tool_with_audit",
-]
+}
 
-_ORCHESTRATOR_EXPORTS = set(__all__)
+_ADAPTER_EXPORTS = {
+    "ToolRequestAdapterContractError",
+    "ToolRequestAdapterResult",
+    "adapt_tool_request",
+}
+
+__all__ = sorted(_ORCHESTRATOR_EXPORTS | _ADAPTER_EXPORTS)
 
 
 def __getattr__(name: str) -> Any:
-    if name not in _ORCHESTRATOR_EXPORTS:
-        raise AttributeError(f"module 'src.application.tools' has no attribute {name!r}")
+    if name in _ORCHESTRATOR_EXPORTS:
+        from src.application.tools.tool_execution_orchestrator import (
+            ToolExecutionOrchestrationResult,
+            ToolExecutionOrchestratorContractError,
+            execute_tool_with_audit,
+        )
 
-    from src.application.tools.tool_execution_orchestrator import (
-        ToolExecutionOrchestrationResult,
-        ToolExecutionOrchestratorContractError,
-        execute_tool_with_audit,
-    )
+        exports = {
+            "ToolExecutionOrchestrationResult": ToolExecutionOrchestrationResult,
+            "ToolExecutionOrchestratorContractError": ToolExecutionOrchestratorContractError,
+            "execute_tool_with_audit": execute_tool_with_audit,
+        }
+        return exports[name]
 
-    exports = {
-        "ToolExecutionOrchestrationResult": ToolExecutionOrchestrationResult,
-        "ToolExecutionOrchestratorContractError": ToolExecutionOrchestratorContractError,
-        "execute_tool_with_audit": execute_tool_with_audit,
-    }
-    return exports[name]
+    if name in _ADAPTER_EXPORTS:
+        from src.application.tools.tool_request_adapter import (
+            ToolRequestAdapterContractError,
+            ToolRequestAdapterResult,
+            adapt_tool_request,
+        )
+
+        exports = {
+            "ToolRequestAdapterContractError": ToolRequestAdapterContractError,
+            "ToolRequestAdapterResult": ToolRequestAdapterResult,
+            "adapt_tool_request": adapt_tool_request,
+        }
+        return exports[name]
+
+    raise AttributeError(f"module 'src.application.tools' has no attribute {name!r}")
 
 
 def __dir__() -> list[str]:
-    return sorted(set(globals()) | _ORCHESTRATOR_EXPORTS)
+    return sorted(set(globals()) | set(__all__))
