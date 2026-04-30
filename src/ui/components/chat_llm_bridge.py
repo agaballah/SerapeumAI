@@ -1,4 +1,4 @@
-import sqlite3
+﻿import sqlite3
 import logging
 from typing import Dict, Any, List, Optional
 from src.infra.adapters.cancellation import CancellationToken
@@ -37,7 +37,17 @@ class ChatLLMBridge:
 
         if hasattr(self.panel, 'orchestrator') and self.panel.orchestrator:
             self.panel._update_status("Agentic Reasoning...")
-            result = self.panel.orchestrator.answer_question(query=user_query, cancellation_token=token)
+            project_id = getattr(self.panel, "project_id", None)
+            if not project_id:
+                self.panel._append("System", "No active project is loaded for this chat.")
+                return
+
+            result = self.panel.orchestrator.answer_question(
+                query=user_query,
+                project_id=project_id,
+                snapshot_id=None,
+                cancellation_token=token,
+            )
 
             if isinstance(result, dict) and result.get("answer"):
                 # Handle Diagnostic Thinking Stream
@@ -70,3 +80,4 @@ class ChatLLMBridge:
                         pass
         else:
             self.panel._append("System", "Agent Orchestrator not initialized.")
+
