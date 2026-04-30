@@ -33,7 +33,7 @@ class FactsPage(BasePage):
 
         self.lbl_scope = tk.Label(
             self.frame_header,
-            text="Review stored facts for the selected project state. Select a fact to inspect its meaning, provenance, and approval state.",
+            text="Review facts stored for the current project fact set. The imported-date selector is informational only and does not change fact or chat authority yet. Select a fact to inspect its meaning, provenance, and approval state.",
             font=Theme.FONT_BODY,
             fg=Theme.TEXT_MUTED,
             bg=Theme.BG_DARKEST,
@@ -66,9 +66,9 @@ class FactsPage(BasePage):
         snapshot_id, snapshot_label = self._get_snapshot_context()
 
         if snapshot_label:
-            self.lbl_scope.configure(text=f"Review facts stored for: {snapshot_label}. Select a fact to inspect meaning, provenance, and approval state.")
+            self.lbl_scope.configure(text=f"Review facts shown for the current project fact set. Display context: {snapshot_label}. Select a fact to inspect meaning, provenance, and approval state.")
         else:
-            self.lbl_scope.configure(text="Review stored facts for the selected project state. Select a fact to inspect its meaning, provenance, and approval state.")
+            self.lbl_scope.configure(text="Review facts stored for the current project fact set. The imported-date selector is informational only and does not change fact or chat authority yet. Select a fact to inspect its meaning, provenance, and approval state.")
 
         self.tbl_facts.load_facts(snapshot_id=snapshot_id)
 
