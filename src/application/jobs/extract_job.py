@@ -11,6 +11,9 @@ from src.engine.extractors.ifc_extractor import IFCExtractor
 from src.engine.extractors.register_extractor import ExcelRegisterExtractor
 from src.engine.extractors.pdf_extractor import UniversalPdfExtractor
 from src.engine.extractors.field_extractor import FieldExtractor
+from src.engine.extractors.word_extractor import WordExtractor
+from src.engine.extractors.pptx_extractor import PPTXExtractor
+from src.engine.extractors.dgn_extractor import DGNExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +37,10 @@ class ExtractJob(Job):
         "ifc": IFCExtractor,
         "excel_register": ExcelRegisterExtractor,
         "pdf": UniversalPdfExtractor,
-        "field": FieldExtractor
+        "field": FieldExtractor,
+        "word": WordExtractor,
+        "pptx": PPTXExtractor,
+        "dgn": DGNExtractor,
     }
 
     # ... (existing code for init/to_dict/from_dict) ...
@@ -245,6 +251,61 @@ class ExtractJob(Job):
              db.execute("INSERT OR REPLACE INTO ifc_projects (global_id, file_version_id, name) VALUES (?, ?, ?)", (data["GlobalId"], vid, data["Name"]))
         elif rtype == "ifc_spatial":
              db.execute("INSERT OR REPLACE INTO ifc_spatial_structure (element_id, file_version_id, entity_type, name) VALUES (?, ?, ?, ?)", (data["GlobalId"], vid, data["EntityType"], data["Name"]))
+        elif rtype == "ifc_element_metadata":
+             element_id = data.get("ElementId")
+             if not element_id:
+                 logger.warning("[ExtractJob] Skipping IFC element metadata without ElementId: %s", data)
+                 return
+             existing = db.execute(
+                 "SELECT raw_properties_json FROM ifc_elements WHERE element_id=? AND file_version_id=?",
+                 (element_id, vid),
+             ).fetchone()
+             raw_properties = {}
+             if existing and existing["raw_properties_json"]:
+                 try:
+                     raw_properties = json.loads(existing["raw_properties_json"]) or {}
+                 except Exception:
+                     raw_properties = {"_previous_raw": existing["raw_properties_json"]}
+             pset_name = data.get("PSetName") or "Properties"
+             raw_properties[pset_name] = {
+                 "properties": data.get("Properties", {}),
+                 "is_quantity": data.get("IsQuantity", False),
+             }
+             db.execute(
+                 "INSERT OR REPLACE INTO ifc_elements (element_id, file_version_id, spatial_container_id, entity_type, name, tag, raw_properties_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                 (
+                     element_id,
+                     vid,
+                     data.get("SpatialContainerId"),
+                     data.get("EntityType"),
+                     data.get("Name") or data.get("PSetName"),
+                     data.get("Tag"),
+                     json.dumps(raw_properties),
+                 ),
+             )
+        elif rtype == "ifc_connection":
+             element1 = data.get("Element1Id")
+             element2 = data.get("Element2Id")
+             if not element1 or not element2:
+                 logger.warning("[ExtractJob] Skipping IFC connection without both endpoint ids: %s", data)
+                 return
+             link_id = f"ifc_conn_{vid}_{element1}_{element2}"
+             db.execute(
+                 "INSERT OR REPLACE INTO links (link_id, project_id, link_type, from_kind, from_id, to_kind, to_id, status, confidence, method_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                 (
+                     link_id,
+                     self.project_id,
+                     "ifc.connection",
+                     "ifc_element",
+                     element1,
+                     "ifc_element",
+                     element2,
+                     "CANDIDATE",
+                     1.0,
+                     "ifc_extractor_v1",
+                     db._ts(),
+                 ),
+             )
              
         # Register Logic
         elif rtype == "register_row":
