@@ -49,6 +49,13 @@ class UniversalPdfExtractor(BaseExtractor):
             
             full_text = ""
             page_texts = {}
+            page_composition_counts = {
+                "empty": 0,
+                "vector": 0,
+                "scanned": 0,
+                "combined": 0,
+            }
+            pdf_document_metadata = self._extract_document_metadata(reader, doc)
             
             # Phase 1.1 Structural PDF Metadata Router
             update_stage("ROUTING_EXTRACTION", f"Processing {len(reader.pages)} pages dynamically")
@@ -59,6 +66,7 @@ class UniversalPdfExtractor(BaseExtractor):
                 
                 # 1. Sniff composition
                 composition = self._sniff_composition(p_pypdf, p_fitz)
+                page_composition_counts[composition] = page_composition_counts.get(composition, 0) + 1
                 
                 # 2. Route to appropriate handler
                 text = ""
@@ -132,16 +140,66 @@ class UniversalPdfExtractor(BaseExtractor):
             # 4. Compile Metrics
             metadata = {
                 "page_count": len(reader.pages),
+                "pdf_page_count": len(reader.pages),
                 "char_count": len(full_text),
                 "block_count": len(blocks),
-                "image_count": sum(len(p.images) for p in reader.pages)
+                "image_count": sum(len(p.images) for p in reader.pages),
+                "page_composition_counts": page_composition_counts,
             }
+            metadata.update(pdf_document_metadata)
             
             return ExtractionResult(records=records, diagnostics=diagnostics, metadata=metadata, success=True)
             
         except Exception as e:
             logger.error(f"PDF Extraction failed: {e}")
             return ExtractionResult(success=False, diagnostics=[str(e)])
+
+    def _extract_document_metadata(self, reader, doc) -> Dict[str, Any]:
+        """
+        Extract normalized PDF document metadata using the already-open pypdf
+        reader and PyMuPDF document.
+
+        This is metadata capture only. It does not change page routing, OCR,
+        VLM behavior, or deterministic extraction records.
+        """
+        raw_metadata: Dict[str, Any] = {}
+
+        pypdf_meta = getattr(reader, "metadata", None) or {}
+        try:
+            for key, value in pypdf_meta.items():
+                if value not in (None, ""):
+                    raw_metadata[str(key)] = str(value)
+        except Exception:
+            raw_metadata = {}
+
+        fitz_meta: Dict[str, Any] = {}
+        try:
+            fitz_raw = getattr(doc, "metadata", None) or {}
+            fitz_meta = {str(k): str(v) for k, v in fitz_raw.items() if v not in (None, "")}
+        except Exception:
+            fitz_meta = {}
+
+        def first(*keys: str) -> Optional[str]:
+            for key in keys:
+                if key in raw_metadata and raw_metadata[key] not in (None, ""):
+                    return str(raw_metadata[key])
+                if key in fitz_meta and fitz_meta[key] not in (None, ""):
+                    return str(fitz_meta[key])
+            return None
+
+        return {
+            "pdf_producer": first("/Producer", "producer"),
+            "pdf_creator": first("/Creator", "creator"),
+            "pdf_author": first("/Author", "author"),
+            "pdf_title": first("/Title", "title"),
+            "pdf_subject": first("/Subject", "subject"),
+            "pdf_creation_date": first("/CreationDate", "creationDate", "creation_date"),
+            "pdf_modified_date": first("/ModDate", "modDate", "mod_date"),
+            "pdf_raw_metadata": {
+                "pypdf": raw_metadata,
+                "pymupdf": fitz_meta,
+            },
+        }
 
     def _classify_document(self, file_path: str, text: str) -> str:
         text_lower = text.lower()[:2000] # Check first 2000 chars
