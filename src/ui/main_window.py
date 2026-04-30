@@ -227,7 +227,7 @@ class MainApp(ctk.CTk):
 
         self.lbl_snapshot_hint = tk.Label(
             self.frame_sidebar,
-            text="Informational only - does not change chat or facts yet.",
+            text="Informational only - does not change chat, facts, or answer authority yet.",
             anchor="w",
             justify="left",
             wraplength=self.sidebar_width - 40,
@@ -319,7 +319,7 @@ class MainApp(ctk.CTk):
         self.show_page("dashboard")
 
     def _on_snapshot_change(self, value):
-        # Packet A contract: mounted selector is intentionally non-authoritative
+        # Packet A contract: mounted selector is intentionally informational and non-authoritative
         # until selected state is fully propagated into mounted answer/facts paths.
         logger.info("[MainApp] Ignoring imported-date selector change (informational only): %s", value)
 
@@ -604,7 +604,7 @@ class MainApp(ctk.CTk):
             self.btn_close.pack(pady=5, padx=20, fill="x")
 
             # Packet A contract: keep imported dates visible as informational
-            # project timeline context only. They do not select answer state yet.
+            # project timeline context only. They do not select chat, fact, or answer authority yet.
             try:
                 dates = self.db.execute(
                     "SELECT DISTINCT date(imported_at, 'unixepoch') "
