@@ -90,6 +90,8 @@ def test_answer_includes_trusted_facts_section_when_trusted_document_facts_exist
     orchestrator = AgentOrchestrator(db=lane_db, llm=MockLLM())
     result = orchestrator.answer_question(query="provide project scope summary", project_id="proj1")
     assert result["mode"] == "answered"
+    assert "Support-only answer" not in result["answer"]
+    assert result["answer_presentation"]["summary_block"]["source_label"] == "Trusted Facts"
     assert "## Trusted Facts" not in result["answer"]
     assert "generator room ventilation" in result["answer"].lower()
     assert "## Trusted Facts" in result["answer_presentation"]["details_copy_text"]
@@ -101,9 +103,13 @@ def test_answer_uses_extracted_evidence_when_trusted_facts_are_missing(lane_db):
     orchestrator = AgentOrchestrator(db=lane_db, llm=MockLLM())
     result = orchestrator.answer_question(query="scope", project_id="proj1")
     assert result["mode"] == "answered"
+    assert "Support-only answer" in result["answer"]
+    assert "not yet certified as trusted fact" in result["answer"]
+    assert result["answer_presentation"]["source_basis_banner"].startswith("Support-only answer")
     assert "## Trusted Facts" not in result["answer"]
     assert "generator room" in result["answer"].lower()
     assert "No trusted facts found for this question." in result["answer_presentation"]["details_copy_text"]
+    assert "## Direct Answer\nSupport-only answer" in result["answer_presentation"]["details_copy_text"]
     assert "## Extracted Evidence" in result["answer_presentation"]["details_copy_text"]
 
 
@@ -112,6 +118,9 @@ def test_answer_labels_ai_generated_synthesis_as_non_governing(lane_db):
     orchestrator = AgentOrchestrator(db=lane_db, llm=MockLLM())
     result = orchestrator.answer_question(query="provide project scope summary", project_id="proj1")
     assert result["mode"] == "answered"
+    assert "Support-only answer" in result["answer"]
+    assert "not yet certified as trusted fact" in result["answer"]
+    assert "AI-generated non-governing synthesis" in result["answer_presentation"]["source_basis_banner"]
     assert "generator room ventilation" in result["answer"].lower()
     assert "## AI-Generated Synthesis" in result["answer_presentation"]["details_copy_text"]
     assert "non-governing" in result["answer_presentation"]["details_copy_text"]
