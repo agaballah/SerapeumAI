@@ -301,9 +301,43 @@ def _select_ai_items(ai_lane: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 
-def _build_source_basis_banner(*, trusted_items: List[Dict[str, Any]], extracted_items: List[Dict[str, Any]], linked_items: List[Dict[str, Any]], ai_items: List[Dict[str, Any]]) -> str:
+def _join_source_parts(parts: List[str]) -> str:
+    if not parts:
+        return ""
+    if len(parts) == 1:
+        return parts[0]
+    if len(parts) == 2:
+        return f"{parts[0]} + {parts[1]}"
+    return ", ".join(parts[:-1]) + f" + {parts[-1]}"
+
+
+def _build_support_only_notice(*, extracted_items: List[Dict[str, Any]], linked_items: List[Dict[str, Any]], ai_items: List[Dict[str, Any]]) -> str:
     parts: List[str] = []
-    if any(not item.get("is_group_heading") for item in trusted_items):
+    if extracted_items:
+        parts.append("extracted project evidence")
+    if linked_items:
+        parts.append("linked project support")
+    if ai_items:
+        parts.append("AI-generated non-governing synthesis")
+    joined = _join_source_parts(parts)
+    if not joined:
+        return ""
+    return f"Support-only answer — based on {joined}, not yet certified as trusted fact."
+
+
+def _build_source_basis_banner(*, trusted_items: List[Dict[str, Any]], extracted_items: List[Dict[str, Any]], linked_items: List[Dict[str, Any]], ai_items: List[Dict[str, Any]]) -> str:
+    has_trusted = any(not item.get("is_group_heading") for item in trusted_items)
+    if not has_trusted:
+        support_notice = _build_support_only_notice(
+            extracted_items=extracted_items,
+            linked_items=linked_items,
+            ai_items=ai_items,
+        )
+        if support_notice:
+            return support_notice
+
+    parts: List[str] = []
+    if has_trusted:
         parts.append("trusted facts")
     if extracted_items:
         parts.append("extracted evidence")
@@ -313,13 +347,7 @@ def _build_source_basis_banner(*, trusted_items: List[Dict[str, Any]], extracted
         parts.append("AI synthesis")
     if not parts:
         return "No grounded project material found."
-    if len(parts) == 1:
-        joined = parts[0]
-    elif len(parts) == 2:
-        joined = f"{parts[0]} + {parts[1]}"
-    else:
-        joined = ", ".join(parts[:-1]) + f" + {parts[-1]}"
-    return f"Based on {joined}."
+    return f"Based on {_join_source_parts(parts)}."
 
 def _first_ai_synthesis(ai_items: List[Dict[str, Any]]) -> str:
     for item in ai_items:
@@ -633,18 +661,28 @@ def build_answer_presentation(
         ai_items=ai_items,
     )
 
+    support_only_notice = ""
+    if not any(not item.get("is_group_heading") for item in trusted_items):
+        support_only_notice = _build_support_only_notice(
+            extracted_items=extracted_items,
+            linked_items=linked_items,
+            ai_items=ai_items,
+        )
+
+    main_answer_text = summary["text"]
+    if support_only_notice and not main_answer_text.startswith("Support-only answer"):
+        main_answer_text = f"{support_only_notice}\n\n{main_answer_text}"
+
     summary_block = {
         "title": "Direct Answer",
         "source_label": summary["source"],
-        "text": summary["text"],
+        "text": main_answer_text,
         "source_basis_banner": source_basis_banner,
     }
 
-    main_answer_text = summary["text"]
-
     copy_lines = [
         "## Direct Answer",
-        summary["text"],
+        main_answer_text,
     ]
     for section in sections:
         if not section.get("items") and not section.get("empty_message"):
