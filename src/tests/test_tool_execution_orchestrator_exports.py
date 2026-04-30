@@ -13,6 +13,9 @@ EXPECTED_PUBLIC_EXPORTS = sorted(
         "ToolExecutionOrchestratorContractError",
         "ToolRequestAdapterContractError",
         "ToolRequestAdapterResult",
+        "ChatToolBridgeContractError",
+        "ChatToolBridgeResult",
+        "build_chat_tool_bridge_envelope",
         "ToolUsePresentation",
         "ToolUsePresentationContractError",
         "adapt_tool_request",
@@ -26,7 +29,9 @@ EXPECTED_PUBLIC_EXPORTS = sorted(
 def _purge_tool_package_and_lazy_targets() -> None:
     for module_name in [
         "src.application.tools",
-        "src.application.tools.tool_execution_orchestrator",
+        "src.application.tools.chat_tool_bridge",
+        "src.application.tools.chat_tool_bridge",
+    "src.application.tools.tool_execution_orchestrator",
         "src.application.tools.tool_request_adapter",
         "src.application.tools.tool_use_presentation",
     ]:
@@ -110,6 +115,7 @@ def test_private_orchestrator_helpers_are_not_exported():
         "_ORCHESTRATOR_EXPORTS",
         "_ADAPTER_EXPORTS",
         "_PRESENTATION_EXPORTS",
+        "_BRIDGE_EXPORTS",
     }
 
     for name in forbidden_names:

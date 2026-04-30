@@ -14,6 +14,9 @@ EXPECTED_PUBLIC_EXPORTS = sorted(
         "ToolExecutionOrchestratorContractError",
         "ToolRequestAdapterContractError",
         "ToolRequestAdapterResult",
+        "ChatToolBridgeContractError",
+        "ChatToolBridgeResult",
+        "build_chat_tool_bridge_envelope",
         "ToolUsePresentation",
         "ToolUsePresentationContractError",
         "adapt_tool_request",
@@ -25,6 +28,7 @@ EXPECTED_PUBLIC_EXPORTS = sorted(
 
 
 LAZY_TARGETS = {
+    "src.application.tools.chat_tool_bridge",
     "src.application.tools.tool_execution_orchestrator",
     "src.application.tools.tool_request_adapter",
     "src.application.tools.tool_use_presentation",

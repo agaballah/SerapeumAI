@@ -31,7 +31,18 @@ _PRESENTATION_EXPORTS = {
     "present_tool_orchestration_result",
 }
 
-__all__ = sorted(_ORCHESTRATOR_EXPORTS | _ADAPTER_EXPORTS | _PRESENTATION_EXPORTS)
+_BRIDGE_EXPORTS = {
+    "ChatToolBridgeContractError",
+    "ChatToolBridgeResult",
+    "build_chat_tool_bridge_envelope",
+}
+
+__all__ = sorted(
+    _ORCHESTRATOR_EXPORTS
+    | _ADAPTER_EXPORTS
+    | _PRESENTATION_EXPORTS
+    | _BRIDGE_EXPORTS
+)
 
 
 def __getattr__(name: str) -> Any:
@@ -76,6 +87,20 @@ def __getattr__(name: str) -> Any:
             "ToolUsePresentation": ToolUsePresentation,
             "present_tool_adapter_result": present_tool_adapter_result,
             "present_tool_orchestration_result": present_tool_orchestration_result,
+        }
+        return exports[name]
+
+    if name in _BRIDGE_EXPORTS:
+        from src.application.tools.chat_tool_bridge import (
+            ChatToolBridgeContractError,
+            ChatToolBridgeResult,
+            build_chat_tool_bridge_envelope,
+        )
+
+        exports = {
+            "ChatToolBridgeContractError": ChatToolBridgeContractError,
+            "ChatToolBridgeResult": ChatToolBridgeResult,
+            "build_chat_tool_bridge_envelope": build_chat_tool_bridge_envelope,
         }
         return exports[name]
 
