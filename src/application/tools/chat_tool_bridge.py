@@ -21,7 +21,7 @@ class ChatToolBridgeContractError(ValueError):
     """Raised when the chat tool bridge result violates its contract."""
 
 
-_ALLOWED_STATUSES = {"ready", "clarification", "refusal", "error", "success"}
+_ALLOWED_STATUSES = {"ready", "clarification", "refusal", "error"}
 
 
 @dataclass(frozen=True)

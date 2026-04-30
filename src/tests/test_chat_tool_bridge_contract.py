@@ -114,6 +114,21 @@ def test_bridge_contract_rejects_execution_claim():
         raise AssertionError("Expected bridge result to reject execution.")
 
 
+def test_bridge_contract_rejects_success_status_because_bridge_never_executes():
+    result = ChatToolBridgeResult(
+        status="success",
+        adapter_result={"status": "ready", "can_govern_truth": False},
+        presentation={"status": "ready", "can_govern_truth": False},
+    )
+
+    try:
+        result.to_dict()
+    except Exception as exc:
+        assert "status is not an approved bridge status" in str(exc)
+    else:
+        raise AssertionError("Expected bridge result to reject success status.")
+
+
 def test_bridge_module_does_not_expose_chat_router_or_llm_parser_symbols():
     import src.application.tools.chat_tool_bridge as bridge
 
