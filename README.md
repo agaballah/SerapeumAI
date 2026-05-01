@@ -103,9 +103,43 @@ python run.py
 - Interactive chat should stay responsive even when background ingest/extract work exists.
 - Background backlog should yield to active chat use in the mounted workflow.
 
-## Publish status
+## Current release honesty checkpoint
 
-The current repo has passed a sequence of source/test closure packets, but this README does **not** by itself declare a final publish pass.
+Current authority after the latest evidence rail:
+
+```text
+main includes PR #121
+latest main SHA: e5bdf53913cd25ac464ce36feb98ff3ab66b0065
+latest completed packet: #120 / PR #121 — P6 relation uniqueness/fidelity proof
+```
+
+Completed and test-locked behavior includes:
+
+- Workspace Honesty:
+  - mounted chat is bound to the active project/session;
+  - support-only answers are labeled as support, not certified truth;
+  - snapshot/imported-date wording is informational only;
+  - cross-project answer leakage has regression coverage.
+- Engineering Evidence:
+  - PDF metadata completeness and routing are test-locked;
+  - IFC missing dependency behavior is honest and has no fallback parser claim;
+  - Word/PPTX/DGN extraction is flattened deterministic extraction, not typed Office/CAD persistence;
+  - Excel extraction is register/log-row oriented, not generic workbook semantic persistence;
+  - P6 critical-path unknown handling does not convert unknown into false/zero facts;
+  - P6 relation fidelity preserves distinct relation rows with different type or lag.
+
+Current explicit limitations:
+
+- No final publish pass has been issued.
+- No packaging rebuild is authorized by this README.
+- No CPM engine is implemented.
+- No Schedule Truth Workspace implementation is complete.
+- No PDF VLM routing is enabled.
+- No typed Office/CAD persistence is implemented.
+- No generic Excel workbook semantic persistence is implemented.
+- No IFC fallback parser is enabled when `ifcopenshell` is missing.
+- No autonomous chat tool execution, MCP integration, or runtime provisioning/download/control is enabled.
+- `docs/total-quality-upgrade-v3-3` remains preserved as future planning only, not current release authority.
 
 Before a publish pass, run the final local Windows release test and packaging proof.
 
