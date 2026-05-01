@@ -9,10 +9,12 @@ logger = logging.getLogger(__name__)
 
 class IFCExtractor(BaseExtractor):
     """
-    Extracts data from IFC files (STEP format).
-    Strategy:
-    1. Try `import ifcopenshell` (Best).
-    2. Fallback to `Regex/Text` parsing for structure (Good enough for Phase 1).
+    Extracts deterministic engineering evidence from IFC files using the optional
+    `ifcopenshell` package.
+
+    There is no text/regex fallback in the current extractor. If `ifcopenshell`
+    is unavailable, extraction fails honestly with diagnostics and emits no
+    records.
     """
     
     @property
@@ -111,9 +113,13 @@ class IFCExtractor(BaseExtractor):
             diagnostics.append(f"Successfully parsed {len(records)} Engineering-Scale IFC entities.")
             return ExtractionResult(records=records, diagnostics=diagnostics, success=True)
             
-        except ImportError:
-            logger.error("ifcopenshell not installed. IFC extraction requires this library.")
-            return ExtractionResult(success=False, diagnostics=["Missing ifcopenshell dependency"])
+        except ImportError as e:
+            diagnostic = (
+                "IFC extraction unavailable: optional dependency ifcopenshell is missing. "
+                "No fallback IFC parser is enabled in this build."
+            )
+            logger.error("%s Original import error: %s", diagnostic, e)
+            return ExtractionResult(records=[], success=False, diagnostics=[diagnostic])
         except Exception as e:
             logger.error(f"IFC Extraction failed: {e}")
             return ExtractionResult(success=False, diagnostics=[str(e)])
