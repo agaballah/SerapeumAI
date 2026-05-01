@@ -1,6 +1,7 @@
 import logging
 import json
 import uuid
+import hashlib
 from typing import Dict, Any, Type
 from datetime import datetime
 
@@ -243,8 +244,24 @@ class ExtractJob(Job):
             elif rtype == "p6_relation":
                  pid = data.get("pred_task_id")
                  sid = data.get("task_id")
-                 rel_id = f"{pid}_{sid}"
-                 db.execute("INSERT OR REPLACE INTO p6_relations (relation_id, file_version_id, p6_project_id, pred_activity_id, succ_activity_id, rel_type, lag) VALUES (?, ?, ?, ?, ?, ?, ?)", (rel_id, vid, data.get("proj_id"), pid, sid, data.get("pred_type"), data.get("lag", 0)))
+                 rel_type = data.get("pred_type")
+                 lag = data.get("lag", 0)
+                 relation_key = json.dumps(
+                     {
+                         "pred_task_id": pid,
+                         "task_id": sid,
+                         "pred_type": rel_type,
+                         "lag": lag,
+                     },
+                     sort_keys=True,
+                     ensure_ascii=False,
+                 )
+                 relation_digest = hashlib.sha1(relation_key.encode("utf-8")).hexdigest()[:12]
+                 rel_id = f"{pid}_{sid}_{relation_digest}"
+                 db.execute(
+                     "INSERT OR REPLACE INTO p6_relations (relation_id, file_version_id, p6_project_id, pred_activity_id, succ_activity_id, rel_type, lag) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                     (rel_id, vid, data.get("proj_id"), pid, sid, rel_type, lag),
+                 )
 
         # IFC Logic
         elif rtype == "ifc_project":
