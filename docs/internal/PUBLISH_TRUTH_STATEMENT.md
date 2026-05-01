@@ -1,20 +1,32 @@
 # SerapeumAI Publish Truth Statement
 
 Task class: release task / documentation-control artifact  
-Status: publish-closure statement, not a final publish pass  
-Authority: current `main` after Packet 8 merge
+Status: release-honesty checkpoint, not a final publish pass  
+Authority: current `main` after PR #121
 
 ---
 
 ## 1. Purpose
 
-This document states what the current repository has actually proven during the publish-closure rail.
+This document states what the current repository has actually proven during the Workspace Honesty and Engineering Evidence rails.
 
-It is intentionally conservative. It does not claim final publish readiness until the final Windows release test and packaging proof are complete.
+It is intentionally conservative. It does not claim final publish readiness until the final Windows release test, mounted workflow smoke test, and packaging proof are complete.
 
 ---
 
-## 2. Product truth
+## 2. Current authority
+
+```text
+main includes PR #121
+latest main SHA: e5bdf53913cd25ac464ce36feb98ff3ab66b0065
+latest completed issue: #120 — Upgrade 3J — P6 Relation Uniqueness/Fidelity Proof/Patch
+master backlog: #24
+preserved future planning branch: docs/total-quality-upgrade-v3-3
+```
+
+---
+
+## 3. Product truth
 
 SerapeumAI is a Windows-first, local-first AECO review workspace.
 
@@ -39,89 +51,66 @@ SerapeumAI is not:
 
 ---
 
-## 3. Proven closure packets
+## 4. Completed proof rails
 
-### Packet 1 — Storage topology freeze
-
-Proven:
-
-- persistent project DB paths canonicalize under `.serapeum`,
-- `.serapeum/.serapeum` nesting is prevented,
-- memory DB behavior remains preserved.
-
-### Packet 2 — Truth-path inconsistency closure
+### Workspace Honesty rail
 
 Proven:
 
-- mounted `VALIDATED` document facts are visible to the trusted fact query path,
-- chat does not falsely claim no certified/trusted facts when trusted document facts exist.
+- mounted chat runtime uses explicit active project authority;
+- unsafe legacy no-project chat authority paths were removed or guarded;
+- sourced-answer doctrine is multi-lane with explicit authority labeling;
+- support-only answers are labeled as support, not certified trusted facts;
+- imported-date/snapshot selector wording is informational only;
+- cross-project answer isolation has regression coverage.
 
-### Packet 3 — Review actions truth-state closure
-
-Proven:
-
-- certify/reject actions route through the domain repository,
-- `HUMAN_CERTIFIED` facts enter trusted answer paths,
-- `REJECTED` facts are excluded from trusted answer paths.
-
-### Packet 4 — Dashboard honesty / schema resilience
+### Engineering Evidence rail
 
 Proven:
 
-- missing optional extraction/runtime columns do not crash dashboard metrics,
-- dashboard fact counts separate built facts from qualified facts,
-- P6/critical-path status does not overclaim without deterministic support.
-
-### Packet 5 — File Inspector evidence-lane closure
-
-Proven:
-
-- File Inspector payload exposes four lanes:
+- File Inspector separates:
   1. Consolidated Review
   2. Full Metadata
   3. Raw Deterministic Extraction
   4. AI Output Only
-- raw deterministic extraction excludes AI/VLM output,
-- AI/VLM output is clearly non-governing.
-
-### Packet 6 — Project isolation / chat residue closure
-
-Proven:
-
-- mounted chat response delivery is guarded by session token and active project,
-- late worker errors from old sessions/projects are dropped,
-- mounted chat runtime uses the active project only.
-
-### Packet 7 — Extractor proof / build-facts evidence closure
-
-Proven:
-
-- persisted deterministic extraction evidence can build `VALIDATED` document facts,
-- `BuildFactsJob` can persist document facts without chat/runtime/LLM,
-- `FactQueryAPI` can retrieve those trusted facts with lineage for the answer path.
+- extractor registry reachability is explicit for current PDF, Word, PPTX, DGN, IFC, P6, field, and Excel register extractors;
+- Excel register extraction no longer writes to an absolute debug path;
+- IFC emitted metadata and connection records are not silently dropped by `ExtractJob`;
+- PDF metadata includes normalized document metadata, raw PDF metadata, page count, and page composition counts;
+- PDF routing is test-locked for empty, vector, scanned, and combined pages;
+- PDF routing proof confirms OCR boundaries and confirms VLM remains unused;
+- missing `ifcopenshell` fails honestly with no fallback IFC parser claim;
+- Word/PPTX/DGN extraction is flattened deterministic extraction, not typed Office/CAD persistence;
+- Excel extraction is register/log-row oriented, not generic workbook semantic persistence;
+- P6 critical-path unknown handling does not convert missing/unusable float into false membership or zero-count facts;
+- P6 relation fidelity preserves distinct `TASKPRED` rows when predecessor/successor match but relation type or lag differs.
 
 ---
 
-## 4. What remains before final publish pass
+## 5. Explicit non-enabled behavior
 
-The repository is not final-publish passed until these are complete:
+The current repository does not enable or claim:
 
-1. Packet 8 docs alignment merged.
-2. Final local Windows source regression suite passes.
-3. Manual mounted workflow smoke test passes:
-   - open project,
-   - dashboard refresh,
-   - documents/file inspector,
-   - facts review actions,
-   - expert chat answer with evidence,
-   - close/change project,
-   - Red-X shutdown.
-4. Packaging proof passes last.
-5. Packaged app launches on Windows and repeats the critical smoke path.
+- final publish pass;
+- final packaging proof;
+- dependency upgrades;
+- packaging file changes;
+- CPM engine implementation;
+- Schedule Truth Workspace implementation;
+- PDF VLM routing;
+- typed Office/CAD persistence;
+- generic Excel workbook semantic persistence;
+- IFC fallback parser when `ifcopenshell` is missing;
+- autonomous chat tool execution;
+- MCP integration;
+- runtime provider provisioning, model download, or runtime control;
+- Revit bridge implementation;
+- audit persistence implementation;
+- project memory implementation.
 
 ---
 
-## 5. Packaging boundary
+## 6. Packaging boundary
 
 Packaging files remain sensitive and must not be edited unless explicitly approved:
 
@@ -133,27 +122,69 @@ No dependency upgrades are approved by this statement.
 
 ---
 
-## 6. Current publish truth
+## 7. Total Quality Upgrade branch boundary
 
-Current state after Packets 1–7:
+The Total Quality Upgrade planning dossier is preserved on:
+
+```text
+docs/total-quality-upgrade-v3-3
+```
+
+It is future planning only.
+
+It is not:
+
+- merged release authority,
+- current implementation authority,
+- packaging authority,
+- a final publish claim.
+
+Before using that branch later, reconcile it against actual `main` repo truth.
+
+---
+
+## 8. Current publish truth
+
+Current state after Workspace Honesty and Engineering Evidence through PR #121:
 
 ```text
 Source/test closure rail: materially strengthened
-Docs alignment: in progress through Packet 8
+Documentation honesty checkpoint: active through #122
 Final Windows release test: not yet complete
+Mounted workflow smoke test: not yet complete
 Packaging proof: not yet complete
 Final publish verdict: NOT YET PASSED
 ```
 
 ---
 
-## 7. Next action
+## 9. Remaining release gates
 
-After this document is merged:
+Before a final publish pass:
+
+1. Complete documentation/release honesty checkpoint.
+2. Run final local Windows source regression suite.
+3. Run mounted workflow smoke test:
+   - open project,
+   - dashboard refresh,
+   - documents/file inspector,
+   - facts review actions,
+   - expert chat answer with evidence,
+   - close/change project,
+   - Red-X shutdown.
+4. Run packaging proof last.
+5. Launch packaged app on Windows and repeat the critical smoke path.
+6. Issue final PASS/FAIL publish verdict.
+
+---
+
+## 10. Next action after this document
+
+After this checkpoint is merged and cleaned:
 
 ```text
-Run final Windows source regression suite
-→ run mounted workflow smoke test
-→ run packaging proof only after source/UI gates pass
-→ issue final PASS/FAIL publish verdict
+Select either:
+- Schedule Truth Workspace design issue, or
+- final release-readiness gate,
+depending on owner priority and remaining risk.
 ```
