@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import List, Dict, Any, Optional, Set
+from typing import List, Dict, Any, Optional, Set, Tuple
 from datetime import datetime, timedelta
 
 from src.domain.facts.models import Fact, FactStatus, FactInput, ValueType
@@ -38,7 +38,7 @@ class ScheduleBuilder:
         now = self.db._ts()
         
         # 2. Compute Critical Path
-        critical_path_set = self._compute_critical_path(snapshot_id)
+        critical_path_set, critical_path_known, critical_path_method = self._compute_critical_path(snapshot_id)
         
         # 3. Activity-Level Facts
         status_counts = {}
@@ -101,24 +101,28 @@ class ScheduleBuilder:
             f_dates.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id}))
             facts.append(f_dates)
             
-            # 3. NEW: Critical Path Membership
-            is_critical = code in critical_path_set
-            f_critical = Fact(
-                fact_id=f"fact_sched_critical_{act_id}",
-                project_id=project_id,
-                fact_type="schedule.critical_path_membership",
-                subject_kind="activity",
-                subject_id=code,
-                as_of={"file_version_id": snapshot_id},
-                value_type=ValueType.BOOL,
-                value=is_critical,
-                status=FactStatus.CANDIDATE,
-                method_id="schedule_builder_v1_cpm",
-                created_at=now,
-                updated_at=now
-            )
-            f_critical.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id}))
-            facts.append(f_critical)
+            # 3. Critical Path Membership
+            # Only emit critical-path membership facts when the source schedule
+            # contains usable total-float data. Without usable float and without
+            # a CPM engine, critical path is unknown, not false.
+            if critical_path_known:
+                is_critical = code in critical_path_set
+                f_critical = Fact(
+                    fact_id=f"fact_sched_critical_{act_id}",
+                    project_id=project_id,
+                    fact_type="schedule.critical_path_membership",
+                    subject_kind="activity",
+                    subject_id=code,
+                    as_of={"file_version_id": snapshot_id},
+                    value_type=ValueType.BOOL,
+                    value=is_critical,
+                    status=FactStatus.CANDIDATE,
+                    method_id=f"schedule_builder_v1_{critical_path_method}",
+                    created_at=now,
+                    updated_at=now
+                )
+                f_critical.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id}))
+                facts.append(f_critical)
             
             #4. NEW: Total Float as separate fact
             if r_dict.get("total_float") is not None:
@@ -200,23 +204,32 @@ class ScheduleBuilder:
             facts.append(f_status_count)
         
         # 5b. Critical path activity count
-        f_cp_count = Fact(
-            fact_id=f"fact_sched_critical_count_{snapshot_id[:8]}",
-            project_id=project_id,
-            fact_type="schedule.critical_path_activity_count",
-            subject_kind="project",
-            subject_id=project_id,
-            as_of={"file_version_id": snapshot_id},
-            value_type=ValueType.NUM,
-            value=len(critical_path_set),
-            unit="activities",
-            status=FactStatus.CANDIDATE,
-            method_id="schedule_builder_v1_cpm",
-            created_at=now,
-            updated_at=now
-        )
-        f_cp_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "p6_activities"}))
-        facts.append(f_cp_count)
+        # Emit a zero count only when critical-path availability is known from
+        # usable total-float data. If no usable float exists, do not convert
+        # unknown critical path into a false zero-count fact.
+        if critical_path_known:
+            f_cp_count = Fact(
+                fact_id=f"fact_sched_critical_count_{snapshot_id[:8]}",
+                project_id=project_id,
+                fact_type="schedule.critical_path_activity_count",
+                subject_kind="project",
+                subject_id=project_id,
+                as_of={"file_version_id": snapshot_id},
+                value_type=ValueType.NUM,
+                value=len(critical_path_set),
+                unit="activities",
+                status=FactStatus.CANDIDATE,
+                method_id=f"schedule_builder_v1_{critical_path_method}",
+                created_at=now,
+                updated_at=now
+            )
+            f_cp_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "p6_activities"}))
+            facts.append(f_cp_count)
+        else:
+            logger.warning(
+                "[ScheduleBuilder] Critical path facts skipped for snapshot %s because usable total_float data is unavailable.",
+                snapshot_id,
+            )
         
         # 5c. Milestone forecast dates
         for milestone in milestone_activities:
@@ -240,51 +253,53 @@ class ScheduleBuilder:
         logger.info(f"[ScheduleBuilder] Generated {len(facts)} facts ({len(critical_path_set)} critical activities)")
         return facts
     
-    def _compute_critical_path(self, snapshot_id: str) -> Set[str]:
+    def _compute_critical_path(self, snapshot_id: str) -> Tuple[Set[str], bool, str]:
         """
-        Compute critical path using CPM algorithm (forward/backward pass).
-        Returns set of activity codes on the critical path.
+        Determine critical-path membership from P6-provided total float only.
+
+        Returns:
+            (critical_activity_codes, critical_path_known, method)
+
+        This method intentionally does not run a fallback CPM engine. If no
+        usable total-float values exist, critical path is unknown and downstream
+        fact emission must not turn that into non-critical False / zero-count
+        facts.
         """
-        # Load activities and relations
         activities_rows = self.db.execute(
-            "SELECT activity_id, code, start_date, finish_date, total_float FROM p6_activities WHERE file_version_id = ?",
-            (snapshot_id,)
-        ).fetchall()
-        
-        relations_rows = self.db.execute(
-            """
-            SELECT 
-                p.code as pred_code, 
-                s.code as succ_code,
-                r.rel_type,
-                r.lag
-            FROM p6_relations r
-            JOIN p6_activities p ON r.pred_activity_id = p.activity_id
-            JOIN p6_activities s ON r.succ_activity_id = s.activity_id
-            WHERE r.file_version_id = ?
-            """,
+            "SELECT activity_id, code, total_float FROM p6_activities WHERE file_version_id = ?",
             (snapshot_id,)
         ).fetchall()
         
         if not activities_rows:
-            return set()
+            return set(), False, "no_activities"
         
-        # Strategy 1: Use P6-provided total_float (most reliable if P6 computed correctly)
-        # Activities with total_float <= 0 are on critical path
-        critical_set = set()
+        critical_set: Set[str] = set()
+        has_usable_float = False
+
         for row in activities_rows:
             r_dict = dict(row)
             total_float = r_dict.get("total_float")
-            if total_float is not None and total_float <= 0:
+            if total_float in (None, ""):
+                continue
+
+            try:
+                total_float_value = float(total_float)
+            except (TypeError, ValueError):
+                continue
+
+            has_usable_float = True
+            if total_float_value <= 0:
                 critical_set.add(r_dict["code"])
         
-        # If P6 float is available and we found critical activities, trust it
-        if critical_set:
-            logger.info(f"[CPM] Using P6-provided float: {len(critical_set)} critical activities")
-            return critical_set
+        if has_usable_float:
+            logger.info(
+                "[CPM] Using P6-provided total_float: %s critical activities",
+                len(critical_set),
+            )
+            return critical_set, True, "p6_total_float"
         
-        # Strategy 2: Fallback CPM calculation (if P6 float missing)
-        # This is complex and requires proper forward/backward pass
-        # For now, return empty set if P6 float not available
-        logger.warning("[CPM] No total_float data from P6, critical path unknown")
-        return set()
+        logger.warning(
+            "[CPM] No usable total_float data from P6; critical path is unknown. "
+            "No CPM fallback is enabled in this build."
+        )
+        return set(), False, "unknown_no_usable_total_float"
