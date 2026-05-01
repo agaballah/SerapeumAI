@@ -27,7 +27,7 @@ class P6Visualizer(ctk.CTkFrame):
         self.frame_ctrl = ctk.CTkFrame(self, fg_color=Theme.BG_DARKER, corner_radius=12, border_width=1, border_color=Theme.BG_DARK)
         self.frame_ctrl.pack(fill="x", padx=20, pady=10)
         
-        self.lbl_info = ctk.CTkLabel(self.frame_ctrl, text="Interactive Gantt | Click any bar to inspect Layer 4 Certified Facts", 
+        self.lbl_info = ctk.CTkLabel(self.frame_ctrl, text="Raw P6 staging Gantt | Bar color is float-derived, not certified critical-path truth | Click any bar to inspect certified facts", 
                                     font=Theme.FONT_BODY, text_color=Theme.TEXT_MUTED)
         self.lbl_info.pack(side="left", padx=20, pady=10)
         
