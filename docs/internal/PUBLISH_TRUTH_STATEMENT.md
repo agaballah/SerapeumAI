@@ -1,27 +1,36 @@
 # SerapeumAI Publish Truth Statement
 
 Task class: release task / documentation-control artifact  
-Status: release-honesty checkpoint, not a final publish pass  
-Authority: current `main` after PR #121
+Status: final release-candidate truth statement pending owner publish decision  
+Authority: current `main` after PR #123 and packaging proof through #125
 
 ---
 
 ## 1. Purpose
 
-This document states what the current repository has actually proven during the Workspace Honesty and Engineering Evidence rails.
+This document states what the current repository and packaged artifact have actually proven.
 
-It is intentionally conservative. It does not claim final publish readiness until the final Windows release test, mounted workflow smoke test, and packaging proof are complete.
+It is conservative by design. It records release-candidate truth without expanding the product story beyond tested behavior.
 
 ---
 
 ## 2. Current authority
 
 ```text
-main includes PR #121
-latest main SHA: e5bdf53913cd25ac464ce36feb98ff3ab66b0065
-latest completed issue: #120 — Upgrade 3J — P6 Relation Uniqueness/Fidelity Proof/Patch
+main includes PR #123
+latest main SHA: 51bc3280e1adf9e3cc53859cb2f99bc0b8847548
+latest completed issue: #125 — Upgrade 3M — Final Packaging Proof Gate
 master backlog: #24
+final publish-decision issue: #126
+publication docs/hygiene issue: #127
 preserved future planning branch: docs/total-quality-upgrade-v3-3
+```
+
+Release-candidate artifact:
+
+```text
+dist\SerapeumAI_Portable\SerapeumAI.exe
+size: 110206723 bytes
 ```
 
 ---
@@ -32,21 +41,21 @@ SerapeumAI is a Windows-first, local-first AECO review workspace.
 
 It provides evidence-backed review assistance through:
 
-- deterministic extraction,
-- fact building,
-- human review/certification,
-- lineage/provenance,
-- mounted File Inspector views,
-- mounted Facts page,
+- deterministic extraction;
+- fact building;
+- human review/certification;
+- lineage/provenance;
+- mounted File Inspector views;
+- mounted Facts page;
 - mounted Expert Chat.
 
 SerapeumAI is not:
 
-- a guaranteed-compliance engine,
-- a legal approval engine,
-- a cloud-required product,
-- a generic chatbot,
-- a design-authoring tool,
+- a guaranteed-compliance engine;
+- a legal approval engine;
+- a cloud-required product;
+- a generic chatbot;
+- a design-authoring tool;
 - an autonomous agent that silently edits project files or models.
 
 ---
@@ -85,32 +94,83 @@ Proven:
 - P6 critical-path unknown handling does not convert missing/unusable float into false membership or zero-count facts;
 - P6 relation fidelity preserves distinct `TASKPRED` rows when predecessor/successor match but relation type or lag differs.
 
+### Documentation honesty rail
+
+Proven:
+
+- README release honesty checkpoint was updated;
+- stale Packet 8 / Packets 1-7 language was removed;
+- completed proof rails and explicit non-enabled behavior are documented;
+- the parked Total Quality Upgrade branch is documented as future planning only.
+
+### Final source and packaging gates
+
+Proven:
+
+```text
+Release-relevant source regression: 115 passed in 1.81s
+Manual source smoke: PASS with caveats
+Documentation honesty: PASS
+Packaging proof: PASS
+Packaged app smoke: PASS
+```
+
+Packaging proof:
+
+- existing packaging script completed with exit code `0`;
+- fresh packaged artifact was produced;
+- no source/test/docs/packaging files changed;
+- no obvious bundled `src/tests`, `__pycache__`, or pytest cache was found in the dist package;
+- packaged executable launched on Windows;
+- packaged workflow smoke passed;
+- shutdown showed no Tk post-destroy / bgerror / invalid command noise in supplied tail.
+
 ---
 
 ## 5. Explicit non-enabled behavior
 
 The current repository does not enable or claim:
 
-- final publish pass;
-- final packaging proof;
-- dependency upgrades;
-- packaging file changes;
-- CPM engine implementation;
+- autonomous chat UI tool execution;
+- LLM tool-call parser in the visible chat UI;
+- MCP integration;
+- autonomous agent loop;
+- audit persistence implementation;
+- project memory implementation;
+- runtime provider provisioning, model download, or runtime control;
+- snapshot governance implementation;
+- Revit bridge implementation;
 - Schedule Truth Workspace implementation;
+- CPM engine implementation;
 - PDF VLM routing;
 - typed Office/CAD persistence;
 - generic Excel workbook semantic persistence;
 - IFC fallback parser when `ifcopenshell` is missing;
-- autonomous chat tool execution;
-- MCP integration;
-- runtime provider provisioning, model download, or runtime control;
-- Revit bridge implementation;
-- audit persistence implementation;
-- project memory implementation.
+- guaranteed legal, contractual, regulatory, or compliance approval.
 
 ---
 
-## 6. Packaging boundary
+## 6. Caveats
+
+The current artifact passed source and packaging gates, but these caveats remain relevant:
+
+```text
+LLM JSON parse failed on 2 analysis pages during source smoke
+Page analysis health: 28 / 30 healthy during source smoke
+GPU overheating warning at 86C on constrained 8 GB VRAM laptop
+VRAM-limited downgrade from analysis to chat can occur
+Embedding can load on CPU due to VRAM reserved/insufficient
+```
+
+Interpretation:
+
+- These are release-note/troubleshooting caveats.
+- They are not packaging blockers for the current artifact.
+- They should inform broader-machine validation and post-publish runtime/platform work.
+
+---
+
+## 7. Packaging boundary
 
 Packaging files remain sensitive and must not be edited unless explicitly approved:
 
@@ -122,7 +182,7 @@ No dependency upgrades are approved by this statement.
 
 ---
 
-## 7. Total Quality Upgrade branch boundary
+## 8. Total Quality Upgrade branch boundary
 
 The Total Quality Upgrade planning dossier is preserved on:
 
@@ -134,57 +194,31 @@ It is future planning only.
 
 It is not:
 
-- merged release authority,
-- current implementation authority,
-- packaging authority,
+- merged release authority;
+- current implementation authority;
+- packaging authority;
 - a final publish claim.
 
 Before using that branch later, reconcile it against actual `main` repo truth.
 
 ---
 
-## 8. Current publish truth
-
-Current state after Workspace Honesty and Engineering Evidence through PR #121:
+## 9. Current publish truth
 
 ```text
-Source/test closure rail: materially strengthened
-Documentation honesty checkpoint: active through #122
-Final Windows release test: not yet complete
-Mounted workflow smoke test: not yet complete
-Packaging proof: not yet complete
-Final publish verdict: NOT YET PASSED
+Source/test closure rail: PASS
+Documentation honesty: PASS
+Manual source smoke: PASS with caveats
+Packaging proof: PASS
+Packaged app smoke: PASS
+Final publish candidate artifact: AVAILABLE
+GitHub Release/tag: NOT CREATED BY THIS STATEMENT
+Owner publish decision: PENDING IN #126
+Publication docs/hygiene gate: ACTIVE IN #127
 ```
 
 ---
 
-## 9. Remaining release gates
+## 10. Next action
 
-Before a final publish pass:
-
-1. Complete documentation/release honesty checkpoint.
-2. Run final local Windows source regression suite.
-3. Run mounted workflow smoke test:
-   - open project,
-   - dashboard refresh,
-   - documents/file inspector,
-   - facts review actions,
-   - expert chat answer with evidence,
-   - close/change project,
-   - Red-X shutdown.
-4. Run packaging proof last.
-5. Launch packaged app on Windows and repeat the critical smoke path.
-6. Issue final PASS/FAIL publish verdict.
-
----
-
-## 10. Next action after this document
-
-After this checkpoint is merged and cleaned:
-
-```text
-Select either:
-- Schedule Truth Workspace design issue, or
-- final release-readiness gate,
-depending on owner priority and remaining risk.
-```
+Complete #127 repository publication documentation and hygiene gate, then return to #126 for explicit owner publish decision.
