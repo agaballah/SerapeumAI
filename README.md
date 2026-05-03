@@ -1,150 +1,188 @@
 # SerapeumAI
 
-SerapeumAI is a Windows-first, local-first AECO review workspace.
+SerapeumAI is a **Windows-first, local-first AECO review workspace** for evidence-backed project review.
 
 It helps engineers and reviewers:
 
-- ingest project files into a project workspace
-- inspect deterministic extraction and AI analysis separately
-- review facts on the Facts page with lineage / evidence support
-- ask questions in Expert Chat and get a direct answer first, with optional evidence behind it
+- ingest project files into a local project workspace;
+- inspect deterministic extraction and AI-generated support separately;
+- review facts on the Facts page with lineage and evidence;
+- ask project questions in Expert Chat with direct answers and optional evidence lanes.
 
-SerapeumAI is **review assistance** with evidence and provenance. It is **not** a guaranteed-compliance, legal approval, or autonomous design-authoring engine.
+SerapeumAI is **review assistance** with evidence and provenance. It is **not** a guaranteed-compliance engine, legal approval engine, autonomous design-authoring tool, or generic chatbot.
 
-## Run
+---
 
-Use one clear dev run path:
+## Current publication status
+
+Current release candidate authority:
+
+```text
+main includes PR #123
+commit: 51bc3280e1adf9e3cc53859cb2f99bc0b8847548
+latest completed gate: #125 — Final Packaging Proof Gate
+artifact: dist\SerapeumAI_Portable\SerapeumAI.exe
+artifact size: 110206723 bytes
+```
+
+Release evidence currently recorded:
+
+- final Windows source regression: **PASS**;
+- manual source smoke: **PASS with caveats**;
+- documentation honesty checkpoint: **PASS**;
+- final packaging proof: **PASS**;
+- packaged app smoke: **PASS**;
+- final owner publish decision: **pending** in issue #126.
+
+A GitHub Release/tag has not been created by this README.
+
+---
+
+## Supported posture
+
+- Baseline platform: **Windows**.
+- Core posture: **local-first** and **project-local**.
+- Runtime expectation: local LM Studio-compatible runtime for the current mounted runtime path.
+- Current publish generative runtime: `qwen2.5-coder-7b-instruct`.
+- Embeddings remain separate from the generative model.
+- Calculations and deterministic checks must be performed by application code/tools, not by LLM arithmetic.
+
+---
+
+## Quick start
+
+Development run path:
 
 ```powershell
 python run.py
 ```
 
-## Runtime contract
+Packaged release-candidate path after a successful local build:
 
-- Windows is the baseline platform.
-- LM Studio must be installed and running locally for the current mounted runtime path.
-- The publish generative runtime is the single model `qwen2.5-coder-7b-instruct`.
-- Embeddings remain separate from the generative model.
-- Calculations and deterministic checks must be performed by application code/tools, not by LLM arithmetic.
+```powershell
+.\dist\SerapeumAI_Portable\SerapeumAI.exe
+```
+
+For setup and runtime notes, see:
+
+- `INSTALL.md`
+- `TROUBLESHOOTING.md`
+- `RELEASE_NOTES.md`
+
+---
 
 ## Mounted workflow
 
+- **Dashboard**: project counts, runtime state, pipeline diagnostics, and honesty-oriented health labels.
 - **Documents**: browse project documents and open the File Inspector.
-- **Schedule page**: inspect the project schedule and click activities to open linked schedule fact/evidence detail where available.
 - **File Inspector**:
   1. Consolidated Review
   2. Full Metadata
   3. Raw Deterministic Extraction
   4. AI Output Only
-- **Facts page**: review facts, inspect meaning, inspect provenance, and certify or reject with evidence.
+- **Facts**: review facts, inspect meaning/source/review state, and open lineage/evidence.
 - **Expert Chat**:
-  - shows a direct answer first
-  - can show a compact source-basis banner when helpful
-  - keeps behind-the-scenes evidence behind an optional **Show Evidence** action
-  - exposes these evidence lanes only when expanded:
-    - Trusted Facts
-    - Extracted Evidence
-    - Linked Support
-    - AI-Generated Synthesis
-  - resets visible chat history when the active project closes or changes
-  - drops late responses/errors from old project sessions
+  - shows a direct answer first;
+  - labels the basis of the answer;
+  - exposes optional evidence lanes;
+  - resets visible chat history when the active project closes or changes;
+  - drops late responses/errors from old project sessions.
 
-## Trust and provenance
+---
 
-- Trusted Facts remain the strongest source class.
+## Trust and provenance model
+
 - `VALIDATED` and `HUMAN_CERTIFIED` facts are trusted answer sources.
-- `CANDIDATE` facts are visible for review but do not govern answers.
+- `CANDIDATE` facts are visible for review but do not silently govern answers.
 - `REJECTED` facts are excluded from trusted answer paths.
-- AI-generated synthesis is clearly labeled non-governing.
-- Linked Support is clearly labeled support, not certified truth.
-- When trusted facts are incomplete, SerapeumAI may answer from grounded extraction or linked support only when that source class is explicitly labeled.
-
-## Evidence and inspection
-
-- Deterministic extraction and parser/OCR output must remain separated from AI/VLM output.
-- File Inspector separates:
-  - consolidated review,
-  - full metadata,
-  - raw deterministic extraction,
-  - AI output only.
-- AI/VLM output does not become certified truth unless promoted through the review/certification workflow.
-- Deterministic extraction evidence can build trusted document facts through the build-facts path.
-
-## Storage and project isolation
-
-- Persistent project storage is localized under the project `.serapeum` root.
-- The normal SQLite database is the authority.
+- Deterministic extraction and parser/OCR output remain separate from AI-generated support.
+- AI Output Only is non-governing unless promoted through review/certification.
 - Vector/retrieval stores are derived support, not governing truth.
 - Project A must not answer from Project B.
-- Mounted chat requests are bound to the active project/session.
 
-## Dashboard honesty
+---
 
-- Dashboard labels must not overclaim health or trust.
-- Qualified facts are counted separately from all built facts.
-- Missing optional extractor/runtime columns must degrade safely.
-- Schedule/P6 truth labels must not claim verified critical path unless deterministic float data supports it.
+## Current proven behavior
 
-## Clean shutdown
+Completed proof rails include:
 
-- Red-X close should internally close the project before destroying the app window.
-- Closing the main window should end the live session cleanly.
-- Background analysis should stop cleanly when the app is closed.
-- Reopening the app should not silently resume abandoned prior work without a new explicit user trigger.
+- mounted chat active-project authority and project isolation;
+- sourced answer authority labeling;
+- support-only answer labeling;
+- snapshot/imported-date wording honesty;
+- PDF metadata completeness and routing proof;
+- IFC dependency/no-fallback honesty;
+- Office/DGN flattened extraction contract;
+- P6 critical-path unknown honesty;
+- P6 relation uniqueness/fidelity;
+- File Inspector four-lane separation;
+- final packaging proof and packaged-app smoke.
 
-## Schedule interaction
+---
 
-- The Schedule page should allow clicking a schedule/Gantt activity without crashing.
-- If linked schedule facts are available, they should be shown.
-- If evidence is unavailable, the app should degrade gracefully and say so honestly.
+## Explicit non-enabled behavior
 
-## Interactive responsiveness
+The current repository does **not** enable or claim:
 
-- Interactive chat should stay responsive even when background ingest/extract work exists.
-- Background backlog should yield to active chat use in the mounted workflow.
+- autonomous chat tool execution;
+- LLM tool-call parser in the visible chat UI;
+- MCP integration;
+- autonomous agent loops;
+- audit persistence implementation;
+- project memory implementation;
+- runtime/provider provisioning or model download control;
+- snapshot governance implementation;
+- Revit bridge;
+- Schedule Truth Workspace implementation;
+- CPM engine;
+- PDF VLM routing;
+- IFC fallback parser when `ifcopenshell` is missing;
+- typed Office/CAD persistence;
+- generic Excel workbook semantic persistence;
+- guaranteed legal, contractual, regulatory, or compliance approval.
 
-## Current release honesty checkpoint
+---
 
-Current authority after the latest evidence rail:
+## Known caveats
+
+The current artifact passed packaging and packaged smoke, but these caveats remain important for release notes and troubleshooting:
+
+- constrained 8 GB VRAM laptops may show runtime, VRAM, or GPU-temperature warnings;
+- model routing may downgrade analysis to chat when VRAM is limited;
+- embeddings may load on CPU when VRAM is reserved or insufficient;
+- page-level LLM JSON parse retries/errors can occur during analysis;
+- these caveats do not change deterministic extraction, facts, evidence lanes, or packaged smoke proof.
+
+---
+
+## Repository and contribution rules
+
+- `src/**` is the primary editable source surface.
+- `run.py` and `run_tests.py` are editable only when needed.
+- `SerapeumAI_Portable.spec`, `build_portable.ps1`, and `build_portable.bat` are sensitive packaging files.
+- Do not treat `build/**`, `dist/**`, `.serapeum/**`, `models/**`, or `**/__pycache__/**` as normal editing targets.
+- Avoid dependency upgrades unless explicitly approved.
+- Preserve Windows portability and packaging behavior.
+- Prefer minimal, reviewable diffs.
+
+See `CONTRIBUTING.md` for details.
+
+---
+
+## License
+
+SerapeumAI is released under the Apache License, Version 2.0. See `LICENSE` and `NOTICE`.
+
+Third-party dependency and runtime notes are summarized in `THIRD_PARTY_NOTICES.md`.
+
+---
+
+## Future planning
+
+The branch below is preserved as a parked future-upgrade planning branch only:
 
 ```text
-main includes PR #121
-latest main SHA: e5bdf53913cd25ac464ce36feb98ff3ab66b0065
-latest completed packet: #120 / PR #121 — P6 relation uniqueness/fidelity proof
+docs/total-quality-upgrade-v3-3
 ```
 
-Completed and test-locked behavior includes:
-
-- Workspace Honesty:
-  - mounted chat is bound to the active project/session;
-  - support-only answers are labeled as support, not certified truth;
-  - snapshot/imported-date wording is informational only;
-  - cross-project answer leakage has regression coverage.
-- Engineering Evidence:
-  - PDF metadata completeness and routing are test-locked;
-  - IFC missing dependency behavior is honest and has no fallback parser claim;
-  - Word/PPTX/DGN extraction is flattened deterministic extraction, not typed Office/CAD persistence;
-  - Excel extraction is register/log-row oriented, not generic workbook semantic persistence;
-  - P6 critical-path unknown handling does not convert unknown into false/zero facts;
-  - P6 relation fidelity preserves distinct relation rows with different type or lag.
-
-Current explicit limitations:
-
-- No final publish pass has been issued.
-- No packaging rebuild is authorized by this README.
-- No CPM engine is implemented.
-- No Schedule Truth Workspace implementation is complete.
-- No PDF VLM routing is enabled.
-- No typed Office/CAD persistence is implemented.
-- No generic Excel workbook semantic persistence is implemented.
-- No IFC fallback parser is enabled when `ifcopenshell` is missing.
-- No autonomous chat tool execution, MCP integration, or runtime provisioning/download/control is enabled.
-- `docs/total-quality-upgrade-v3-3` remains preserved as future planning only, not current release authority.
-
-Before a publish pass, run the final local Windows release test and packaging proof.
-
-See:
-
-```text
-docs/internal/PUBLISH_TRUTH_STATEMENT.md
-```
+It is not the current release authority and must be reconciled against `main` before future implementation.
