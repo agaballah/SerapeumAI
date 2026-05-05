@@ -34,6 +34,15 @@ _STATUS_DISPLAY = {
     "needs_consent": "Needs consent",
 }
 
+_PROVIDER_MODE_DISPLAY = {
+    "DISABLED_LOCAL_REVIEW_ONLY": "Local review only / AI disabled",
+    "LM_STUDIO_MANUAL_OPENAI_COMPAT": "LM Studio manual OpenAI-compatible",
+    "LM_STUDIO_CLI_MANAGED": "LM Studio CLI-managed",
+    "OLLAMA_LOCAL": "Ollama local",
+    "LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT": "Legacy llama.cpp if present",
+    "OPENAI_COMPATIBLE_LOCAL": "Local OpenAI-compatible endpoint",
+}
+
 
 def _as_list(value: Any) -> List[Any]:
     if isinstance(value, list):
@@ -67,10 +76,38 @@ def _capability_summary(capabilities: Iterable[Any]) -> str:
     return ", ".join(caps) if caps else "No capabilities reported"
 
 
-def _status_warning(status: str, reason: str) -> str:
+def _mode_label(mode: str) -> str:
+    mode = str(mode or "").strip()
+    if not mode:
+        return "Provider mode not declared"
+    return _PROVIDER_MODE_DISPLAY.get(mode, mode.replace("_", " ").title())
+
+
+def _safe_listed_models(row: Dict[str, Any]) -> List[Dict[str, Any]]:
+    value = row.get("listed_models")
+    if not isinstance(value, list):
+        return []
+    out: List[Dict[str, Any]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        model_id = str(item.get("model_id") or item.get("id") or item.get("name") or "").strip()
+        if not model_id:
+            continue
+        copied = dict(item)
+        copied.setdefault("model_id", model_id)
+        copied.setdefault("display_name", model_id)
+        out.append(copied)
+    return out
+
+
+def _status_warning(status: str, reason: str, provider_mode: str = "") -> str:
     status = str(status or "")
     reason = str(reason or "")
+    provider_mode = str(provider_mode or "")
 
+    if provider_mode == "DISABLED_LOCAL_REVIEW_ONLY":
+        return "AI runtime is disabled for this mode. Deterministic review and evidence surfaces can still be used."
     if status == "reachable":
         return "Provider endpoint is reachable. Model/task readiness is not yet verified."
     if status == "disabled":
@@ -86,10 +123,13 @@ def _status_warning(status: str, reason: str) -> str:
     return ""
 
 
-def _action_hint(status: str, reason: str) -> str:
+def _action_hint(status: str, reason: str, provider_mode: str = "") -> str:
     status = str(status or "")
     reason = str(reason or "")
+    provider_mode = str(provider_mode or "")
 
+    if provider_mode == "DISABLED_LOCAL_REVIEW_ONLY":
+        return "Use this mode when you want deterministic review without model-backed AI features."
     if status == "reachable":
         return "Select or verify a model in a later model-readiness step."
     if status == "disabled":
@@ -116,6 +156,10 @@ def present_runtime_provider_rows(discovery_rows: Iterable[Dict[str, Any]]) -> L
         reason = str(item.get("reason") or "")
         capabilities = _as_list(item.get("capabilities"))
         side_effects = _safe_side_effects(item)
+        details = item.get("details") if isinstance(item.get("details"), dict) else {}
+        provider_mode = str(item.get("provider_mode") or details.get("provider_mode") or "").strip()
+        provider_modes_supported = _as_list(item.get("provider_modes_supported") or details.get("provider_modes_supported"))
+        listed_models = _safe_listed_models(item)
 
         rows.append(
             {
@@ -125,9 +169,14 @@ def present_runtime_provider_rows(discovery_rows: Iterable[Dict[str, Any]]) -> L
                 "status": status,
                 "display_status": _STATUS_DISPLAY.get(status, status.replace("_", " ").title() if status else "Unknown"),
                 "reason": reason,
+                "provider_mode": provider_mode,
+                "provider_mode_label": _mode_label(provider_mode),
+                "provider_modes_supported": [str(mode) for mode in provider_modes_supported if str(mode or "").strip()],
+                "listed_models": listed_models,
+                "listed_model_count": len(listed_models),
                 "capability_summary": _capability_summary(capabilities),
-                "warning": _status_warning(status, reason),
-                "action_hint": _action_hint(status, reason),
+                "warning": _status_warning(status, reason, provider_mode),
+                "action_hint": _action_hint(status, reason, provider_mode),
                 "available": bool(item.get("available", status == "reachable")),
                 "model_readiness": "not_verified",
                 "side_effects": side_effects,
