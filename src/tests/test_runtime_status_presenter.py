@@ -1,8 +1,14 @@
 ﻿# -*- coding: utf-8 -*-
 """
-Wave 1B-2: runtime status presenter tests.
+Wave 1B-2 / Upgrade 3S: runtime status presenter tests.
 """
 
+from src.infra.services.runtime_provider_discovery import (
+    PROVIDER_MODE_DISABLED_LOCAL_REVIEW_ONLY,
+    PROVIDER_MODE_LM_STUDIO_CLI_MANAGED,
+    PROVIDER_MODE_LM_STUDIO_MANUAL_OPENAI_COMPAT,
+    PROVIDER_MODE_OLLAMA_LOCAL,
+)
 from src.infra.services.runtime_status_presenter import (
     SUMMARY_NO_PROVIDER_REACHABLE,
     SUMMARY_PROVIDER_DISCOVERY_UNAVAILABLE,
@@ -25,7 +31,17 @@ NO_SIDE_EFFECTS = {
 }
 
 
-def _row(name, status, *, endpoint="http://127.0.0.1:1234", reason="", available=None):
+def _row(
+    name,
+    status,
+    *,
+    endpoint="http://127.0.0.1:1234",
+    reason="",
+    available=None,
+    provider_mode="",
+    provider_modes_supported=None,
+    listed_models=None,
+):
     if available is None:
         available = status == "reachable"
     return {
@@ -38,6 +54,9 @@ def _row(name, status, *, endpoint="http://127.0.0.1:1234", reason="", available
         "side_effects": dict(NO_SIDE_EFFECTS),
         "available": available,
         "details": {},
+        "provider_mode": provider_mode,
+        "provider_modes_supported": list(provider_modes_supported or ([] if not provider_mode else [provider_mode])),
+        "listed_models": list(listed_models or []),
     }
 
 
@@ -85,6 +104,57 @@ def test_presenter_summarizes_reachable_provider_without_model_ready_overclaim()
     assert reachable["model_readiness"] == "not_verified"
     assert "Model/task readiness is not yet verified" in reachable["warning"]
     assert "ready" not in reachable["display_status"].lower()
+
+
+def test_local_review_only_mode_is_visible_but_never_reachable():
+    rows = present_runtime_provider_rows(
+        [
+            _row(
+                "local_review_only",
+                "disabled",
+                endpoint="",
+                reason="local_review_only_no_ai_mode",
+                available=False,
+                provider_mode=PROVIDER_MODE_DISABLED_LOCAL_REVIEW_ONLY,
+            )
+        ]
+    )
+
+    assert rows[0]["provider_mode"] == PROVIDER_MODE_DISABLED_LOCAL_REVIEW_ONLY
+    assert rows[0]["provider_mode_label"] == "Local review only / AI disabled"
+    assert rows[0]["available"] is False
+    assert "Deterministic review" in rows[0]["warning"]
+    assert rows[0]["model_readiness"] == "not_verified"
+
+
+def test_provider_modes_and_listed_models_are_presented():
+    rows = present_runtime_provider_rows(
+        [
+            _row(
+                "lm_studio",
+                "reachable",
+                reason="probe_ok",
+                provider_mode=PROVIDER_MODE_LM_STUDIO_MANUAL_OPENAI_COMPAT,
+                provider_modes_supported=[PROVIDER_MODE_LM_STUDIO_MANUAL_OPENAI_COMPAT, PROVIDER_MODE_LM_STUDIO_CLI_MANAGED],
+                listed_models=[{"model_id": "qwen2.5-coder-7b-instruct", "display_name": "Qwen"}],
+            ),
+            _row(
+                "ollama",
+                "reachable",
+                endpoint="http://127.0.0.1:11434",
+                reason="probe_ok",
+                provider_mode=PROVIDER_MODE_OLLAMA_LOCAL,
+                listed_models=[{"model_id": "llama3.1:8b"}],
+            ),
+        ]
+    )
+
+    by_name = {row["provider_name"]: row for row in rows}
+    assert by_name["lm_studio"]["provider_mode_label"] == "LM Studio manual OpenAI-compatible"
+    assert PROVIDER_MODE_LM_STUDIO_CLI_MANAGED in by_name["lm_studio"]["provider_modes_supported"]
+    assert by_name["lm_studio"]["listed_model_count"] == 1
+    assert by_name["ollama"]["provider_mode_label"] == "Ollama local"
+    assert by_name["ollama"]["listed_models"][0]["model_id"] == "llama3.1:8b"
 
 
 def test_non_local_endpoint_is_presented_as_blocked_unsupported():

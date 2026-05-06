@@ -5,23 +5,35 @@ from tkinter import ttk, messagebox
 
 import customtkinter as ctk
 
+from src.infra.services.runtime_platform_read_model import RuntimePlatformReadModelService
+from src.infra.services.runtime_provider_discovery import PROVIDER_MODE_DISABLED_LOCAL_REVIEW_ONLY
+from src.infra.services.runtime_provider_selection import RuntimeProviderSelectionService
 from src.infra.services.runtime_setup_service import (
     STATUS_EMBEDDING_RUNTIME_NOT_READY,
     LocalRuntimeSetupService,
 )
+from src.ui.presenters.runtime_manager_presenter import present_runtime_manager_selection
 from src.ui.styles.theme import Theme
 
 logger = logging.getLogger(__name__)
 
 
 class RuntimeManagerDialog(ctk.CTkToplevel):
+    NO_MODELS_LABEL = "No local models listed"
+
     def __init__(self, parent, controller, runtime_service: LocalRuntimeSetupService):
         super().__init__(parent)
         self.parent = parent
         self.controller = controller
         self.runtime_service = runtime_service
+        self.runtime_platform_read_model_service = getattr(
+            controller,
+            "runtime_platform_read_model_service",
+            RuntimePlatformReadModelService(config=getattr(runtime_service, "config", None)),
+        )
+        self.selection_service = RuntimeProviderSelectionService(runtime_service.config)
         self.title("Local Runtime Manager")
-        self.geometry("1100x760")
+        self.geometry("1100x820")
         self.configure(fg_color=Theme.BG_DARKEST)
         self.transient(parent)
         self.grab_set()
@@ -122,17 +134,35 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
 
         selection = ctk.CTkFrame(self, fg_color=Theme.BG_DARKER)
         selection.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 10))
-        selection.grid_columnconfigure(1, weight=1)
-        selection.grid_columnconfigure(3, weight=1)
+        for col in range(5):
+            selection.grid_columnconfigure(col, weight=1)
 
-        tk.Label(selection, text="Chat model", font=Theme.FONT_BODY, fg=Theme.TEXT_MUTED, bg=Theme.BG_DARKER).grid(row=0, column=0, sticky="w", padx=12, pady=(12, 4))
-        tk.Label(selection, text="Analysis model", font=Theme.FONT_BODY, fg=Theme.TEXT_MUTED, bg=Theme.BG_DARKER).grid(row=0, column=2, sticky="w", padx=12, pady=(12, 4))
-        self.combo_chat = ctk.CTkComboBox(selection, values=["No downloaded models"], state="readonly")
-        self.combo_chat.grid(row=1, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 12))
-        self.combo_analysis = ctk.CTkComboBox(selection, values=["No downloaded models"], state="readonly")
-        self.combo_analysis.grid(row=1, column=2, columnspan=2, sticky="ew", padx=12, pady=(0, 12))
-        self.btn_save_selection = ctk.CTkButton(selection, text="Save Model Selection", command=self._save_selection)
-        self.btn_save_selection.grid(row=1, column=4, padx=12, pady=(0, 12), sticky="ew")
+        tk.Label(selection, text="Provider", font=Theme.FONT_BODY, fg=Theme.TEXT_MUTED, bg=Theme.BG_DARKER).grid(row=0, column=0, sticky="w", padx=12, pady=(12, 4))
+        tk.Label(selection, text="Provider mode", font=Theme.FONT_BODY, fg=Theme.TEXT_MUTED, bg=Theme.BG_DARKER).grid(row=0, column=1, sticky="w", padx=12, pady=(12, 4))
+        tk.Label(selection, text="Chat model", font=Theme.FONT_BODY, fg=Theme.TEXT_MUTED, bg=Theme.BG_DARKER).grid(row=0, column=2, sticky="w", padx=12, pady=(12, 4))
+        tk.Label(selection, text="Analysis model", font=Theme.FONT_BODY, fg=Theme.TEXT_MUTED, bg=Theme.BG_DARKER).grid(row=0, column=3, sticky="w", padx=12, pady=(12, 4))
+
+        self.combo_provider = ctk.CTkComboBox(selection, values=["local_review_only"], state="readonly")
+        self.combo_provider.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
+        self.combo_provider_mode = ctk.CTkComboBox(selection, values=[PROVIDER_MODE_DISABLED_LOCAL_REVIEW_ONLY], state="readonly")
+        self.combo_provider_mode.grid(row=1, column=1, sticky="ew", padx=12, pady=(0, 8))
+        self.combo_chat = ctk.CTkComboBox(selection, values=[self.NO_MODELS_LABEL], state="readonly")
+        self.combo_chat.grid(row=1, column=2, sticky="ew", padx=12, pady=(0, 8))
+        self.combo_analysis = ctk.CTkComboBox(selection, values=[self.NO_MODELS_LABEL], state="readonly")
+        self.combo_analysis.grid(row=1, column=3, sticky="ew", padx=12, pady=(0, 8))
+        self.btn_save_selection = ctk.CTkButton(selection, text="Save Selection", command=self._save_selection)
+        self.btn_save_selection.grid(row=1, column=4, padx=12, pady=(0, 8), sticky="ew")
+
+        self.lbl_selection_hint = tk.Label(
+            selection,
+            text="Saving selection only writes local config. It does not start providers, download, load, or unload models.",
+            font=Theme.FONT_BODY,
+            fg=Theme.TEXT_MUTED,
+            bg=Theme.BG_DARKER,
+            justify="left",
+            wraplength=1000,
+        )
+        self.lbl_selection_hint.grid(row=2, column=0, columnspan=5, sticky="w", padx=12, pady=(0, 12))
 
         guidance_frame = ctk.CTkFrame(self, fg_color=Theme.BG_DARKER)
         guidance_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 10))
@@ -147,7 +177,7 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
         lists.grid_columnconfigure(1, weight=1)
         lists.grid_rowconfigure(0, weight=1)
 
-        self.downloaded_tree = self._build_tree(lists, "Downloaded models", 0)
+        self.downloaded_tree = self._build_tree(lists, "Downloaded/listed models", 0)
         self.loaded_tree = self._build_tree(lists, "Loaded models", 1)
 
     def _build_tree(self, parent, title, column):
@@ -181,13 +211,37 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
         self.txt_guidance.insert("1.0", text.strip())
         self.txt_guidance.configure(state="disabled")
 
+    def _clean_model_choice(self, value: str, *, provider: str) -> str:
+        text = str(value or "").strip()
+        if text in {self.NO_MODELS_LABEL, "No downloaded models"}:
+            return "" if provider == "local_review_only" else text
+        return text
+
     def _save_selection(self):
-        chat_value = str(self.combo_chat.get() or "").strip()
-        analysis_value = str(self.combo_analysis.get() or "").strip()
-        if not chat_value or chat_value == "No downloaded models" or not analysis_value or analysis_value == "No downloaded models":
-            messagebox.showwarning("Runtime Manager", "Select both a chat model and an analysis model.", parent=self)
+        provider = str(self.combo_provider.get() or "local_review_only").strip()
+        provider_mode = str(self.combo_provider_mode.get() or PROVIDER_MODE_DISABLED_LOCAL_REVIEW_ONLY).strip()
+        chat_value = self._clean_model_choice(str(self.combo_chat.get() or ""), provider=provider)
+        analysis_value = self._clean_model_choice(str(self.combo_analysis.get() or ""), provider=provider)
+
+        if provider != "local_review_only" and (
+            not chat_value
+            or not analysis_value
+            or chat_value == self.NO_MODELS_LABEL
+            or analysis_value == self.NO_MODELS_LABEL
+        ):
+            messagebox.showwarning("Runtime Manager", "Select both a chat model and an analysis model for the selected provider.", parent=self)
             return
-        self._run_async(lambda on_status=None: self.runtime_service.set_selected_models(chat_model=chat_value, analysis_model=analysis_value))
+
+        def _save(on_status=None):
+            return self.selection_service.save_selection(
+                provider=provider,
+                provider_mode=provider_mode,
+                chat_model=chat_value,
+                analysis_model=analysis_value,
+                scope="local",
+            ).to_dict()
+
+        self._run_async(_save)
 
     def _run_async(self, func):
         self._set_busy(True)
@@ -206,13 +260,20 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
 
     def _finish_action(self, result):
         self._set_busy(False)
-        status = str((result or {}).get("status") or "UNKNOWN")
+        if result and result.get("ok") is True and not result.get("status"):
+            status = "SAVED"
+        else:
+            status = str((result or {}).get("status") or "UNKNOWN")
         message = str((result or {}).get("message") or "Action finished.")
         self.refresh_inventory(show_popup=False)
         try:
             self.controller._refresh_runtime_status(prompt_if_needed=False)
         except Exception:
             logger.debug("Controller runtime status refresh failed after dialog action.", exc_info=True)
+        try:
+            self.controller._refresh_runtime_platform_sidebar()
+        except Exception:
+            logger.debug("Controller runtime platform refresh failed after dialog action.", exc_info=True)
         if status == "ERROR":
             messagebox.showerror("Runtime Manager", message, parent=self)
         else:
@@ -234,6 +295,55 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
             except Exception:
                 pass
 
+    def _build_runtime_read_model(self):
+        try:
+            return self.runtime_platform_read_model_service.build_read_model()
+        except Exception:
+            logger.debug("Runtime platform read-model refresh failed.", exc_info=True)
+            return {}
+
+    def _merge_model_values(self, presenter_values, downloaded):
+        values = []
+        seen = set()
+        for value in list(presenter_values or []):
+            text = str(value or "").strip()
+            if text and text not in seen:
+                seen.add(text)
+                values.append(text)
+        for row in downloaded or []:
+            model_key = str(row.get("model_key") or "").strip()
+            if model_key and model_key not in seen:
+                seen.add(model_key)
+                values.append(model_key)
+        return values or [self.NO_MODELS_LABEL]
+
+    def _apply_runtime_selection_presenter(self, selection_presented, downloaded, selected):
+        provider_values = selection_presented.get("provider_values") or ["local_review_only"]
+        mode_values = selection_presented.get("provider_mode_values") or [PROVIDER_MODE_DISABLED_LOCAL_REVIEW_ONLY]
+        model_values = self._merge_model_values(selection_presented.get("model_values"), downloaded)
+
+        self.combo_provider.configure(values=provider_values)
+        self.combo_provider.set(selection_presented.get("selected_provider") or provider_values[0])
+        self.combo_provider_mode.configure(values=mode_values)
+        self.combo_provider_mode.set(selection_presented.get("selected_provider_mode") or mode_values[0])
+        self.combo_chat.configure(values=model_values)
+        self.combo_analysis.configure(values=model_values)
+
+        chat_choice = str(selection_presented.get("selected_chat_model") or selected.get("chat") or "").strip()
+        analysis_choice = str(selection_presented.get("selected_analysis_model") or selected.get("analysis") or "").strip()
+        self.combo_chat.set(chat_choice if chat_choice in model_values else model_values[0])
+        self.combo_analysis.set(analysis_choice if analysis_choice in model_values else model_values[0])
+
+        recommendation = str(selection_presented.get("recommendation_summary") or "").strip()
+        readiness = str(selection_presented.get("model_readiness") or "not_verified").strip()
+        provider = str(selection_presented.get("selected_provider") or "local_review_only").strip()
+        self.lbl_selection_hint.configure(
+            text=(
+                "Saving selection only writes local config. It does not start providers, download, load, or unload models. "
+                f"Selected provider: {provider}. Model readiness: {readiness}. Model guidance: {recommendation}."
+            )
+        )
+
     def refresh_inventory(self, show_popup: bool = False):
         try:
             inventory = self.runtime_service.get_runtime_inventory()
@@ -242,22 +352,45 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
                 messagebox.showerror("Runtime Manager", str(exc), parent=self)
             return
 
+        read_model = self._build_runtime_read_model()
+        selection_presented = present_runtime_manager_selection(read_model)
+
         status = str(inventory.get("status") or "UNKNOWN")
         message = str(inventory.get("message") or "Runtime state unavailable.")
         self.lbl_status.configure(text=f"{status} - {message}", fg=Theme.TEXT_MUTED if status == "READY" else Theme.TEXT_MAIN)
-        self._set_guidance(str(inventory.get("guidance") or message))
+        guidance = str(inventory.get("guidance") or message)
+        recommendation = str(selection_presented.get("recommendation_summary") or "").strip()
+        if recommendation:
+            guidance = (
+                f"{guidance}\n\nHardware/model guidance: {recommendation}"
+                "\nFinal model selection should be completed in the runtime setup/benchmark wizard."
+            )
+
+        recommended_entries = selection_presented.get("recommendation_entries_summary") or []
+        if recommended_entries:
+            guidance = f"{guidance}\nRecommended model/profile options:"
+            for entry in recommended_entries[:5]:
+                guidance = f"{guidance}\n- {entry}"
+
+        recommendation_warnings = selection_presented.get("recommendation_warnings") or []
+        if recommendation_warnings:
+            guidance = f"{guidance}\nRecommendation warnings:"
+            for warning in recommendation_warnings[:5]:
+                guidance = f"{guidance}\n- {warning}"
+
+        recommendation_constraints = selection_presented.get("recommendation_constraints") or []
+        if recommendation_constraints:
+            guidance = f"{guidance}\nRecommendation constraints:"
+            for constraint in recommendation_constraints[:5]:
+                guidance = f"{guidance}\n- {constraint}"
+        self._set_guidance(guidance)
 
         downloaded = inventory.get("downloaded_llms") or []
         loaded = inventory.get("loaded_models") or []
         selected = inventory.get("selected_models") or {}
         loaded_roles = inventory.get("loaded_roles") or {}
 
-        values = [str(row.get("model_key") or "").strip() for row in downloaded if str(row.get("model_key") or "").strip()]
-        combo_values = values or ["No downloaded models"]
-        self.combo_chat.configure(values=combo_values)
-        self.combo_analysis.configure(values=combo_values)
-        self.combo_chat.set(selected.get("chat") or combo_values[0])
-        self.combo_analysis.set(selected.get("analysis") or combo_values[0])
+        self._apply_runtime_selection_presenter(selection_presented, downloaded, selected)
 
         for tree in (self.downloaded_tree, self.loaded_tree):
             for item in tree.get_children():
@@ -277,6 +410,14 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
             if not downloaded_status:
                 downloaded_status.append("downloaded")
             self.downloaded_tree.insert("", "end", values=(display, model_key, ", ".join(downloaded_status)))
+
+        for row in selection_presented.get("model_values") or []:
+            model_key = str(row or "").strip()
+            if not model_key or model_key in {self.NO_MODELS_LABEL, "No downloaded models"} or model_key in loaded_keys:
+                continue
+            if any(model_key == str(item.get("model_key") or "").strip() for item in downloaded):
+                continue
+            self.downloaded_tree.insert("", "end", values=(model_key, model_key, "provider-listed"))
 
         for row in loaded:
             identifier = str(row.get("identifier") or row.get("model_key") or "").strip()

@@ -2,7 +2,7 @@
 """
 Read-only runtime provider discovery for SerapeumAI.
 
-Wave 1B-1 rules:
+Wave 1B-1 / Upgrade 3S rules:
 - no install
 - no start/stop
 - no model download
@@ -14,6 +14,7 @@ Wave 1B-1 rules:
 
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Protocol
 from urllib import error, request
@@ -26,6 +27,13 @@ STATUS_REACHABLE = "reachable"
 STATUS_DISABLED = "disabled"
 STATUS_UNREACHABLE = "unreachable"
 STATUS_UNSUPPORTED = "unsupported"
+
+PROVIDER_MODE_DISABLED_LOCAL_REVIEW_ONLY = "DISABLED_LOCAL_REVIEW_ONLY"
+PROVIDER_MODE_LM_STUDIO_MANUAL_OPENAI_COMPAT = "LM_STUDIO_MANUAL_OPENAI_COMPAT"
+PROVIDER_MODE_LM_STUDIO_CLI_MANAGED = "LM_STUDIO_CLI_MANAGED"
+PROVIDER_MODE_OLLAMA_LOCAL = "OLLAMA_LOCAL"
+PROVIDER_MODE_LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT = "LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT"
+PROVIDER_MODE_OPENAI_COMPATIBLE_LOCAL = "OPENAI_COMPATIBLE_LOCAL"
 
 
 def _no_side_effects() -> Dict[str, bool]:
@@ -58,6 +66,9 @@ class ProviderDiscoveryResult:
     capabilities: List[str] = field(default_factory=list)
     side_effects: Dict[str, bool] = field(default_factory=_no_side_effects)
     details: Dict[str, Any] = field(default_factory=dict)
+    provider_mode: str = ""
+    provider_modes_supported: List[str] = field(default_factory=list)
+    listed_models: List[Dict[str, Any]] = field(default_factory=list)
 
     @property
     def available(self) -> bool:
@@ -69,6 +80,8 @@ class ProviderDiscoveryResult:
         data["capabilities"] = list(self.capabilities or [])
         data["side_effects"] = dict(self.side_effects or {})
         data["details"] = dict(self.details or {})
+        data["provider_modes_supported"] = list(self.provider_modes_supported or [])
+        data["listed_models"] = [dict(row) for row in (self.listed_models or []) if isinstance(row, dict)]
         return data
 
 
@@ -77,6 +90,32 @@ class ProviderDiscoveryAdapter(Protocol):
 
     def discover(self) -> ProviderDiscoveryResult:
         ...
+
+
+class LocalReviewOnlyDiscoveryAdapter:
+    """Explicit no-AI/deterministic review mode.
+
+    This is a valid app mode, but it is not a reachable model provider. It lets
+    UI/read-model surfaces show that deterministic review can continue without
+    pretending AI runtime readiness.
+    """
+
+    name = "local_review_only"
+
+    def discover(self) -> ProviderDiscoveryResult:
+        return ProviderDiscoveryResult(
+            provider_name=self.name,
+            provider_type="local_review_only",
+            endpoint="",
+            status=STATUS_DISABLED,
+            reason="local_review_only_no_ai_mode",
+            capabilities=["deterministic_review", "facts", "evidence_lanes", "no_ai"],
+            side_effects=_no_side_effects(),
+            details={"valid_without_ai": True, "model_listing_supported": False},
+            provider_mode=PROVIDER_MODE_DISABLED_LOCAL_REVIEW_ONLY,
+            provider_modes_supported=[PROVIDER_MODE_DISABLED_LOCAL_REVIEW_ONLY],
+            listed_models=[],
+        )
 
 
 class HttpProviderDiscoveryAdapter:
@@ -91,6 +130,8 @@ class HttpProviderDiscoveryAdapter:
         capabilities: Optional[Iterable[str]] = None,
         timeout_s: float = 1.5,
         local_only: bool = True,
+        provider_mode: str = "",
+        provider_modes_supported: Optional[Iterable[str]] = None,
     ) -> None:
         self.name = str(name)
         self.provider_type = str(provider_type)
@@ -100,8 +141,23 @@ class HttpProviderDiscoveryAdapter:
         self.capabilities = list(capabilities or [])
         self.timeout_s = float(timeout_s)
         self.local_only = bool(local_only)
+        self.provider_mode = str(provider_mode or "")
+        self.provider_modes_supported = list(provider_modes_supported or ([self.provider_mode] if self.provider_mode else []))
 
-    def _result(self, status: str, reason: str, *, details: Optional[Dict[str, Any]] = None) -> ProviderDiscoveryResult:
+    def _result(
+        self,
+        status: str,
+        reason: str,
+        *,
+        details: Optional[Dict[str, Any]] = None,
+        listed_models: Optional[List[Dict[str, Any]]] = None,
+    ) -> ProviderDiscoveryResult:
+        merged_details = dict(details or {})
+        if self.provider_mode:
+            merged_details.setdefault("provider_mode", self.provider_mode)
+        if self.provider_modes_supported:
+            merged_details.setdefault("provider_modes_supported", list(self.provider_modes_supported))
+        merged_details.setdefault("model_listing_supported", "model_listing" in self.capabilities)
         return ProviderDiscoveryResult(
             provider_name=self.name,
             provider_type=self.provider_type,
@@ -110,13 +166,39 @@ class HttpProviderDiscoveryAdapter:
             reason=reason,
             capabilities=list(self.capabilities),
             side_effects=_no_side_effects(),
-            details=dict(details or {}),
+            details=merged_details,
+            provider_mode=self.provider_mode,
+            provider_modes_supported=list(self.provider_modes_supported),
+            listed_models=[dict(row) for row in (listed_models or []) if isinstance(row, dict)],
         )
 
     def _probe_url(self) -> str:
         if not self.endpoint:
             return ""
         return f"{self.endpoint}/{self.probe_path}"
+
+    def _listed_models_from_payload(self, payload: Any) -> List[Dict[str, Any]]:
+        return []
+
+    def _read_listed_models(self, resp: Any) -> List[Dict[str, Any]]:
+        reader = getattr(resp, "read", None)
+        if not callable(reader):
+            return []
+        try:
+            raw = reader()
+        except Exception:
+            return []
+        if not raw:
+            return []
+        try:
+            if isinstance(raw, bytes):
+                text = raw.decode("utf-8", errors="replace")
+            else:
+                text = str(raw)
+            payload = json.loads(text)
+        except Exception:
+            return []
+        return self._listed_models_from_payload(payload)
 
     def discover(self) -> ProviderDiscoveryResult:
         if not self.enabled:
@@ -137,11 +219,13 @@ class HttpProviderDiscoveryAdapter:
             req = request.Request(probe_url, method="GET")
             with request.urlopen(req, timeout=self.timeout_s) as resp:
                 code = int(getattr(resp, "status", 200))
+                listed_models = self._read_listed_models(resp)
             if 200 <= code < 300:
                 return self._result(
                     STATUS_REACHABLE,
                     "probe_ok",
                     details={"http_status": code, "probe_method": "GET", "probe_path": f"/{self.probe_path}"},
+                    listed_models=listed_models,
                 )
             return self._result(
                 STATUS_UNREACHABLE,
@@ -163,7 +247,30 @@ class HttpProviderDiscoveryAdapter:
             )
 
 
-class LMStudioDiscoveryAdapter(HttpProviderDiscoveryAdapter):
+class _OpenAICompatibleModelListingMixin:
+    def _listed_models_from_payload(self, payload: Any) -> List[Dict[str, Any]]:
+        rows = payload.get("data", []) if isinstance(payload, dict) else []
+        if not isinstance(rows, list):
+            return []
+        out: List[Dict[str, Any]] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            model_id = str(row.get("id") or row.get("name") or "").strip()
+            if not model_id:
+                continue
+            out.append(
+                {
+                    "model_id": model_id,
+                    "display_name": str(row.get("display_name") or row.get("name") or model_id).strip(),
+                    "source": self.name,
+                    "raw_type": str(row.get("object") or "model").strip(),
+                }
+            )
+        return out
+
+
+class LMStudioDiscoveryAdapter(_OpenAICompatibleModelListingMixin, HttpProviderDiscoveryAdapter):
     def __init__(self, *, endpoint: str = "http://127.0.0.1:1234", enabled: bool = True, timeout_s: float = 1.5) -> None:
         super().__init__(
             name="lm_studio",
@@ -174,6 +281,11 @@ class LMStudioDiscoveryAdapter(HttpProviderDiscoveryAdapter):
             capabilities=["local_runtime", "openai_compatible", "model_listing", "chat_completions"],
             timeout_s=timeout_s,
             local_only=True,
+            provider_mode=PROVIDER_MODE_LM_STUDIO_MANUAL_OPENAI_COMPAT,
+            provider_modes_supported=[
+                PROVIDER_MODE_LM_STUDIO_MANUAL_OPENAI_COMPAT,
+                PROVIDER_MODE_LM_STUDIO_CLI_MANAGED,
+            ],
         )
 
 
@@ -188,10 +300,34 @@ class OllamaDiscoveryAdapter(HttpProviderDiscoveryAdapter):
             capabilities=["local_runtime", "ollama", "model_listing"],
             timeout_s=timeout_s,
             local_only=True,
+            provider_mode=PROVIDER_MODE_OLLAMA_LOCAL,
+            provider_modes_supported=[PROVIDER_MODE_OLLAMA_LOCAL],
         )
 
+    def _listed_models_from_payload(self, payload: Any) -> List[Dict[str, Any]]:
+        rows = payload.get("models", []) if isinstance(payload, dict) else []
+        if not isinstance(rows, list):
+            return []
+        out: List[Dict[str, Any]] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            model_id = str(row.get("name") or row.get("model") or "").strip()
+            if not model_id:
+                continue
+            out.append(
+                {
+                    "model_id": model_id,
+                    "display_name": model_id,
+                    "source": self.name,
+                    "size": row.get("size", ""),
+                    "modified_at": str(row.get("modified_at") or ""),
+                }
+            )
+        return out
 
-class OpenAICompatibleLocalDiscoveryAdapter(HttpProviderDiscoveryAdapter):
+
+class OpenAICompatibleLocalDiscoveryAdapter(_OpenAICompatibleModelListingMixin, HttpProviderDiscoveryAdapter):
     def __init__(
         self,
         *,
@@ -209,6 +345,8 @@ class OpenAICompatibleLocalDiscoveryAdapter(HttpProviderDiscoveryAdapter):
             capabilities=["openai_compatible", "model_listing", "chat_completions"],
             timeout_s=timeout_s,
             local_only=True,
+            provider_mode=PROVIDER_MODE_OPENAI_COMPATIBLE_LOCAL,
+            provider_modes_supported=[PROVIDER_MODE_OPENAI_COMPATIBLE_LOCAL],
         )
 
 
@@ -218,7 +356,7 @@ class RuntimeProviderDiscoveryRegistry:
 
     @classmethod
     def from_config(cls, config: Any) -> "RuntimeProviderDiscoveryRegistry":
-        providers: List[ProviderDiscoveryAdapter] = []
+        providers: List[ProviderDiscoveryAdapter] = [LocalReviewOnlyDiscoveryAdapter()]
 
         lm_cfg = config.get_section("lm_studio") if config else {}
         providers.append(
