@@ -57,6 +57,7 @@ def test_presenter_outputs_provider_mode_and_model_choices():
     assert out["selected_analysis_model"] == "llama3.1:8b"
     assert out["model_selection_ready"] is True
     assert out["model_readiness"] == "not_verified"
+    assert out["recommendation_summary"].startswith("Advisory: ")
     assert "Balanced profile" in out["recommendation_summary"]
 
 
@@ -106,3 +107,37 @@ def test_presenter_handles_no_models_without_fake_ready():
     assert out["model_selection_ready"] is False
     assert out["model_readiness"] == "not_verified"
     assert out["side_effects"]["config_mutated"] is False
+
+def test_presenter_surfaces_recommendation_details_without_side_effects():
+    out = present_runtime_manager_selection({
+        "provider_discovery": [],
+        "available_models": [],
+        "model_recommendation": {
+            "profile_class": "balanced",
+            "model_posture": "balanced_7b_quantized",
+            "recommended_entries": [
+                {
+                    "display_name": "Balanced 7B Local Q4",
+                    "model_id": "balanced-7b-local-q4",
+                    "role": "narrator",
+                    "quantization": "Q4_K_M",
+                }
+            ],
+            "warnings": ["Recommendation is advisory only."],
+            "constraints": ["Recommendations never download, install, or load models automatically."],
+            "side_effects": {
+                "download_attempted": False,
+                "runtime_install_attempted": False,
+                "model_load_attempted": False,
+                "provider_mutated": False,
+                "project_data_sent": False,
+            },
+        },
+    })
+
+    assert any("Balanced 7B Local Q4" in item for item in out["recommendation_entries_summary"])
+    assert out["recommendation_warnings"] == ["Recommendation is advisory only."]
+    assert out["recommendation_constraints"] == [
+        "Recommendations never download, install, or load models automatically."
+    ]
+    assert out["recommendation_side_effects"]["download_attempted"] is False

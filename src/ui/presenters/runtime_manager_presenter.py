@@ -116,9 +116,37 @@ def present_runtime_manager_selection(read_model: Dict[str, Any]) -> Dict[str, A
     recommendation = read_model.get("model_recommendation") if isinstance(read_model.get("model_recommendation"), dict) else {}
     profile = str(recommendation.get("profile_class") or "unknown").replace("_", " ").title()
     posture = str(recommendation.get("model_posture") or "").replace("_", " ")
-    recommendation_summary = f"{profile} profile"
+    recommendation_summary = f"Advisory: {profile} profile"
     if posture:
         recommendation_summary = f"{recommendation_summary} / {posture}"
+
+    recommendation_entries = []
+    for entry in _safe_list(recommendation.get("recommended_entries"))[:5]:
+        if not isinstance(entry, dict):
+            continue
+        label = str(entry.get("display_name") or entry.get("model_id") or "").strip()
+        model_id = str(entry.get("model_id") or "").strip()
+        role = str(entry.get("role") or "").replace("_", " ").strip()
+        quantization = str(entry.get("quantization") or "").strip()
+        parts = [part for part in [label, model_id if model_id != label else "", role, quantization] if part]
+        if parts:
+            recommendation_entries.append(" / ".join(parts))
+
+    recommendation_warnings = [
+        str(item).strip()
+        for item in _safe_list(recommendation.get("warnings"))
+        if str(item).strip()
+    ]
+    recommendation_constraints = [
+        str(item).strip()
+        for item in _safe_list(recommendation.get("constraints"))
+        if str(item).strip()
+    ]
+    recommendation_side_effects = (
+        recommendation.get("side_effects")
+        if isinstance(recommendation.get("side_effects"), dict)
+        else {}
+    )
 
     return {
         "providers": providers,
@@ -133,6 +161,10 @@ def present_runtime_manager_selection(read_model: Dict[str, Any]) -> Dict[str, A
         "model_selection_ready": bool(read_model.get("model_selection_ready", False)),
         "model_readiness": str(read_model.get("model_readiness") or "not_verified"),
         "recommendation_summary": recommendation_summary,
+        "recommendation_entries_summary": recommendation_entries,
+        "recommendation_warnings": recommendation_warnings,
+        "recommendation_constraints": recommendation_constraints,
+        "recommendation_side_effects": recommendation_side_effects,
         "side_effects": {
             "internet_used": False,
             "install_attempted": False,

@@ -340,7 +340,7 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
         self.lbl_selection_hint.configure(
             text=(
                 "Saving selection only writes local config. It does not start providers, download, load, or unload models. "
-                f"Selected provider: {provider}. Model readiness: {readiness}. Recommendation: {recommendation}."
+                f"Selected provider: {provider}. Model readiness: {readiness}. Model guidance: {recommendation}."
             )
         )
 
@@ -361,7 +361,28 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
         guidance = str(inventory.get("guidance") or message)
         recommendation = str(selection_presented.get("recommendation_summary") or "").strip()
         if recommendation:
-            guidance = f"{guidance}\n\nHardware/model recommendation: {recommendation}"
+            guidance = (
+                f"{guidance}\n\nHardware/model guidance: {recommendation}"
+                "\nFinal model selection should be completed in the runtime setup/benchmark wizard."
+            )
+
+        recommended_entries = selection_presented.get("recommendation_entries_summary") or []
+        if recommended_entries:
+            guidance = f"{guidance}\nRecommended model/profile options:"
+            for entry in recommended_entries[:5]:
+                guidance = f"{guidance}\n- {entry}"
+
+        recommendation_warnings = selection_presented.get("recommendation_warnings") or []
+        if recommendation_warnings:
+            guidance = f"{guidance}\nRecommendation warnings:"
+            for warning in recommendation_warnings[:5]:
+                guidance = f"{guidance}\n- {warning}"
+
+        recommendation_constraints = selection_presented.get("recommendation_constraints") or []
+        if recommendation_constraints:
+            guidance = f"{guidance}\nRecommendation constraints:"
+            for constraint in recommendation_constraints[:5]:
+                guidance = f"{guidance}\n- {constraint}"
         self._set_guidance(guidance)
 
         downloaded = inventory.get("downloaded_llms") or []
