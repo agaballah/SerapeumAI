@@ -4,7 +4,7 @@
 
 SerapeumAI helps engineering and construction reviewers inspect project documents, separate deterministic evidence from AI-generated support, certify facts, and ask project questions with visible evidence lanes.
 
-The Facts page lets reviewers inspect, validate, certify, or reject extracted project facts before relying on them in chat. Chat answers expose a Show Evidence path so reviewers can inspect supporting facts, extracted evidence, linked support, and AI synthesis separately. Clean shutdown is part of the release gate: background workers should stop cleanly without Tk/bgerror/invalid-command shutdown noise.
+The Facts page lets reviewers inspect, validate, certify, or reject extracted project facts before relying on them in chat. Chat answers expose a Show Evidence path so reviewers can inspect supporting facts, extracted evidence, linked support, and AI synthesis separately. Clean shutdown is part of the release gate: background workers should stop cleanly without Tk/bgerror/invalid-command shutdown noise. Schedule interaction is review assistance only in this release; schedule-related answers must remain evidence-labeled and are not governing authority unless validated by the reviewer.
 
 It is built for engineers who need a local review workspace, not a generic chatbot.
 
