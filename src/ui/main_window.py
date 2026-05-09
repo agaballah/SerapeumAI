@@ -243,11 +243,28 @@ class MainApp(ctk.CTk):
         self.frame_actions = ctk.CTkFrame(self.frame_sidebar, fg_color=Theme.BG_DARKER, bg_color=Theme.BG_DARKER)
         self.frame_actions.grid(row=8, column=0, sticky="ew", padx=0)
 
-        self.btn_open = ctk.CTkButton(self.frame_actions, text="Open Project",
+        self.btn_open = ctk.CTkButton(self.frame_actions, text="Open Project Folder",
                                     fg_color=Theme.BG_DARK,
                                     hover_color=Theme.ACCENT,
                                     bg_color=Theme.BG_DARKER,
                                     command=self._open_project_dialog)
+
+        self.lbl_project_hint = tk.Label(
+            self.frame_actions,
+            text=(
+                "Choose a folder that contains the project documents. "
+                "Add files to that folder, then use Sync Project. "
+                "SerapeumAI works as a project workspace, not a one-file viewer."
+            ),
+            anchor="w",
+            justify="left",
+            wraplength=self.sidebar_width - 40,
+            fg=Theme.TEXT_MUTED,
+            bg=Theme.BG_DARKER,
+            font=Theme.FONT_BODY,
+            borderwidth=0,
+            highlightthickness=0,
+        )
 
         self.btn_runtime_setup = ctk.CTkButton(self.frame_actions, text="Re-check Runtime",
                                              fg_color=Theme.BG_DARK,
@@ -271,6 +288,7 @@ class MainApp(ctk.CTk):
                                      command=self._close_project)
 
         self.btn_open.pack(pady=5, padx=20, fill="x")
+        self.lbl_project_hint.pack(pady=(0, 8), padx=20, fill="x")
         self.btn_runtime_setup.pack(pady=5, padx=20, fill="x")
         self._update_runtime_controls()
 
@@ -331,7 +349,9 @@ class MainApp(ctk.CTk):
 
     def _open_project_dialog(self):
          from tkinter import filedialog
-         path = filedialog.askdirectory(title="Select Project Folder")
+         path = filedialog.askdirectory(
+             title="Select SerapeumAI Project Folder - choose the folder containing project documents"
+         )
          if path and os.path.exists(path):
              self._load_project_env(path)
              return True
@@ -599,6 +619,10 @@ class MainApp(ctk.CTk):
 
             # Show Controls
             self.btn_open.pack_forget()
+            try:
+                self.lbl_project_hint.pack_forget()
+            except Exception:
+                logger.debug("Project folder hint hide failed.", exc_info=True)
             self.btn_sync.pack(pady=5, padx=20, fill="x")
             self.switch_auto.pack(pady=5, padx=20, anchor="w")
             self.btn_close.pack(pady=5, padx=20, fill="x")
@@ -662,6 +686,11 @@ class MainApp(ctk.CTk):
             self.btn_close.pack_forget()
             if not self.btn_open.winfo_manager():
                 self.btn_open.pack(pady=5, padx=20, fill="x")
+            try:
+                if not self.lbl_project_hint.winfo_manager():
+                    self.lbl_project_hint.pack(pady=(0, 8), padx=20, fill="x")
+            except Exception:
+                logger.debug("Project folder hint restore failed.", exc_info=True)
 
             self.combo_snapshot.configure(values=["Current project view"])
             self.combo_snapshot.set("Current project view")
