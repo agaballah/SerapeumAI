@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -89,7 +89,7 @@ def _page_label(page_index: Any) -> str:
 
 
 def _join_bits(*bits: str) -> str:
-    return " · ".join([b for b in bits if b])
+    return " Â· ".join([b for b in bits if b])
 
 
 def _looks_fragmentary(text: str) -> bool:
@@ -322,7 +322,7 @@ def _build_support_only_notice(*, extracted_items: List[Dict[str, Any]], linked_
     joined = _join_source_parts(parts)
     if not joined:
         return ""
-    return f"Support-only answer — based on {joined}, not yet certified as trusted fact."
+    return f"Support-only answer — based on {joined}, not yet certified as trusted fact. This is not certified trusted facts; treat this as project-grounded support, not governing truth."
 
 
 def _build_source_basis_banner(*, trusted_items: List[Dict[str, Any]], extracted_items: List[Dict[str, Any]], linked_items: List[Dict[str, Any]], ai_items: List[Dict[str, Any]]) -> str:
@@ -430,7 +430,7 @@ def _compose_extraction_summary(extracted_items: List[Dict[str, Any]]) -> List[s
     snippets = [s for s in (_as_sentence(s, fallback="") for s in snippets) if s]
     if not snippets:
         return []
-    lead = "The currently extracted project material supports the following scope summary."
+    lead = "Based on deterministic extracted project evidence, the answer is limited to non-certified support."
     return [lead] + snippets[:2]
 
 

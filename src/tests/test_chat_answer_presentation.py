@@ -106,7 +106,10 @@ def test_presentation_uses_operator_readable_provenance_chips_and_candidate_scaf
         coverage={"is_complete": False, "missing_fact_types": ["document.scope_item"]},
     )
     sections = {section["title"]: section for section in presentation["sections"]}
-    assert presentation["source_basis_banner"] == "Based on extracted evidence, linked support + AI synthesis."
+    assert presentation["source_basis_banner"].startswith("Support-only answer — based on extracted project evidence")
+    assert "not certified trusted facts" in presentation["source_basis_banner"]
+    assert presentation["main_answer_text"].startswith("Support-only answer — based on extracted project evidence")
+    assert "not governing truth" in presentation["main_answer_text"]
     assert sections["Trusted Facts"]["empty_message"] == "No trusted facts found for this question."
     assert sections["Extracted Evidence"]["items"][0]["chip"] == "Extraction p.4"
     assert sections["Linked Support"]["items"][0]["chip"] == "Linked Support"
@@ -177,3 +180,31 @@ def test_direct_answer_prefers_ai_analysis_when_trusted_facts_are_fragmentary():
     )
     assert presentation["main_answer_text"].startswith("The scope covers delivery")
     assert "shall satisfy or" not in presentation["main_answer_text"]
+
+
+
+def test_support_only_answer_uses_extracted_evidence_without_certified_facts():
+    presentation = build_answer_presentation(
+        query="what is the project scope",
+        trusted_facts=[],
+        trusted_conflicts=[],
+        extracted_evidence=[
+            {
+                "source_path": "C:/proj/Scope.pdf",
+                "page_index": 2,
+                "text": "The project scope includes generator room ventilation, underground diesel tank works, and related system coordination.",
+                "provenance": "deterministic extraction",
+            }
+        ],
+        linked_support=[],
+        ai_lane={"analysis_support": [], "synthesis": ""},
+        coverage={"is_complete": False, "missing_fact_types": ["document.scope_item"]},
+    )
+
+    assert presentation["summary_block"]["source_label"] == "Extracted Evidence"
+    assert presentation["main_answer_text"].startswith("Support-only answer")
+    assert "deterministic extracted project evidence" in presentation["main_answer_text"]
+    assert "generator room ventilation" in presentation["main_answer_text"]
+    assert "not certified trusted facts" in presentation["main_answer_text"]
+    assert presentation["details_button_label"] == "Show Evidence"
+    assert "## Extracted Evidence" in presentation["details_copy_text"]

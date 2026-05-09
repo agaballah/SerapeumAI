@@ -244,6 +244,7 @@ class AgentOrchestrator:
             coverage=coverage,
         )
 
+        support_only = not bool(trusted_facts)
         return {
             "answer": answer,
             "answer_presentation": presentation,
@@ -256,7 +257,14 @@ class AgentOrchestrator:
             ),
             "citations": citations,
             "support_facts": [],
-            "supporting_only": not bool(trusted_facts),
+            "supporting_only": support_only,
+            "truth_authority": (
+                "TRUSTED_FACTS_GOVERN" if trusted_facts else "PROJECT_GROUNDED_SUPPORT_ONLY"
+            ),
+            "support_only_notice": (
+                "This answer is based on extracted/linked project support and is not certified trusted fact."
+                if support_only else ""
+            ),
             "compliance_status": (
                 "ANSWERED_WITH_PROVENANCE" if trusted_facts else "ANSWERED_WITH_PROJECT_GROUNDED_SUPPORT"
             ),
