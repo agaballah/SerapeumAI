@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from src.engine.validation.rule_runner import RuleRunner
 from src.compliance.standard_enricher import StandardEnricher
-from src.domain.facts.models import Fact, FactStatus, TRUSTED_FACT_STATUSES, TRUSTED_FACT_STATUSES_SQL, AI_GENERATED_PROVENANCE
+from src.domain.facts.models import Fact, FactStatus, TRUSTED_FACT_STATUSES, TRUSTED_FACT_STATUSES_SQL, AI_GENERATED_PROVENANCE, canonicalize_fact_status
 
 logger = logging.getLogger(__name__)
 
@@ -534,6 +534,7 @@ class FactQueryAPI:
 
         return {
             **fact,
+            "status": canonicalize_fact_status(fact.get("status")),
             "value": value,
             "lineage": lineage,
         }

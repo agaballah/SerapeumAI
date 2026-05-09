@@ -160,8 +160,8 @@ def test_set_selected_models_persists_local_selection():
     svc = LocalRuntimeSetupService(cfg)
     with patch.object(svc, 'detect_state', return_value={'status': STATUS_CHAT_MODEL_MISSING, 'message': 'Select models', 'inventory': {}}):
         result = svc.set_selected_models(chat_model='qwen/qwen3.5-4b', analysis_model='qwen/qwen2.5-coder-7b-instruct')
-    assert cfg.values['models.chat.model'] == 'qwen2.5-coder-7b-instruct'
-    assert cfg.values['models.analysis.model'] == 'qwen2.5-coder-7b-instruct'
+    assert cfg.values['models.chat.model'] == 'qwen/qwen3.5-4b'
+    assert cfg.values['models.analysis.model'] == 'qwen/qwen2.5-coder-7b-instruct'
     assert cfg.saved_scopes == ['local']
     assert result['status'] == STATUS_CHAT_MODEL_MISSING
 

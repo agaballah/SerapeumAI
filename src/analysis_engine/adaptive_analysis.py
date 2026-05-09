@@ -211,6 +211,60 @@ class AdaptiveAnalysisEngine:
         return p["system"], p["user"]
 
     # ------------------------------------------------------------------ #
+    # Guarded fallback
+    # ------------------------------------------------------------------ #
+
+    def _fallback_type_for_profile(self, profile: AnalystProfile) -> str:
+        mapping = {
+            AnalystProfile.TECHNICAL_SPEC: "spec",
+            AnalystProfile.LEGAL_CONTRACT: "contract",
+            AnalystProfile.ENGINEERING_DRAWING: "drawing",
+            AnalystProfile.FINANCIAL_SCHEDULE: "schedule",
+            AnalystProfile.PROJECT_MANAGEMENT: "data",
+            AnalystProfile.BIM_DATA: "data",
+            AnalystProfile.GENERIC: "data",
+        }
+        return mapping.get(profile, "data")
+
+    def _deterministic_json_failure_fallback(
+        self,
+        page_data: Dict[str, Any],
+        profile: AnalystProfile,
+        reason: str,
+    ) -> Dict[str, Any]:
+        """Return a visible, non-destructive fallback when strict JSON analysis fails.
+
+        The selected model may be useful for chat but not suitable for strict
+        structured analysis. Preserve deterministic extraction evidence instead
+        of marking the whole page/runtime as broken.
+        """
+        import re
+
+        source_text = " ".join(
+            str(page_data.get(key) or "")
+            for key in ("py_text", "ocr_text", "vision_text", "vision_general", "vision_detailed")
+        )
+        source_text = re.sub(r"\s+", " ", source_text).strip()
+        preview = source_text[:260].rstrip()
+        if not preview:
+            preview = "No reliable extracted page text was available."
+
+        return {
+            "summary": (
+                "AI structured JSON analysis unavailable; deterministic extraction retained. "
+                f"Evidence preview: {preview}"
+            ),
+            "type": self._fallback_type_for_profile(profile),
+            "entities": [],
+            "relationships": [],
+            "analyst_profile": profile.value,
+            "status": "structured_json_failed",
+            "error": reason,
+            "evidence_basis": "deterministic_extraction",
+            "model_suitability": "not_approved_for_structured_analysis_until_benchmarked",
+        }
+
+    # ------------------------------------------------------------------ #
     # Execution
     # ------------------------------------------------------------------ #
 
@@ -269,15 +323,16 @@ class AdaptiveAnalysisEngine:
             }
 
         if not result or not isinstance(result, dict):
-            return {
-                "summary": "Analysis failed",
-                "type": "other",
-                "entities": [],
-                "relationships": [],
-                "analyst_profile": profile.value,
-                "status": "error",
-                "error": "empty_result",
-            }
+            logger.warning(
+                "Structured page analysis JSON failed for page %s using profile %s; preserving deterministic extraction fallback.",
+                page_data.get("page_index"),
+                profile.value,
+            )
+            return self._deterministic_json_failure_fallback(
+                page_data,
+                profile,
+                "strict_json_parse_failed",
+            )
 
         result["analyst_profile"] = profile.value
         result["status"] = "success"

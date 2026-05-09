@@ -351,20 +351,55 @@ class LocalRuntimeSetupService:
         return self._suggest_default_model(role, downloaded)
 
     def _selected_models(self, downloaded_llms: Sequence[Dict[str, Any]]) -> Dict[str, Optional[str]]:
-        selected = self._resolve_publish_generative_model(downloaded_llms)
+        """Resolve chat/analysis models from explicit local config first.
+
+        The publish model is a safe fallback, not a forced model. Runtime Manager
+        selections must be authoritative so users can benchmark and use the
+        model that fits their machine.
+        """
+        configured_chat = str(self.config.get("models.chat.model", "") or "").strip()
+        configured_analysis = str(self.config.get("models.analysis.model", "") or "").strip()
+
+        chat = self._resolve_selected_model(configured_chat, "chat", downloaded_llms)
+        analysis = self._resolve_selected_model(configured_analysis, "analysis", downloaded_llms)
+
         return {
-            "chat": selected,
-            "analysis": selected,
+            "chat": chat,
+            "analysis": analysis,
         }
 
     def _loaded_roles(self, selected_models: Dict[str, Optional[str]], loaded_models: Sequence[Dict[str, Any]]) -> Dict[str, bool]:
-        loaded_keys = {self._normalize_token(row.get("model_key")) for row in loaded_models if str(row.get("model_key") or "").strip()}
-        loaded_ids = {self._normalize_token(row.get("identifier")) for row in loaded_models if str(row.get("identifier") or "").strip()}
+        """Return whether each selected role is actually satisfied by loaded models.
+
+        A stale role identifier such as ``serapeum-analysis`` is not enough by
+        itself. It must either point at the selected model or the selected model
+        must already be loaded under another role/identifier.
+        """
+        loaded_keys = {
+            self._normalize_token(row.get("model_key"))
+            for row in loaded_models
+            if str(row.get("model_key") or "").strip()
+        }
+
+        loaded_by_identifier = {
+            self._normalize_token(row.get("identifier")): self._normalize_token(row.get("model_key"))
+            for row in loaded_models
+            if str(row.get("identifier") or "").strip()
+        }
+
         result: Dict[str, bool] = {}
         for role, selected in selected_models.items():
             selected_norm = self._normalize_token(selected)
             role_id_norm = self._normalize_token(ROLE_IDENTIFIERS.get(role))
-            result[role] = bool(selected_norm and (selected_norm in loaded_keys or role_id_norm in loaded_ids))
+            role_identifier_model = loaded_by_identifier.get(role_id_norm)
+
+            result[role] = bool(
+                selected_norm
+                and (
+                    selected_norm in loaded_keys
+                    or role_identifier_model == selected_norm
+                )
+            )
         return result
 
     def _inventory(self, app_path: Optional[str], cli_path: Optional[str]) -> Dict[str, Any]:
@@ -543,13 +578,17 @@ class LocalRuntimeSetupService:
         return self._emit(on_status, state["status"], state["message"], guidance=state.get("guidance"), inventory=state.get("inventory"))
 
     def set_selected_models(self, *, chat_model: Optional[str], analysis_model: Optional[str]) -> Dict[str, Any]:
-        selected_model = self.DEFAULT_ANALYSIS_MODEL
-        if analysis_model and str(analysis_model).strip():
-            selected_model = self.DEFAULT_ANALYSIS_MODEL
-        elif chat_model and str(chat_model).strip():
-            selected_model = self.DEFAULT_CHAT_MODEL
-        self.config.set("models.chat.model", selected_model, scope="local")
-        self.config.set("models.analysis.model", selected_model, scope="local")
+        """Persist explicit Runtime Manager model selections.
+
+        Saving a selection must not coerce the user back to the publish default.
+        The selected model is later resolved against downloaded/provider-listed
+        models before loading.
+        """
+        selected_chat = str(chat_model or "").strip() or "auto"
+        selected_analysis = str(analysis_model or "").strip() or selected_chat or "auto"
+
+        self.config.set("models.chat.model", selected_chat, scope="local")
+        self.config.set("models.analysis.model", selected_analysis, scope="local")
         try:
             self.config.save(scope="local")
         except Exception:
@@ -643,7 +682,14 @@ class LocalRuntimeSetupService:
         return self._emit(on_status, state["status"], state["message"], phase="model_unloaded", active_model=identifier, inventory=state.get("inventory"))
 
     def unload_session_models(self, on_status=None) -> Dict[str, Any]:
-        for role in list(self._role_to_loaded_identifier.keys()):
+        """Unload known SerapeumAI session role identifiers.
+
+        The current service instance may not know about identifiers loaded by a
+        previous app run. Always attempt the canonical role identifiers so stale
+        session models do not survive and confuse runtime readiness.
+        """
+        roles_to_unload = set(self._role_to_loaded_identifier.keys()) | {"analysis", "chat"}
+        for role in sorted(roles_to_unload):
             try:
                 self.unload_role_model(role, on_status=on_status)
             except Exception:

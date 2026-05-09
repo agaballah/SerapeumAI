@@ -12,12 +12,18 @@ class RuleRunner:
 rule_runner_mod.RuleRunner = RuleRunner
 sys.modules['src.engine.validation.rule_runner'] = rule_runner_mod
 
-std_mod = types.ModuleType('src.compliance.standard_enricher')
-class StandardEnricher:
-    def lookup_clauses_by_concept(self, concept):
-        return []
-std_mod.StandardEnricher = StandardEnricher
-sys.modules['src.compliance.standard_enricher'] = std_mod
+try:
+    from src.compliance.standard_enricher import StandardEnricher  # noqa: F401
+except Exception:
+    std_mod = types.ModuleType('src.compliance.standard_enricher')
+    class StandardEnricher:
+        def __init__(self):
+            self.svc = types.SimpleNamespace(db_path=None)
+
+        def lookup_clauses_by_concept(self, concept):
+            return []
+    std_mod.StandardEnricher = StandardEnricher
+    sys.modules['src.compliance.standard_enricher'] = std_mod
 
 from src.domain.facts.models import (
     CANONICAL_REJECTED_STATUS,

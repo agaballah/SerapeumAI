@@ -36,29 +36,40 @@ def get_app_root() -> Path:
 
 
 def check_system_dependencies():
-    """Verify that Tesseract and Poppler are in the system path."""
+    """Verify that Tesseract and Poppler are available to the app."""
     import shutil
     import tkinter.messagebox as messagebox
     from tkinter import Tk
 
     missing = []
     if not shutil.which("tesseract"):
-        missing.append("- Tesseract OCR (Required for reading PDFs)")
+        missing.append(
+            "- Tesseract OCR: needed for scanned-PDF OCR. Make sure tesseract.exe is available to Windows, then restart SerapeumAI."
+        )
     if not shutil.which("pdfinfo"):
-        missing.append("- Poppler (Required for rendering PDFs)")
+        missing.append(
+            "- Poppler for Windows: needed for PDF page rendering and metadata checks. Make sure pdfinfo.exe is available to Windows, then restart SerapeumAI."
+        )
 
     if missing:
-        # Create hidden root for messagebox if needed
         root = Tk()
         root.withdraw()
-        
-        msg = "Some required system tools were not found:\n\n" + "\n".join(missing)
-        msg += "\n\nSerapeumAI will still open, but PDF processing will fail.\n"
-        msg += "Please run Setup.bat again or follow the guide in INSTALL.md."
-        
-        messagebox.showwarning("System Dependencies Missing", msg)
-        root.destroy()
 
+        msg = "SerapeumAI can open, but some PDF processing features are not ready yet.\n\n"
+        msg += "Missing Windows tools:\n" + "\n".join(missing)
+        msg += (
+            "\n\nImpact:\n"
+            "- scanned-PDF OCR may fail without Tesseract;\n"
+            "- PDF page rendering or metadata checks may fail without Poppler/pdfinfo.\n\n"
+            "Next steps:\n"
+            "1. Set up Tesseract OCR for Windows.\n"
+            "2. Set up Poppler for Windows.\n"
+            "3. Restart SerapeumAI and retry project sync.\n\n"
+            "SerapeumAI did not change your system. See INSTALL.md and TROUBLESHOOTING.md for setup details."
+        )
+
+        messagebox.showwarning("PDF Tools Setup Required", msg)
+        root.destroy()
 
 def main() -> int:
     app_root = get_app_root()

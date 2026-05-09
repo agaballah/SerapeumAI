@@ -155,7 +155,11 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
 
         self.lbl_selection_hint = tk.Label(
             selection,
-            text="Saving selection only writes local config. It does not start providers, download, load, or unload models.",
+            text=(
+                "Detected models are local/provider-listed models. Selected models are the chat/analysis models SerapeumAI will use. "
+                "Recommended models are advisory unless the app explicitly says a selected model is missing. "
+                "Saving selection only writes local config; it does not start providers, download, load, or unload models."
+            ),
             font=Theme.FONT_BODY,
             fg=Theme.TEXT_MUTED,
             bg=Theme.BG_DARKER,
@@ -339,7 +343,9 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
         provider = str(selection_presented.get("selected_provider") or "local_review_only").strip()
         self.lbl_selection_hint.configure(
             text=(
-                "Saving selection only writes local config. It does not start providers, download, load, or unload models. "
+                "Detected models are local/provider-listed options. Selected models are the chat/analysis models SerapeumAI will use. "
+                "Recommended model guidance is advisory unless a selected model is explicitly missing. "
+                "Saving selection only writes local config; it does not start providers, download, load, or unload models. "
                 f"Selected provider: {provider}. Model readiness: {readiness}. Model guidance: {recommendation}."
             )
         )
@@ -359,6 +365,19 @@ class RuntimeManagerDialog(ctk.CTkToplevel):
         message = str(inventory.get("message") or "Runtime state unavailable.")
         self.lbl_status.configure(text=f"{status} - {message}", fg=Theme.TEXT_MUTED if status == "READY" else Theme.TEXT_MAIN)
         guidance = str(inventory.get("guidance") or message)
+        guidance = (
+            f"{guidance}\n\nRuntime setup steps:"
+            "\n1. Confirm a provider is detected or use local review-only mode."
+            "\n2. Choose the provider and provider mode."
+            "\n3. Choose detected/downloaded local models for chat and analysis."
+            "\n4. Save Selection."
+            "\n5. Load the selected models only when you intentionally want model-backed chat/analysis."
+            "\n\nModel wording:"
+            "\n- Detected/listed model = model found locally or listed by the selected local provider."
+            "\n- Selected model = model SerapeumAI is configured to use."
+            "\n- Recommended model = advisory guidance, not a forced download unless the app explicitly says the selected model is missing."
+            "\n- No runtime/provider/model is installed, downloaded, started, loaded, or unloaded automatically from this screen."
+        )
         recommendation = str(selection_presented.get("recommendation_summary") or "").strip()
         if recommendation:
             guidance = (

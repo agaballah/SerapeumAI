@@ -34,12 +34,26 @@ SUPPORTING_CONTEXT_CLASSES = (
 )
 
 
+def canonicalize_fact_status(status: Any) -> str:
+    """Return the canonical persisted status for legacy and current fact states."""
+    raw = status.value if isinstance(status, FactStatus) else status
+    normalized = str(raw or "").strip().upper()
+    rejected_aliases = {str(item).upper() for item in REJECTED_FACT_STATUSES}
+    if normalized in rejected_aliases:
+        return CANONICAL_REJECTED_STATUS
+    return normalized
+
+
+def is_rejected_fact_status(status: Any) -> bool:
+    return canonicalize_fact_status(status) == CANONICAL_REJECTED_STATUS
+
+
 def is_trusted_fact_status(status: Any) -> bool:
-    return str(status) in TRUSTED_FACT_STATUSES
+    return canonicalize_fact_status(status) in TRUSTED_FACT_STATUSES
 
 
 def normalize_rejection_status(status: Any) -> str:
-    return CANONICAL_REJECTED_STATUS if str(status).upper() == "REFUSED" else str(status)
+    return canonicalize_fact_status(status)
 
 class ValueType(str, Enum):
     NUM = "NUM"

@@ -1,7 +1,9 @@
 import unittest
 from pathlib import Path
 
-DOCS_PAGE = Path('/mnt/data/phase3repo/src/ui/pages/documents_page.py').read_text()
+DOCS_PAGE = (
+    Path(__file__).resolve().parents[1] / "ui" / "pages" / "documents_page.py"
+).read_text(encoding="utf-8")
 
 
 class MountedGlobalRouteAlignmentTests(unittest.TestCase):

@@ -32,6 +32,10 @@ def test_build_fact_review_view_creates_plain_language_review_fields():
     assert "awaiting human review" in view["status_explanation"]
     assert view["source_label"] == "Scope.pdf p.7"
     assert view["origin_label"] == "Deterministic extraction"
+    assert "Can you verify from the cited source" in view["review_question"]
+    assert "Recorded value:" in view["evidence_excerpt"]
+    assert "Before certifying" in view["certification_checklist"]
+    assert view["source_warning"] == "Source document is recorded."
 
 
 def test_build_fact_review_view_handles_human_certified_and_numeric_value():

@@ -11,6 +11,7 @@ Exports are resolved lazily so plain package import stays side-effect-light.
 from __future__ import annotations
 
 from typing import Any
+import importlib
 
 _ORCHESTRATOR_EXPORTS = {
     "ToolExecutionOrchestrationResult",
@@ -37,6 +38,13 @@ _BRIDGE_EXPORTS = {
     "build_chat_tool_bridge_envelope",
 }
 
+_MODULE_EXPORTS = {
+    "calculator_tool": "src.application.tools.calculator_tool",
+    "unit_conversion_tool": "src.application.tools.unit_conversion_tool",
+    "quantity_formula_tool": "src.application.tools.quantity_formula_tool",
+    "tool_execution_harness": "src.application.tools.tool_execution_harness",
+}
+
 __all__ = sorted(
     _ORCHESTRATOR_EXPORTS
     | _ADAPTER_EXPORTS
@@ -46,6 +54,11 @@ __all__ = sorted(
 
 
 def __getattr__(name: str) -> Any:
+    if name in _MODULE_EXPORTS:
+        module = importlib.import_module(_MODULE_EXPORTS[name])
+        globals()[name] = module
+        return module
+
     if name in _ORCHESTRATOR_EXPORTS:
         from src.application.tools.tool_execution_orchestrator import (
             ToolExecutionOrchestrationResult,

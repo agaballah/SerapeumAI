@@ -106,11 +106,11 @@ class FactTable(ctk.CTkFrame):
         self.frame_table.grid_rowconfigure(0, weight=1)
 
         self.tree = ttk.Treeview(self.frame_table, columns=columns, show="headings", selectmode="browse")
-        self.tree.heading("review_title", text="Fact")
+        self.tree.heading("review_title", text="Engineer-readable fact")
         self.tree.heading("family", text="Family")
-        self.tree.heading("source", text="Source")
+        self.tree.heading("source", text="Source / evidence")
         self.tree.heading("status", text="Review State")
-        self.tree.column("review_title", width=360)
+        self.tree.column("review_title", width=460)
         self.tree.column("family", width=130)
         self.tree.column("source", width=220)
         self.tree.column("status", width=150)
@@ -193,14 +193,40 @@ class FactTable(ctk.CTkFrame):
         )
         self.lbl_action_meaning.grid(row=6, column=0, sticky="ew", padx=18, pady=(0, 8))
 
+        self.frame_detail_actions = ctk.CTkFrame(self.frame_detail, fg_color="transparent")
+        self.frame_detail_actions.grid(row=7, column=0, sticky="ew", padx=18, pady=(0, 18))
+        self.frame_detail_actions.grid_columnconfigure(0, weight=1)
+
         self.btn_lineage = ctk.CTkButton(
-            self.frame_detail,
+            self.frame_detail_actions,
             text="Open Lineage / Evidence",
-            width=190,
+            width=180,
             command=self._open_lineage,
             state="disabled",
         )
-        self.btn_lineage.grid(row=7, column=0, sticky="w", padx=18, pady=(0, 18))
+        self.btn_lineage.grid(row=0, column=0, sticky="w", padx=(0, 8), pady=0)
+
+        self.btn_detail_approve = ctk.CTkButton(
+            self.frame_detail_actions,
+            text="Certify This Fact",
+            fg_color=Theme.SUCCESS,
+            hover_color="#1FAF55",
+            width=150,
+            command=self._on_approve,
+            state="disabled",
+        )
+        self.btn_detail_approve.grid(row=0, column=1, sticky="e", padx=8, pady=0)
+
+        self.btn_detail_reject = ctk.CTkButton(
+            self.frame_detail_actions,
+            text="Reject This Fact",
+            fg_color=Theme.DANGER,
+            hover_color=Theme.DANGER_RED,
+            width=140,
+            command=self._on_reject,
+            state="disabled",
+        )
+        self.btn_detail_reject.grid(row=0, column=2, sticky="e", padx=(8, 0), pady=0)
 
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
         self.tree.bind("<Double-1>", self._on_double_click)
@@ -249,7 +275,7 @@ class FactTable(ctk.CTkFrame):
             fieldbackground=Theme.BG_DARKEST,
             borderwidth=0,
             font=Theme.FONT_BODY,
-            rowheight=42,
+            rowheight=54,
         )
         style.map("Treeview", background=[("selected", Theme.PRIMARY)])
         style.configure(
@@ -382,6 +408,8 @@ class FactTable(ctk.CTkFrame):
             self._set_textbox("Select a fact to see a plain-language explanation and review guidance.")
             self.lbl_action_meaning.configure(text="Certify and Reject will explain their effect for the selected fact.", text_color=Theme.TEXT_MUTED)
             self.btn_lineage.configure(state="disabled")
+            self.btn_detail_approve.configure(state="disabled")
+            self.btn_detail_reject.configure(state="disabled")
             self.btn_approve.configure(state="disabled")
             self.btn_reject.configure(state="disabled")
             return
@@ -404,8 +432,15 @@ class FactTable(ctk.CTkFrame):
             )
         )
         self._set_textbox(
-            f"Readable meaning\n\n{row['meaning']}\n\n"
-            f"Recorded value\n\n{row['value_summary']}"
+            "Engineer decision\n\n"
+            f"{row['review_question']}\n\n"
+            "What this fact says\n\n"
+            f"{row['meaning']}\n\n"
+            "Evidence to check\n\n"
+            f"{row['evidence_excerpt']}\n"
+            f"{row['source_warning']}\n\n"
+            "Before certifying\n\n"
+            f"{row['certification_checklist']}"
         )
         self.lbl_action_meaning.configure(text=row["action_explanation"], text_color=Theme.TEXT_MAIN)
         self.btn_lineage.configure(state="normal")
@@ -413,13 +448,19 @@ class FactTable(ctk.CTkFrame):
         status = row["status_code"]
         if status in ("CANDIDATE", "VALIDATED"):
             self.btn_approve.configure(state="normal")
+            self.btn_detail_approve.configure(state="normal")
             self.btn_reject.configure(state="normal")
+            self.btn_detail_reject.configure(state="normal")
         elif status == "HUMAN_CERTIFIED":
             self.btn_approve.configure(state="disabled")
+            self.btn_detail_approve.configure(state="disabled")
             self.btn_reject.configure(state="normal")
+            self.btn_detail_reject.configure(state="normal")
         else:
             self.btn_approve.configure(state="disabled")
+            self.btn_detail_approve.configure(state="disabled")
             self.btn_reject.configure(state="disabled")
+            self.btn_detail_reject.configure(state="disabled")
 
         self.lbl_selected.configure(
             text=f"Selected: {row['title']} | {row['status_label']} | {row['source_document']}",

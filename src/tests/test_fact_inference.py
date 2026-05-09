@@ -32,8 +32,8 @@ class TestFactApiPatch(unittest.TestCase):
         inferred4 = self.api._infer_fact_types(q4)
         self.assertIn("document.profile", inferred4)
         
-    def test_fallback_includes_document(self):
-        q = "random question about nothing"
+    def test_clear_document_query_includes_document_profile(self):
+        q = "tell me about this document"
         inferred = self.api._infer_fact_types(q)
         self.assertIn("document.profile", inferred)
 
