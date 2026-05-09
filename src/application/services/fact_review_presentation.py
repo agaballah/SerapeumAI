@@ -76,6 +76,13 @@ def _humanize_code(value: Any) -> str:
     return text
 
 
+def _shorten(value: Any, limit: int = 140) -> str:
+    text = str(value or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 1)].rstrip() + "…"
+
+
 def _family_and_type(fact_type: str) -> tuple[str, str, str]:
     raw = str(fact_type or "")
     if "." in raw:
@@ -160,8 +167,38 @@ def build_fact_review_view(row: Dict[str, Any]) -> Dict[str, str]:
     source_label = _source_label(row.get("source_path"), row.get("location_json"))
     origin_label = _origin_label(row.get("input_kind"), row.get("method_id"))
 
-    title = f"{type_label} — {subject}" if subject and subject != type_label else type_label
-    meaning = f"This {family_label.lower()} fact records {type_label.lower()} for {subject.lower()}: {value_summary}"
+    value_for_title = _shorten(value_summary, limit=90)
+    title = (
+        f"{type_label} — {subject}: {value_for_title}"
+        if subject and subject != type_label
+        else f"{type_label}: {value_for_title}"
+    )
+    meaning = (
+        f"This {family_label.lower()} fact records {type_label.lower()} for {subject}: {value_summary}"
+    )
+    review_question = (
+        f"Can you verify from the cited source that {subject} has {type_label.lower()} recorded as: "
+        f"{_shorten(value_summary, limit=180)}"
+    )
+    evidence_excerpt = f"Recorded value: {value_summary}"
+    source_document = (
+        ntpath.basename(str(row.get("source_path") or "").replace("/", "\\").strip())
+        or os.path.basename(str(row.get("source_path") or "").strip())
+        or "Unknown source"
+    )
+    source_warning = (
+        "Source document is recorded."
+        if source_document != "Unknown source"
+        else "Source document is missing; do not certify unless lineage/evidence confirms the source."
+    )
+    certification_checklist = (
+        "Before certifying, confirm: "
+        "1) the source document is correct; "
+        "2) the page/row/location matches the evidence; "
+        "3) the recorded value matches the source; "
+        "4) the fact type and subject are meaningful; "
+        "5) there is no conflicting newer fact."
+    )
 
     return {
         "fact_id": str(row.get("fact_id") or ""),
@@ -172,12 +209,16 @@ def build_fact_review_view(row: Dict[str, Any]) -> Dict[str, str]:
         "title": title,
         "meaning": meaning,
         "value_summary": value_summary,
+        "review_question": review_question,
+        "evidence_excerpt": evidence_excerpt,
+        "source_warning": source_warning,
+        "certification_checklist": certification_checklist,
         "status_code": status,
         "status_label": status_meta["label"],
         "status_explanation": status_meta["explanation"],
         "action_explanation": status_meta["actions"],
         "source_label": source_label,
-        "source_document": ntpath.basename(str(row.get("source_path") or "").replace("/", "\\").strip()) or os.path.basename(str(row.get("source_path") or "").strip()) or "Unknown source",
+        "source_document": source_document,
         "origin_label": origin_label,
         "subject_label": subject,
         "location_label": _format_location(row.get("location_json")),
