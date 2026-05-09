@@ -148,22 +148,24 @@ class ModelRouter:
             logger.warning(f"[ModelRouter] VRAM limited: downgrading '{task}' -> '{effective_task}'")
             task = effective_task
 
-        publish_locked = self._publish_locked_model(task)
-        if publish_locked:
-            self._cache_set(task, publish_locked)
-            return publish_locked
-
-        # 1) cache
-        cached = self._cache_get(task)
-        if cached:
-            return cached
-
-        # 2) explicit config (if not "auto")
+        # 1) explicit config (if not "auto") wins before cache and publish fallback.
+        # Runtime Manager selections must be authoritative for real task routing.
         configured = self._get_configured_model(task)
         if configured and configured.lower() != "auto":
             resolved = self._resolve_to_installed_id(configured)
             self._cache_set(task, resolved)
             return resolved
+
+        # 2) cache is safe only after explicit config has had first refusal.
+        cached = self._cache_get(task)
+        if cached:
+            return cached
+
+        # 3) publish model is fallback only, not a forced lock.
+        publish_locked = self._publish_locked_model(task)
+        if publish_locked:
+            self._cache_set(task, publish_locked)
+            return publish_locked
 
         # 3) user preference in DB (always honored)
         preferred = self._get_preference(task)
@@ -435,13 +437,35 @@ class ModelRouter:
             return default
 
     def _get_configured_model(self, task: str) -> Optional[str]:
-        v = self._cfg_get(f"models.{task}.model", None)
-        if isinstance(v, str) and v.strip():
-            return v.strip()
+        task = self._norm_task(task)
 
-        v = self._cfg_get("models.universal.model", None)
-        if isinstance(v, str) and v.strip():
-            return v.strip()
+        # Runtime Manager writes chat and analysis roles. Map task families to
+        # those roles so the execution path matches visible runtime selection.
+        analysis_family = {
+            "analysis",
+            "reasoning",
+            "entity_extraction",
+            "summarization",
+            "summary",
+        }
+        chat_family = {
+            "qa",
+            "chat",
+            "creative_writing",
+            "universal",
+        }
+
+        keys = [f"models.{task}.model"]
+        if task in analysis_family:
+            keys.append("models.analysis.model")
+        if task in chat_family:
+            keys.append("models.chat.model")
+        keys.append("models.universal.model")
+
+        for key in keys:
+            v = self._cfg_get(key, None)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
 
         return None
 
