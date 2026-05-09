@@ -32,6 +32,12 @@ class ChatPanel(ttk.Frame):
         self.llm = llm
         self.project_id = project_id
         self.project_dir = getattr(db, "root_dir", os.getcwd()) if db else os.getcwd()
+        self._session_state = {
+            "project_id": project_id,
+            "project_dir": self.project_dir,
+            "has_db": db is not None,
+        }
+        self.ref_mgr = None
         self.role_mgr = RoleManager(db) if db else None
 
         self.columnconfigure(0, weight=1)

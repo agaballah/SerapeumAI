@@ -15,12 +15,18 @@ class RuleRunner:
 rule_runner_mod.RuleRunner = RuleRunner
 sys.modules['src.engine.validation.rule_runner'] = rule_runner_mod
 
-standard_enricher_mod = types.ModuleType('src.compliance.standard_enricher')
-class StandardEnricher:
-    def lookup_clauses_by_concept(self, fact_type):
-        return []
-standard_enricher_mod.StandardEnricher = StandardEnricher
-sys.modules['src.compliance.standard_enricher'] = standard_enricher_mod
+try:
+    from src.compliance.standard_enricher import StandardEnricher  # noqa: F401
+except Exception:
+    standard_enricher_mod = types.ModuleType('src.compliance.standard_enricher')
+    class StandardEnricher:
+        def __init__(self):
+            self.svc = types.SimpleNamespace(db_path=None)
+
+        def lookup_clauses_by_concept(self, fact_type):
+            return []
+    standard_enricher_mod.StandardEnricher = StandardEnricher
+    sys.modules['src.compliance.standard_enricher'] = standard_enricher_mod
 
 # Load modules directly from source files.
 models_spec = importlib.util.spec_from_file_location(
