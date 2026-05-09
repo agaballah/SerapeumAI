@@ -328,6 +328,17 @@ class PageAnalyzer:
                 )
                 return
 
+            if result.get("status") == "structured_json_failed":
+                logger.warning(
+                    "Page %s structured JSON analysis failed; saving deterministic fallback. reason=%s",
+                    page_idx,
+                    result.get("error"),
+                )
+                print(
+                    f"[ANALYSIS] Page {page_idx} saved as PARTIAL: "
+                    "AI structured JSON failed; deterministic extraction retained."
+                )
+
             # Normalize response fields
             summary = result.get("summary", "").strip()
             page_type = _normalize_type(result.get("type", ""))
@@ -351,7 +362,16 @@ class PageAnalyzer:
                     entities=ranked_entities,
                     relationships=result.get("relationships", []),
                 )
-                tracker.record_success(doc_id, page_idx, summary, elapsed)
+                if result.get("status") == "structured_json_failed":
+                    tracker.record_partial(
+                        doc_id,
+                        page_idx,
+                        summary,
+                        str(result.get("error") or "strict_json_parse_failed"),
+                        elapsed,
+                    )
+                else:
+                    tracker.record_success(doc_id, page_idx, summary, elapsed)
             except Exception as save_err:
                 tracker.record_failure(
                     doc_id, page_idx, HealthStatus.UNHEALTHY_SAVE, str(save_err), elapsed

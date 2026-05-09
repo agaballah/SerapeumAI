@@ -19,6 +19,7 @@ class HealthStatus(Enum):
     """Health status for a page."""
     PENDING = "pending"           # Not yet processed
     HEALTHY = "healthy"           # Successfully analyzed and saved
+    PARTIAL = "partial"           # Saved deterministic fallback after non-fatal AI analysis issue
     UNHEALTHY_PARSE = "unhealthy_parse"  # LLM returned invalid JSON
     UNHEALTHY_SAVE = "unhealthy_save"    # Failed to save to DB
     UNHEALTHY_LLM = "unhealthy_llm"      # LLM call failed
@@ -74,6 +75,20 @@ class HealthTracker:
             last_attempt_ts=time.time(),
             duration_seconds=duration
         )
+
+    def record_partial(self, doc_id: str, page_index: int, summary: str, warning_message: str, duration: float):
+        """Record a guarded partial result saved from deterministic extraction fallback."""
+        key = self._make_key(doc_id, page_index)
+        self.pages[key] = PageHealth(
+            doc_id=doc_id,
+            page_index=page_index,
+            status=HealthStatus.PARTIAL,
+            summary=summary[:200],
+            error_message=warning_message[:500],
+            attempt_count=self.pages.get(key, PageHealth(doc_id, page_index, HealthStatus.PENDING)).attempt_count + 1,
+            last_attempt_ts=time.time(),
+            duration_seconds=duration
+        )
     
     def record_failure(
         self, 
@@ -111,6 +126,7 @@ class HealthTracker:
         stats = {
             "total": len(self.pages),
             "healthy": 0,
+            "partial": 0,
             "unhealthy_parse": 0,
             "unhealthy_save": 0,
             "unhealthy_llm": 0,
@@ -121,6 +137,8 @@ class HealthTracker:
         for page in self.pages.values():
             if page.status == HealthStatus.HEALTHY:
                 stats["healthy"] += 1
+            elif page.status == HealthStatus.PARTIAL:
+                stats["partial"] += 1
             elif page.status == HealthStatus.UNHEALTHY_PARSE:
                 stats["unhealthy_parse"] += 1
             elif page.status == HealthStatus.UNHEALTHY_SAVE:
@@ -171,6 +189,7 @@ class HealthTracker:
         print("PAGE ANALYSIS HEALTH SUMMARY")
         print("="*80)
         print(f"Healthy: {stats['healthy']:>4} / {stats['total']}")
+        print(f"Partial: {stats['partial']:>4}")
         print(f"Parse Errors: {stats['unhealthy_parse']:>4}")
         print(f" Save Errors:     {stats['unhealthy_save']:>4}")
         print(f" LLM Errors:      {stats['unhealthy_llm']:>4}")
