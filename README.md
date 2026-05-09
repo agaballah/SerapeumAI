@@ -6,6 +6,8 @@ SerapeumAI helps engineering and construction reviewers inspect project document
 
 The Facts page lets reviewers inspect, validate, certify, or reject extracted project facts before relying on them in chat. Chat answers expose a Show Evidence path so reviewers can inspect supporting facts, extracted evidence, linked support, and AI synthesis separately. Clean shutdown is part of the release gate: background workers should stop cleanly without Tk/bgerror/invalid-command shutdown noise. Schedule interaction is review assistance only in this release; schedule-related answers must remain evidence-labeled and are not governing authority unless validated by the reviewer.
 
+Interactive priority over backlog means active reviewer actions should stay responsive while background ingest/extract work runs. Interactive chat should stay responsive. Chat history should reset when the active project closes or changes. Red-X close should internally close the project before destroying the app window. Closing the main window should end the live session cleanly. The Schedule page is review assistance only in this release; it does not claim a Schedule Truth Workspace, CPM engine, or autonomous schedule action.
+
 It is built for engineers who need a local review workspace, not a generic chatbot.
 
 ---
