@@ -1,16 +1,20 @@
 # SerapeumAI Release Notes
 
-## Release candidate after final packaging proof
+## v0.1.0-3u published release
 
-Status: release candidate available; owner publish decision pending in #126.
+Status: published.
+
+Release URL: https://github.com/agaballah/SerapeumAI/releases/tag/v0.1.0-3u
 
 ### Authority
 
 ```text
-main includes PR #123
-commit: 51bc3280e1adf9e3cc53859cb2f99bc0b8847548
-final packaging issue: #125 — PACKAGING PASS
-publication hygiene issue: #127 — active before final publish decision
+published release: v0.1.0-3u
+release authority: 16723b0970a81c181bb0df6801178c7032d49f21
+final packaging issue: #125 - PACKAGING PASS
+final release issue: #126 - closed as completed
+broader Windows validation issue: #129 - closed as completed
+3U stabilization issue: #135 - closed as completed
 ```
 
 ### Artifact
@@ -20,7 +24,7 @@ dist\SerapeumAI_Portable\SerapeumAI.exe
 size: 110206723 bytes
 ```
 
-No GitHub Release/tag is created by this file.
+Published release assets: SerapeumAI_Portable_v0.1.0-3u.zip.part001, SerapeumAI_Portable_v0.1.0-3u.zip.part002, SHA256SUMS_v0.1.0-3u.txt, README_RECOMBINE_v0.1.0-3u.txt.
 
 ---
 
@@ -51,7 +55,7 @@ No GitHub Release/tag is created by this file.
 
 ## Explicit non-enabled behavior
 
-The current release candidate does not enable or claim:
+The current published release does not enable or claim:
 
 - autonomous chat tool execution;
 - MCP integration;
@@ -70,11 +74,4 @@ The current release candidate does not enable or claim:
 
 ## Release decision status
 
-The final publish decision is intentionally separate from packaging proof.
-
-Allowed decisions in #126:
-
-- publish now / create GitHub Release;
-- hold artifact privately;
-- require broader-machine validation first;
-- prepare announcement only, no release yet.
+The release is published. Post-publish upgrade planning continues under issue #138.
