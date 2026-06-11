@@ -1,12 +1,13 @@
 # Changelog
 
-## Unreleased / release candidate
+## v0.1.0-3u - Published
 
 Authority:
 
 ```text
-commit: 51bc3280e1adf9e3cc53859cb2f99bc0b8847548
-artifact: dist\SerapeumAI_Portable\SerapeumAI.exe
+release authority: 16723b0970a81c181bb0df6801178c7032d49f21
+release URL: https://github.com/agaballah/SerapeumAI/releases/tag/v0.1.0-3u
+published assets: SerapeumAI_Portable_v0.1.0-3u.zip.part001 / part002
 artifact size: 110206723 bytes
 ```
 
@@ -18,7 +19,7 @@ artifact size: 110206723 bytes
 - Install, troubleshooting, privacy, support, contribution, and security docs.
 - Release notes capturing current packaging-pass artifact and caveats.
 
-### Current release-candidate proof
+### Proven release behavior
 
 - Source regression passed.
 - Manual source smoke passed with caveats.

@@ -17,8 +17,8 @@ It is built for engineers who need a local review workspace, not a generic chatb
 ### Current status
 
 ```text
-Release candidate built and smoke-passed.
-GitHub Release download asset: pending owner release decision / upload.
+Published release: v0.1.0-3u
+Release URL: https://github.com/agaballah/SerapeumAI/releases/tag/v0.1.0-3u
 ```
 
 The Windows executable proven during packaging is:
@@ -28,7 +28,7 @@ dist\SerapeumAI_Portable\SerapeumAI.exe
 size: 110206723 bytes
 ```
 
-After the GitHub Release asset is uploaded, engineers should download the Windows portable package from:
+Download all split release assets from:
 
 ```text
 GitHub Releases -> Latest release
@@ -37,7 +37,10 @@ GitHub Releases -> Latest release
 Expected release asset name:
 
 ```text
-SerapeumAI_Windows_Portable_v0.1.0-rc1.zip
+SerapeumAI_Portable_v0.1.0-3u.zip.part001
+SerapeumAI_Portable_v0.1.0-3u.zip.part002
+SHA256SUMS_v0.1.0-3u.txt
+README_RECOMBINE_v0.1.0-3u.txt
 ```
 
 Expected run path after unzip:
@@ -46,7 +49,7 @@ Expected run path after unzip:
 SerapeumAI_Portable\SerapeumAI.exe
 ```
 
-> The repository does **not** currently claim a live direct download asset until the GitHub Release is created and the portable ZIP is uploaded.
+> Download all parts and follow README_RECOMBINE_v0.1.0-3u.txt to rebuild the portable ZIP.
 
 ---
 
@@ -65,15 +68,15 @@ SerapeumAI is **review assistance with evidence and provenance**. It is **not** 
 
 ---
 
-## Current release candidate authority
+## Current release authority
 
 ```text
-Repository authority: main after PR #128
-Current remote main SHA: 8c4b87372a85d592ec45409eac24e3ef79499114
-Packaging proof issue: #125 — PASS
-Publication hygiene issue: #127 / PR #128 — PASS
-Final publish decision: #126 — pending
-Broader Windows validation: #129 — pending
+Published release: v0.1.0-3u
+Release authority: 16723b0970a81c181bb0df6801178c7032d49f21
+Packaging proof issue: #125 - PASS
+Publication hygiene issue: #127 / PR #128 - PASS
+Final release issue: #126 - closed as completed
+Broader Windows validation: #129 - closed as completed
 ```
 
 Packaging-proof source authority:
@@ -122,8 +125,8 @@ The current mounted runtime path expects a local LM Studio-compatible runtime fo
 The application should report runtime state honestly:
 
 ```text
-READY — local runtime/model is reachable and loaded
-MODEL_NOT_LOADED / not ready — runtime or model is unavailable
+READY - local runtime/model is reachable and loaded
+MODEL_NOT_LOADED / not ready â€” runtime or model is unavailable
 ```
 
 Current publish generative runtime:
@@ -238,7 +241,7 @@ These caveats do not change the owner-machine packaging proof, but they are rele
 
 ## Explicit non-enabled behavior
 
-The current release candidate does **not** enable or claim:
+The current published release does **not** enable or claim:
 
 - autonomous chat tool execution;
 - LLM tool-call parser in the visible chat UI;
