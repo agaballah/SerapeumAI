@@ -126,7 +126,7 @@ The application should report runtime state honestly:
 
 ```text
 READY - local runtime/model is reachable and loaded
-MODEL_NOT_LOADED / not ready â€” runtime or model is unavailable
+MODEL_NOT_LOADED / not ready - runtime or model is unavailable
 ```
 
 Current publish generative runtime:
