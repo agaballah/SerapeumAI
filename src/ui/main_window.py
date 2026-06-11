@@ -434,6 +434,9 @@ class MainApp(ctk.CTk):
         threading.Thread(target=_worker, daemon=True).start()
 
     def _apply_runtime_platform_sidebar(self, read_model):
+        if self._runtime_status_code == STATUS_READY:
+            return
+
         presented = present_runtime_platform_sidebar(read_model)
         tone = presented.get("tone", "muted")
         fg = Theme.TEXT_MUTED
