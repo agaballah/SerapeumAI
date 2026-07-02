@@ -259,7 +259,7 @@ def test_from_config_includes_local_review_lm_studio_ollama_and_configured_opena
     registry = RuntimeProviderDiscoveryRegistry.from_config(config)
     names = [adapter.name for adapter in registry.adapters]
 
-    assert names == ["local_review_only", "lm_studio", "ollama", "local_openai_server"]
+    assert names == ["local_review_only", "legacy_llama_cpp", "lm_studio", "ollama", "local_openai_server"]
 
 
 def test_service_returns_dicts_with_required_status_fields():

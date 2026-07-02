@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Read-only runtime provider discovery for SerapeumAI.
 
@@ -15,7 +15,9 @@ Wave 1B-1 / Upgrade 3S rules:
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Protocol
 from urllib import error, request
 from urllib.parse import urlparse
@@ -34,6 +36,71 @@ PROVIDER_MODE_LM_STUDIO_CLI_MANAGED = "LM_STUDIO_CLI_MANAGED"
 PROVIDER_MODE_OLLAMA_LOCAL = "OLLAMA_LOCAL"
 PROVIDER_MODE_LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT = "LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT"
 PROVIDER_MODE_OPENAI_COMPATIBLE_LOCAL = "OPENAI_COMPATIBLE_LOCAL"
+
+
+def app_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def configured_gguf_search_dirs(config: Any = None) -> List[Path]:
+    values: List[Any] = []
+    if config is not None:
+        configured = None
+        get = getattr(config, "get", None)
+        if callable(get):
+            configured = get("runtime.gguf_model_dirs") or get("models.gguf_search_dirs")
+        if isinstance(configured, str):
+            values.extend(part.strip() for part in configured.split(os.pathsep))
+        elif isinstance(configured, (list, tuple)):
+            values.extend(configured)
+
+    values.extend(
+        [
+            app_root() / "models",
+            Path(os.path.expanduser("~")) / ".cache" / "lm-studio" / "models",
+        ]
+    )
+
+    out: List[Path] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        path = Path(os.path.expandvars(os.path.expanduser(text)))
+        if not path.is_absolute():
+            path = app_root() / path
+        key = os.path.normcase(os.path.normpath(str(path)))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(path)
+    return out
+
+
+def scan_gguf_models(search_dirs: Iterable[Path]) -> List[Dict[str, Any]]:
+    listed_models: List[Dict[str, Any]] = []
+    seen_paths: set[str] = set()
+    for directory in search_dirs:
+        if not directory.exists() or not directory.is_dir():
+            continue
+        for path in directory.rglob("*.gguf"):
+            try:
+                abs_path = os.path.normpath(str(path.resolve()))
+                if abs_path in seen_paths:
+                    continue
+                seen_paths.add(abs_path)
+                listed_models.append(
+                    {
+                        "model_id": path.name,
+                        "display_name": path.stem,
+                        "path": abs_path,
+                        "size_bytes": path.stat().st_size,
+                    }
+                )
+            except Exception:
+                continue
+    return listed_models
 
 
 def _no_side_effects() -> Dict[str, bool]:
@@ -350,13 +417,70 @@ class OpenAICompatibleLocalDiscoveryAdapter(_OpenAICompatibleModelListingMixin, 
         )
 
 
+class LlamaCppDiscoveryAdapter(ProviderDiscoveryAdapter):
+    def __init__(self, *, config: Any = None) -> None:
+        self.config = config
+
+    @property
+    def name(self) -> str:
+        return "legacy_llama_cpp"
+
+    def discover(self) -> ProviderDiscoveryResult:
+        try:
+            from llama_cpp import Llama
+            has_llama = True
+        except ImportError:
+            has_llama = False
+
+        if not has_llama:
+            return ProviderDiscoveryResult(
+                provider_name="legacy_llama_cpp",
+                provider_type="embedded",
+                endpoint="in_process",
+                status=STATUS_NOT_DETECTED,
+                reason="llama-cpp-python package not installed",
+                capabilities=[],
+                side_effects=_no_side_effects(),
+                details={"modes_supported": [PROVIDER_MODE_LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT]},
+                provider_mode=PROVIDER_MODE_LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT,
+                provider_modes_supported=[PROVIDER_MODE_LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT],
+                listed_models=[],
+            )
+
+        search_dirs = configured_gguf_search_dirs(self.config)
+        listed_models = scan_gguf_models(search_dirs)
+
+        status = STATUS_REACHABLE if listed_models else STATUS_DETECTED
+        reason = "" if listed_models else "llama-cpp-python is installed, but no .gguf models were found in configured local model directories."
+
+        return ProviderDiscoveryResult(
+            provider_name="legacy_llama_cpp",
+            provider_type="embedded",
+            endpoint="in_process",
+            status=status,
+            reason=reason,
+            capabilities=["local_runtime", "chat_completions", "embedded_inference"],
+            side_effects=_no_side_effects(),
+            details={
+                "modes_supported": [PROVIDER_MODE_LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT],
+                "search_dirs": [str(path) for path in search_dirs],
+            },
+            provider_mode=PROVIDER_MODE_LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT,
+            provider_modes_supported=[PROVIDER_MODE_LEGACY_LLAMA_CPP_AVAILABLE_IF_PRESENT],
+            listed_models=listed_models,
+        )
+
+
 class RuntimeProviderDiscoveryRegistry:
     def __init__(self, adapters: Optional[Iterable[ProviderDiscoveryAdapter]] = None) -> None:
         self.adapters = list(adapters or [])
 
     @classmethod
     def from_config(cls, config: Any) -> "RuntimeProviderDiscoveryRegistry":
-        providers: List[ProviderDiscoveryAdapter] = [LocalReviewOnlyDiscoveryAdapter()]
+        providers: List[ProviderDiscoveryAdapter] = [
+            LocalReviewOnlyDiscoveryAdapter(),
+            LlamaCppDiscoveryAdapter(config=config),
+        ]
 
         lm_cfg = config.get_section("lm_studio") if config else {}
         providers.append(
