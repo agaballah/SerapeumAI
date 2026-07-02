@@ -34,6 +34,7 @@ import json
 import os
 import logging
 from contextlib import nullcontext
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -86,9 +87,18 @@ class LLMService:
 
         config = get_config()
 
-        # Check if LM Studio integration is enabled
-        lm_config = config.get_section("lm_studio") or {}
-        self.use_lm_studio = bool(lm_config.get("enabled", False))
+        # Check the selected provider
+        selected_provider = str(config.get("runtime.selected_provider") or "").strip().lower()
+        if not selected_provider:
+            # Fallback to legacy lm_studio.enabled flag if new setting isn't set
+            lm_config = config.get_section("lm_studio") or {}
+            if bool(lm_config.get("enabled", False)):
+                selected_provider = "lm_studio"
+            else:
+                selected_provider = "legacy_llama_cpp"
+
+        self.selected_provider = selected_provider
+        self.use_lm_studio = (selected_provider == "lm_studio")
 
         if self.use_lm_studio:
             # Use LM Studio v1 API + model router (auto benchmark selection)
@@ -105,11 +115,16 @@ class LLMService:
             logger.info("[LLMService] Using LM Studio publish runtime (single generative model, separate embeddings)")
             return
 
-        # Legacy mode: llama-cpp-python
+        if self.selected_provider == "local_review_only":
+            self.model = "local_review_only"
+            logger.info("[LLMService] Initialized in local-only review mode (AI features disabled)")
+            return
+
+        # Legacy mode / Embedded mode: llama-cpp-python
         if not _HAS_LLAMA_CPP:
             raise ImportError(
-                "llama-cpp-python not installed (required for legacy mode). "
-                "Install with: pip install llama-cpp-python"
+                "llama-cpp-python not installed (required for embedded mode). "
+                "Select LM Studio/local review mode or install the dependency outside SerapeumAI."
             )
 
         # Legacy: Unified Single Model Architecture
@@ -125,14 +140,55 @@ class LLMService:
         self._legacy_n_gpu_layers = int(n_gpu_layers if n_gpu_layers is not None else DEFAULT_GPU_LAYERS)
         self._legacy_verbose = bool(verbose)
 
-        logger.info("[LLMService] Initialized in legacy llama.cpp mode (single-model)")
+        logger.info("[LLMService] Initialized in embedded llama.cpp mode (single-model)")
+
+    def _resolve_gguf_path(self, model_name: str) -> str:
+        if not model_name:
+            return ""
+        candidate = Path(os.path.expandvars(os.path.expanduser(model_name)))
+        if candidate.exists():
+            return str(candidate.resolve())
+
+        from src.infra.config.configuration_manager import get_config
+        from src.infra.services.runtime_provider_discovery import configured_gguf_search_dirs
+
+        config = get_config()
+        name_lower = model_name.lower().strip()
+        for base_dir in configured_gguf_search_dirs(config):
+            if not base_dir.exists() or not base_dir.is_dir():
+                continue
+            direct_path = base_dir / model_name
+            if direct_path.exists() and direct_path.is_file():
+                return str(direct_path.resolve())
+            for path in base_dir.rglob("*.gguf"):
+                if path.name.lower() == name_lower:
+                    return str(path.resolve())
+                if path.stem.lower() == name_lower:
+                    return str(path.resolve())
+        return str(configured_gguf_search_dirs(config)[0] / model_name)
+
+    def _get_model_name_for_task(self, task_type: str) -> str:
+        from src.infra.config.configuration_manager import get_config
+        config = get_config()
+        if task_type in ("analysis", "reasoning", "entity_extraction", "summarization"):
+            model = config.get("runtime.selected_analysis_model") or config.get("models.analysis.model")
+        else:
+            model = config.get("runtime.selected_chat_model") or config.get("models.chat.model")
+        if not model or model == "auto":
+            model = self._legacy_model_path
+        return model
 
     def load_model(self, task_type: str = "universal"):
         """Explicitly trigger model loading."""
         if self.use_lm_studio:
             logger.info("[LLMService] LM Studio mode - models managed by server")
             return None
-        return self._get_model(task_type, model_path=self._legacy_model_path, auto_load=True)
+        if self.selected_provider == "local_review_only":
+            logger.info("[LLMService] Local review only mode - no model to load")
+            return None
+        model_name = self._get_model_name_for_task(task_type)
+        resolved_path = self._resolve_gguf_path(model_name)
+        return self._get_model(task_type, model_path=resolved_path, auto_load=True)
 
     # ------------------------------------------------------------------ #
     # Internal helpers
@@ -243,6 +299,9 @@ class LLMService:
         extra.pop("cancellation_token", None)
         extra.pop("timeout", None)
 
+        if self.selected_provider == "local_review_only":
+            raise RuntimeError("Inference refused: Active provider is local_review_only (AI features disabled).")
+
         # LM Studio mode
         if self.use_lm_studio:
             return self._chat_lm_studio(
@@ -276,10 +335,12 @@ class LLMService:
 
         user_prompt_log = ""
         try:
-            # Always get Universal Model (pass legacy path explicitly)
-            model_obj = self._get_model(task_type, model_path=self._legacy_model_path, auto_load=True)
+            # Resolve the model path based on the task type
+            model_name = self._get_model_name_for_task(task_type)
+            resolved_path = self._resolve_gguf_path(model_name)
+            model_obj = self._get_model(task_type, model_path=resolved_path, auto_load=True)
             if not model_obj:
-                raise RuntimeError("Universal Model failed to load.")
+                raise RuntimeError(f"Embedded model failed to load from path: {resolved_path}")
 
             inference_messages = messages  # keep multimodal list intact
 
@@ -634,9 +695,23 @@ class LLMService:
     # ------------------------------------------------------------------ #
 
     def verify_runtime_ready(self, task_type: str = "analysis", model: Optional[str] = None) -> Dict[str, Any]:
-        """Validate the LM Studio runtime contract before launching a larger workflow."""
+        """Validate the local runtime contract before launching a larger workflow."""
+        if self.selected_provider == "local_review_only":
+            raise RuntimeError("Verification failed: Local review only provider is selected (AI capabilities are disabled).")
+
         if not self.use_lm_studio or not self.lm_studio:
-            return {"ok": True, "mode": "legacy"}
+            # Embedded / legacy_llama_cpp mode
+            try:
+                from llama_cpp import Llama
+            except ImportError:
+                raise ImportError("llama-cpp-python package is not installed.")
+
+            model_name = model or self._get_model_name_for_task(task_type)
+            resolved_path = self._resolve_gguf_path(model_name)
+            if not os.path.exists(resolved_path):
+                raise FileNotFoundError(f"Model file not found: {resolved_path}")
+
+            return {"ok": True, "mode": "legacy", "model_path": resolved_path}
 
         chosen_model: Optional[str] = model
         if not chosen_model and self.router:

@@ -12,6 +12,7 @@ import requests
 
 from src.infra.adapters.lm_studio_service import LMStudioRuntimeContractError, LMStudioService
 from src.infra.adapters.vector_store import EMBEDDING_MODEL
+from src.infra.services.runtime_provider_discovery import configured_gguf_search_dirs, scan_gguf_models
 
 logger = logging.getLogger(__name__)
 
@@ -470,6 +471,158 @@ class LocalRuntimeSetupService:
     # ------------------------------------------------------------------
     def detect_state(self) -> Dict[str, Any]:
         required = self.get_required_models()
+
+        # Check active provider
+        selected_provider = str(self.config.get("runtime.selected_provider") or "").strip().lower()
+        if not selected_provider:
+            selected_provider = "lm_studio"
+
+        if selected_provider == "local_review_only":
+            state = {
+                "status": STATUS_READY,
+                "message": "Local review only mode (no AI) is ready.",
+                "required_models": required,
+                "inventory": {
+                    "provider": "local_review_only",
+                    "server_running": False,
+                    "downloaded_llms": [],
+                    "loaded_models": [],
+                    "selected_models": {"chat": "None", "analysis": "None"},
+                    "loaded_roles": {"chat": "None", "analysis": "None"},
+                }
+            }
+            state["guidance"] = "AI features are disabled. Deterministic review features are active."
+            return state
+
+        if selected_provider == "legacy_llama_cpp":
+            # Embedded llama.cpp mode
+            try:
+                from llama_cpp import Llama
+                has_llama = True
+            except ImportError:
+                has_llama = False
+
+            search_dirs = configured_gguf_search_dirs(self.config)
+            discovered_ggufs = scan_gguf_models(search_dirs)
+            downloaded_llms = [
+                {
+                    "model_key": row.get("model_id", ""),
+                    "display_name": row.get("display_name", ""),
+                    "path": row.get("path", ""),
+                    "size_bytes": row.get("size_bytes", 0),
+                }
+                for row in discovered_ggufs
+            ]
+
+            # Get selected models
+            selected_chat = self.config.get("runtime.selected_chat_model") or self.config.get("models.chat.model") or ""
+            selected_analysis = self.config.get("runtime.selected_analysis_model") or self.config.get("models.analysis.model") or ""
+
+            if not selected_chat or selected_chat == "auto":
+                selected_chat = PUBLISH_GENERATIVE_MODEL
+            if not selected_analysis or selected_analysis == "auto":
+                selected_analysis = PUBLISH_GENERATIVE_MODEL
+
+            # Check if selected models exist
+            def find_model(model_name: str) -> bool:
+                if not model_name:
+                    return False
+                name_lower = model_name.lower().strip()
+                for row in downloaded_llms:
+                    candidates = [
+                        row.get("model_key"),
+                        row.get("display_name"),
+                        row.get("path"),
+                    ]
+                    if name_lower in {str(value or "").strip().lower() for value in candidates}:
+                        return True
+                return False
+
+            chat_exists = find_model(selected_chat)
+            analysis_exists = find_model(selected_analysis)
+
+            # Check loaded roles in ModelManager
+            try:
+                from src.infra.adapters.model_manager import ModelManager
+                mgr = ModelManager()
+                active_models = mgr.get_status().get("active_models", [])
+            except Exception:
+                active_models = []
+
+            loaded_roles = {
+                "chat": "chat" in active_models,
+                "analysis": "analysis" in active_models,
+            }
+
+            inventory = {
+                "provider": "legacy_llama_cpp",
+                "server_running": False,
+                "runtime_mode": "in_process",
+                "search_dirs": [str(path) for path in search_dirs],
+                "downloaded_llms": downloaded_llms,
+                "loaded_models": active_models,
+                "selected_models": {"chat": selected_chat, "analysis": selected_analysis},
+                "loaded_roles": loaded_roles,
+            }
+
+            if not has_llama:
+                state = {
+                    "status": STATUS_UNSUPPORTED_RUNTIME,
+                    "message": "llama-cpp-python is not installed in the Python environment.",
+                    "required_models": required,
+                    "inventory": inventory,
+                }
+                state["guidance"] = "Install llama-cpp-python in your environment to use embedded model features."
+                return state
+
+            if not downloaded_llms:
+                state = {
+                    "status": STATUS_CHAT_MODEL_MISSING,
+                    "message": "No GGUF models were found in configured local model directories.",
+                    "required_models": required,
+                    "inventory": inventory,
+                }
+                state["guidance"] = "Configure a local GGUF model directory or place a GGUF model under the app-root models directory, then re-check runtime."
+                return state
+
+            if not chat_exists or not analysis_exists:
+                missing = []
+                if not chat_exists:
+                    missing.append(f"chat model ({selected_chat})")
+                if not analysis_exists:
+                    missing.append(f"analysis model ({selected_analysis})")
+                missing_str = " and ".join(missing)
+                state = {
+                    "status": STATUS_CHAT_MODEL_MISSING,
+                    "message": f"Selected {missing_str} not found in models/ or LM Studio cache.",
+                    "required_models": required,
+                    "inventory": inventory,
+                }
+                state["guidance"] = "Configure available GGUF models in settings."
+                return state
+
+            # Check if models are loaded in memory
+            if not loaded_roles.get("chat") or not loaded_roles.get("analysis"):
+                missing_roles = [role for role in ("chat", "analysis") if not loaded_roles.get(role)]
+                role_text = ", ".join(missing_roles)
+                state = {
+                    "status": STATUS_MODEL_NOT_LOADED,
+                    "message": f"Load the selected session model(s) for: {role_text}.",
+                    "required_models": required,
+                    "inventory": inventory,
+                }
+                state["guidance"] = "Click Load Model to load GGUF models into memory."
+                return state
+
+            state = {
+                "status": STATUS_READY,
+                "message": "Local embedded GGUF intelligence runtime is ready.",
+                "required_models": required,
+                "inventory": inventory,
+            }
+            state["guidance"] = "Embedded llama.cpp is ready. Models are loaded in-process."
+            return state
+
         app_path = self._find_lmstudio_app()
         cli_path = self._find_lms_cli()
         inventory = self._inventory(app_path, cli_path)
