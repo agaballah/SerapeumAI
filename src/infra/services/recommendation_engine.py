@@ -118,7 +118,7 @@ class RecommendationEngine:
         # 4. If a specific provider is requested, try to match provider-managed models
         # For now, we only have local models in the catalog; provider-specific logic can be added later.
         # We'll just return the first entry (could be improved with scoring).
-        # Sort by preference: prefer lower quantization (higher quality) for same size? 
+        # Sort by preference: prefer lower quantization (higher quality) for same size?
         # For now just pick first.
         # We'll sort by quantization quality (roughly: higher number or letter is better) and size.
         def _entry_score(entry: ModelCatalogEntry) -> tuple:
