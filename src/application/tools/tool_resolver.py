@@ -1,4 +1,4 @@
-﻿"""Non-executing resolver for application-owned tool definitions.
+"""Non-executing resolver for application-owned tool definitions.
 
 This module resolves tool IDs to ToolDefinition metadata only.
 It does not execute tools, route requests, call an LLM, persist audits,
@@ -12,7 +12,9 @@ from enum import Enum
 from typing import Any, Callable, Mapping
 
 from src.application.tools.calculator_tool import calculator_tool_definition
+from src.application.tools.drawing_inspection_tool import drawing_inspection_tool_definition
 from src.application.tools.quantity_formula_tool import quantity_formula_tool_definition
+from src.application.tools.schedule_review_tool import schedule_review_tool_definition
 from src.application.tools.tool_registry import ToolDefinition
 from src.application.tools.unit_conversion_tool import unit_conversion_tool_definition
 
@@ -33,6 +35,8 @@ DEFAULT_TOOL_DEFINITION_FACTORIES: Mapping[str, DefinitionFactory] = {
     "calculator.local": calculator_tool_definition,
     "unit_conversion.local": unit_conversion_tool_definition,
     "quantity_formula.local": quantity_formula_tool_definition,
+    "schedule_review.skill": schedule_review_tool_definition,
+    "drawing_inspection.skill": drawing_inspection_tool_definition,
 }
 
 
