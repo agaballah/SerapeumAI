@@ -8,9 +8,15 @@ from src.application.tools.calculator_tool import (
     TOOL_ID as CALCULATOR_TOOL_ID,
     calculate,
 )
+from src.application.tools.drawing_inspection_tool import (
+    TOOL_ID as DRAWING_INSPECTION_TOOL_ID,
+)
 from src.application.tools.quantity_formula_tool import (
     TOOL_ID as QUANTITY_FORMULA_TOOL_ID,
     evaluate_formula,
+)
+from src.application.tools.schedule_review_tool import (
+    TOOL_ID as SCHEDULE_REVIEW_TOOL_ID,
 )
 from src.application.tools.tool_registry import (
     ToolAuthorityLevel,
@@ -35,6 +41,11 @@ EXPECTED_TOOL_IDS = (
     QUANTITY_FORMULA_TOOL_ID,
 )
 
+EXPECTED_PROJECT_SUPPORT_TOOL_IDS = (
+    DRAWING_INSPECTION_TOOL_ID,
+    SCHEDULE_REVIEW_TOOL_ID,
+)
+
 
 @pytest.mark.parametrize("tool_id", EXPECTED_TOOL_IDS)
 def test_known_deterministic_tool_ids_resolve_successfully(tool_id):
@@ -52,6 +63,27 @@ def test_known_deterministic_tool_ids_resolve_successfully(tool_id):
     assert out["can_govern_truth"] is False
     assert out["enabled_by_default"] is True
     assert out["requires_project"] is False
+    assert out["requires_snapshot"] is False
+    assert out["warnings"] == []
+    assert out["error"] is None
+
+
+@pytest.mark.parametrize("tool_id", EXPECTED_PROJECT_SUPPORT_TOOL_IDS)
+def test_known_project_support_tool_ids_resolve_as_non_governing_metadata(tool_id):
+    resolution = resolve_tool(tool_id)
+    out = resolution.to_dict()
+
+    assert out["tool_id"] == tool_id
+    assert out["status"] == ToolResolutionStatus.RESOLVED.value
+    assert out["is_resolvable"] is True
+    assert out["display_name"]
+    assert out["authority_level"] == ToolAuthorityLevel.SUPPORT_RETRIEVAL.value
+    assert out["scope"] == ToolScope.PROJECT.value
+    assert out["side_effects"] == [ToolSideEffect.READ_PROJECT_DB.value]
+    assert out["requires_consent"] is False
+    assert out["can_govern_truth"] is False
+    assert out["enabled_by_default"] is False
+    assert out["requires_project"] is True
     assert out["requires_snapshot"] is False
     assert out["warnings"] == []
     assert out["error"] is None
@@ -86,7 +118,9 @@ def test_empty_or_non_string_tool_id_is_rejected(bad_tool_id):
 
 
 def test_default_resolvable_tool_ids_are_stable_sorted_tuple():
-    assert default_resolvable_tool_ids() == tuple(sorted(EXPECTED_TOOL_IDS))
+    assert default_resolvable_tool_ids() == tuple(
+        sorted(EXPECTED_TOOL_IDS + EXPECTED_PROJECT_SUPPORT_TOOL_IDS)
+    )
 
 
 def test_resolution_envelope_is_json_serializable():
@@ -134,6 +168,9 @@ def test_resolver_does_not_execute_tool_implementations(monkeypatch):
     )
 
     for tool_id in EXPECTED_TOOL_IDS:
+        assert resolve_tool(tool_id).is_resolvable is True
+
+    for tool_id in EXPECTED_PROJECT_SUPPORT_TOOL_IDS:
         assert resolve_tool(tool_id).is_resolvable is True
 
     assert called == {
