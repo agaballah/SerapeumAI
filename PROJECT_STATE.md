@@ -14,10 +14,17 @@ It is not answer authority for the application.
 - Last updated: 2026-07-12
 - Branch: `openhands/iteration1-controlled`
 - Baseline source commit before continuity system: `579fc7b Add Runtime Wizard read-model presenter (#157)`
-- Working tree: clean after continuity baseline commit
-- Active task: read-only repository-worker validation passed; next step is controlled tiny-change validation
-- Current blocker: none for continuity validation
-- Next required action: run a controlled tiny-change validation using the continuity files
+- Latest local commit from operational re-entry audit: `f995f5b2e4c71eb84ca7e0fe1ea5aad7831789f0` (`Record read-only continuity validation`, 2026-07-12T10:47:03+03:00)
+- Working tree: clean before controlled tiny-change validation
+- Current gate: controlled tiny-change validation
+- Active task: record that the read-only operational re-entry audit passed locally, with remote evidence marked PARTIAL
+- Current blocker: remote evidence is PARTIAL due credential/access limitations
+- Remote evidence limitation:
+  - no upstream configured for `openhands/iteration1-controlled`
+  - `git ls-remote` failed with `SEC_E_NO_CREDENTIALS`
+  - `gh` failed with `HTTP 401`
+  - public GitHub issue count contradicted connector issue search
+- Next required action: manager review of this tiny-change validation
 
 ## Last Completed Work
 

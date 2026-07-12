@@ -451,3 +451,52 @@ Files touched:
 ### Final status
 
 Repository continuity system passed read-only validation.
+
+## 2026-07-12 - Operational re-entry audit recorded
+
+Task class: repo-continuity task
+
+Worker: AI-assisted
+
+Branch: `openhands/iteration1-controlled`
+
+Files touched:
+
+- `PROJECT_STATE.md`
+- `WORK_LOG.md`
+
+### What was done
+
+- Recorded the controlled tiny-change validation gate in `PROJECT_STATE.md`.
+- Recorded that the read-only operational re-entry audit passed locally.
+- Marked remote evidence as PARTIAL because remote access evidence was limited or contradictory.
+- Preserved the local audit facts: clean local repository state, branch `openhands/iteration1-controlled`, and latest local commit `f995f5b2e4c71eb84ca7e0fe1ea5aad7831789f0`.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Git pre-flight status | clean before continuity update |
+| Latest local commit from audit | `f995f5b2e4c71eb84ca7e0fe1ea5aad7831789f0` (`Record read-only continuity validation`) |
+| Remote upstream check | no upstream configured for `openhands/iteration1-controlled` |
+| Remote Git check | `git ls-remote` failed with `SEC_E_NO_CREDENTIALS` |
+| GitHub CLI check | `gh` failed with `HTTP 401` |
+| Remote issue evidence | public GitHub issue count contradicted connector issue search |
+
+### Errors / blockers
+
+- Remote evidence remains PARTIAL due credential/access limitations.
+- No source, test, packaging, dependency, push, release, or PR action was performed.
+- Only `PROJECT_STATE.md` and `WORK_LOG.md` were touched.
+
+### Decisions made
+
+- Do not commit this continuity-only validation update without explicit manager approval because repository rules state the default is no commit and commit requires explicit approval.
+
+### Next action
+
+- Manager review of this tiny-change validation.
+
+### Final status
+
+Controlled tiny-change validation recorded locally and awaiting manager review.
