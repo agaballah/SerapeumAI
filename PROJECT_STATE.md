@@ -13,9 +13,9 @@ It is not answer authority for the application.
 
 - Last updated: 2026-07-12
 - Branch: `openhands/iteration1-controlled`
-- Commit: `579fc7b Add Runtime Wizard read-model presenter (#157)`
+- Baseline source commit before continuity system: `579fc7b Add Runtime Wizard read-model presenter (#157)`
 - Working tree: clean after continuity baseline commit
-- Active task: repository continuity system committed; next step is external repository-worker read-only validation
+- Active task: repository continuity system committed; next step is read-only repository-worker validation
 - Current blocker: none for continuity file baseline
 - Next required action: run a read-only repository-worker validation using the continuity files
 

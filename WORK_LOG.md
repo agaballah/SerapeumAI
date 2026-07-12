@@ -351,3 +351,49 @@ Files touched:
 ### Final status
 
 Repository continuity baseline is committed and ready for read-only validation after amend.
+
+## 2026-07-12 - Project state commit-field correction
+
+Task class: repo-continuity task
+
+Worker: AI-assisted / human-executed
+
+Branch: `openhands/iteration1-controlled`
+
+Files touched:
+
+- `PROJECT_STATE.md`
+- `WORK_LOG.md`
+
+### What was done
+
+- Replaced the ambiguous `Commit` field in `PROJECT_STATE.md` with `Baseline source commit before continuity system`.
+- Preserved `579fc7b` as the source/application baseline that existed before repository continuity files were added.
+- Avoided writing the current continuity commit hash into the state file to prevent self-referential commit-hash churn.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Git pre-flight status | clean before correction |
+| Latest commit before correction | `ab1a082 Add repository continuity system` |
+| Packaging file status | no packaging changes |
+| Source code status | no source changes |
+
+### Errors / blockers
+
+- No source, runtime, or packaging files were modified.
+- The issue was wording precision in repository continuity state only.
+
+### Decisions made
+
+- `PROJECT_STATE.md` should record the source baseline commit, while the live latest commit is verified by `git log -1`.
+
+### Next action
+
+- Commit this small state precision correction.
+- Then run read-only repository-worker validation.
+
+### Final status
+
+Project state commit-field wording corrected and ready for commit.
