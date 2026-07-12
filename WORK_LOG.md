@@ -397,3 +397,57 @@ Files touched:
 ### Final status
 
 Project state commit-field wording corrected and ready for commit.
+
+## 2026-07-12 - Read-only repository-worker validation passed
+
+Task class: repo-continuity validation task
+
+Worker: AI-assisted / human-executed
+
+Branch: `openhands/iteration1-controlled`
+
+Files touched:
+
+- `PROJECT_STATE.md`
+- `WORK_LOG.md`
+
+### What was done
+
+- Reviewed the read-only repository-worker validation result.
+- Confirmed the worker read `AGENTS.md`, `PROJECT_STATE.md`, and `WORK_LOG.md`.
+- Confirmed the worker checked branch, latest commit, and working-tree status.
+- Confirmed the worker correctly reported protected paths and the completion rule.
+- Confirmed the worker made no file changes.
+- Confirmed the worker honestly noted that the read-only validation did not update state/log files.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Current branch reported by worker | `openhands/iteration1-controlled` |
+| Latest commit reported by worker | `29030f2 Clarify repository continuity state baseline` |
+| Working tree reported by worker | clean |
+| Protected paths reported | passed |
+| Completion rule reported | passed |
+| File modifications by validation worker | none |
+| Packaging file status | no packaging changes |
+| Source code status | no source changes |
+
+### Errors / blockers
+
+- None observed.
+- The validation was intentionally read-only, so this entry records the result after the fact.
+
+### Decisions made
+
+- Read-only repository-worker validation passed.
+- The next validation stage is a controlled tiny-change task.
+
+### Next action
+
+- Run a controlled tiny-change validation.
+- The tiny-change validation must update `PROJECT_STATE.md` and `WORK_LOG.md` and make no source or packaging changes unless explicitly approved.
+
+### Final status
+
+Repository continuity system passed read-only validation.
