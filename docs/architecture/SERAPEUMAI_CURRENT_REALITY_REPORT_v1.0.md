@@ -15,6 +15,28 @@ Authority:
 SerapeumAI Manager Baseline Review
 
 ---
+
+## Baseline Authority
+
+This document represents the verified understanding of SerapeumAI after a development pause.
+It is the reference state for future decisions.
+Future changes to this understanding require controlled revision.
+
+---
+
+## Document Boundaries
+
+This report explicitly does NOT define:
+- future roadmap
+- feature priorities
+- implementation tasks
+- redesign decisions
+- cleanup activities
+- release plans
+
+---
+
+---
 ---
 ## **1. EXECUTIVE SUMMARY**
 
@@ -210,22 +232,22 @@ The system enforces a **Single Source of Truth (SSOT)** model where:
 ---
 ## **4. FEATURE REALITY MATRIX**
 
-| **Capability** | **Current State** | **Evidence** | **Validation Level** | **Unknowns** |
-|----------------|-------------------|--------------|----------------------|---------------|
-| **Application Startup** | Exists | `DatabaseManager.__init__()`, bootstrap verified | Partial | Runtime dependencies, error handling |
-| **Project Creation** | Exists | `database_manager.upsert_project()`, `projects` table | Partial | UI workflow, duplicate handling |
-| **Document Import** | Exists | `database_manager.upsert_document()`, `documents` table | Partial | File type handling, duplicate detection |
-| **PDF Processing** | Exists | `pages` table, `ocr_text`, `py_text`, `upsert_page()` | Partial | OCR pipeline, error handling |
-| **Office Processing** | Unknown | No direct evidence | None | No references to Excel/Word |
-| **CAD/BIM Processing** | Exists | `bim_elements` table, `BIMQueryTool`, `insert_bim_elements()` | Partial | IFC parsing, error handling |
-| **Evidence Viewing** | Exists | `pages`, `doc_blocks`, `_retrieve_extracted_evidence()` | Partial | UI rendering, pagination |
-| **Fact Creation** | Exists | `facts` table, `FactRepository.save_facts()`, `BUILD_FACTS` | Partial | Deduplication, conflict resolution |
-| **Fact Certification** | Exists | `FactStatus`, `FactRepository.certify_fact()`, `reject_fact()` | Partial | UI workflow, audit trail |
-| **Snapshot Workflow** | Partial | `fact_snapshots`, `fact_snapshot_registry`, `get_or_create_snapshot()` | Partial | User selection, versioning, rollback |
-| **Chat Workflow** | Exists | `answer_question()`, `chat_history`, `FactQueryAPI` | Partial | Evidence bypasses snapshots, AI synthesis uses non-snapshot data |
-| **Runtime/Model Setup** | Exists | `LocalRuntimeSetupService`, `ConfigurationManager` | Partial | Model loading, fallback behavior |
-| **Export/Reporting** | Unknown | No direct evidence | None | No references to export functionality |
-| **Portable Deployment** | Unknown | Packaging files exist, but no deployment validation | None | No runtime validation of portable build |
+| **Capability** | **Current State** | **Evidence Level** | **Known Limitation** |
+|----------------|-------------------|---------------------|----------------------|
+| **Application Startup** | Exists | Partial | Runtime dependencies, error handling |
+| **Project Creation** | Exists | Partial | UI workflow, duplicate handling |
+| **Document Import** | Exists | Partial | File type handling, duplicate detection |
+| **PDF Processing** | Exists | Partial | OCR pipeline, error handling |
+| **Office Processing** | Unknown | None | No references to Excel/Word |
+| **CAD/BIM Processing** | Exists | Partial | IFC parsing, error handling |
+| **Evidence Viewing** | Exists | Partial | UI rendering, pagination |
+| **Fact Creation** | Exists | Partial | Deduplication, conflict resolution |
+| **Fact Certification** | Exists | Partial | UI workflow, audit trail |
+| **Snapshot Workflow** | Partial | Partial | User selection, versioning, rollback |
+| **Chat Workflow** | Exists | Partial | Evidence bypasses snapshots, AI synthesis uses non-snapshot data |
+| **Runtime/Model Setup** | Exists | Partial | Model loading, fallback behavior |
+| **Export/Reporting** | Unknown | None | No references to export functionality |
+| **Portable Deployment** | Unknown | None | No runtime validation of portable build |
 
 ---
 ---
@@ -235,9 +257,11 @@ The system enforces a **Single Source of Truth (SSOT)** model where:
 ---
 
 ### **5.1 Existing Tables**
+
+#### **Confirmed Reality**
 Below is the **reconstructed schema** from code analysis (not from a direct SQL dump).
 
-#### **Core Tables**
+##### **Core Tables**
 | **Table** | **Purpose** | **Key Columns** | **Relationships** | **Current Usage** |
 |-----------|-------------|-----------------|-------------------|-------------------|
 | `projects` | Project metadata | `project_id` (PK), `name`, `root`, `created`, `updated` | One-to-many with `documents`, `facts`, `snapshots` | `upsert_project()` |
@@ -252,7 +276,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 | `chat_history` | Chat messages | `id` (PK), `project_id` (FK), `role`, `content`, `attachments_json` | Belongs to `projects` | `save_chat_message()` |
 | `kv` | Key-value store | `key` (PK), `value_json`, `updated_at` | None | Snapshot tracking (`snapshot:{project_id}:latest`) |
 
-#### **Evidence/Analysis Tables**
+##### **Evidence/Analysis Tables**
 | **Table** | **Purpose** | **Key Columns** | **Relationships** | **Current Usage** |
 |-----------|-------------|-----------------|-------------------|-------------------|
 | `analysis` | AI analysis results | `doc_id` (FK, PK), `payload_json`, `ts` | Belongs to `documents` | `save_analysis()`, `get_analysis()` |
@@ -261,20 +285,20 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 | `documents_fts` | Full-text search (documents) | `doc_id` (FK), `content_text` | Belongs to `documents` | `search_documents()` |
 | `doc_blocks_fts` | Full-text search (blocks) | `doc_id` (FK), `block_id` (FK), `content_text` | Belongs to `documents`, `doc_blocks` | `search_doc_blocks()` |
 
-#### **BIM/Schedule Tables**
+##### **BIM/Schedule Tables**
 | **Table** | **Purpose** | **Key Columns** | **Relationships** | **Current Usage** |
 |-----------|-------------|-----------------|-------------------|-------------------|
 | `bim_elements` | BIM element data | `doc_id` (FK, PK), `element_id` (PK), `element_type`, `properties_json` | Belongs to `documents` | `insert_bim_elements()` |
 | `schedule_activities` | Schedule activity data | `doc_id` (FK, PK), `activity_id` (PK), `activity_name`, `start_date`, `finish_date` | Belongs to `documents` | `insert_schedule_activities()` |
 
-#### **Graph/Entity Tables**
+##### **Graph/Entity Tables**
 | **Table** | **Purpose** | **Key Columns** | **Relationships** | **Current Usage** |
 |-----------|-------------|-----------------|-------------------|-------------------|
 | `entity_nodes` | Entity nodes | `id` (PK), `project_id` (FK), `doc_id` (FK), `entity_type`, `value` | Belongs to `projects`, `documents` | `upsert_entity_node()` |
 | `entity_links` | Entity relationships | `project_id` (FK, PK), `source_doc_id` (FK, PK), `from_entity_id` (FK, PK), `to_entity_id` (FK), `rel_type` | Links `entity_nodes` | `insert_entity_link()` |
 | `links` | Generic links | `link_id` (PK), `project_id` (FK), `link_type`, `from_kind`, `from_id`, `to_kind`, `to_id` | Belongs to `projects` | `FactRepository.save_links()` |
 
-#### **Error/Conflict Tables**
+##### **Error/Conflict Tables**
 | **Table** | **Purpose** | **Key Columns** | **Relationships** | **Current Usage** |
 |-----------|-------------|-----------------|-------------------|-------------------|
 | `data_conflicts` | Extraction conflicts | `conflict_id` (PK), `doc_id` (FK), `field_name`, `native_val`, `vlm_val` | Belongs to `documents` | `log_conflict()` |
@@ -282,14 +306,23 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 | `failure_payloads` | Failure payloads | `failure_id` (FK, PK), `payload_blob` | Belongs to `failed_extractions` | `log_failure_payload()` |
 | `extraction_accuracy` | Accuracy metrics | `metric_id` (PK), `document_type`, `data_source`, `accuracy_percent` | None | `update_extraction_accuracy()` |
 
-#### **Vision/VLM Tables**
+##### **Vision/VLM Tables**
 | **Table** | **Purpose** | **Key Columns** | **Relationships** | **Current Usage** |
 |-----------|-------------|-----------------|-------------------|-------------------|
 | `vision_queue` | Vision processing queue | `queue_id` (PK), `doc_id` (FK), `page_index`, `status` | Belongs to `documents` | `enqueue_vision_page()`, `pop_vision_queue_batch()` |
 | `vlm_audit_trail` | VLM audit logs | `id` (PK), `task_type`, `system_prompt`, `user_prompt`, `response_raw` | None | `log_vlm_call()` |
 
----
+#### **Observed Limitations**
+- **No direct FK from `file_versions` to `documents`**: Relies on `source_path` string matching, risking orphaned data.
+- **No evidence-snapshot binding**: Evidence tables (`pages`, `doc_blocks`, `analysis`) are not linked to `fact_snapshots`.
+- **No document versioning**: Each import creates a new `doc_id`; no revision history.
 
+#### **Known Unknowns**
+- Actual database file/schema (reconstructed from code, not from live DB).
+- Production data state (no record counts or data samples).
+- Migration history (no migration logs or version history).
+
+---
 ### **5.2 Known Relationships**
 - **Projects** → **Documents** (`project_id` FK).
 - **Documents** → **Pages** (`doc_id` FK).
@@ -323,6 +356,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 
 ---
 ### **5.4 Data Model Gaps**
+
 | **Gap** | **Impact** | **Evidence** |
 |---------|------------|--------------|
 | **No `file_versions.doc_id` FK** | Orphaned `file_versions`; broken fact lineage | `source_path` string matching is unreliable |
@@ -340,6 +374,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 ---
 
 ### **6.1 Existing (Working Systems)**
+
 | **Component** | **Status** | **Evidence** |
 |---------------|------------|--------------|
 | **Database Layer** | ✅ Stable | `DatabaseManager` with thread-local connections, WAL mode, migrations |
@@ -351,6 +386,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 
 ---
 ### **6.2 Compatibility/Legacy**
+
 | **Component** | **Status** | **Evidence** |
 |---------------|------------|--------------|
 | **Deprecated Map-Reduce Path** | ✅ Neutralized | `answer_question_map_reduce()` returns "deprecated" message |
@@ -359,6 +395,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 
 ---
 ### **6.3 Technical Debt Indicators**
+
 | **Indicator** | **Status** | **Evidence** |
 |---------------|------------|--------------|
 | **Missing Tests** | ❌ Confirmed | No test files provided in audit material |
@@ -376,6 +413,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 ---
 
 ### **7.1 Existing Documentation**
+
 | **File** | **Content** | **Accuracy** | **Notes** |
 |----------|-------------|--------------|-----------|
 | `README.md` | Product overview, download, workflow, trust model | ✅ Accurate | Matches codebase (e.g., SSOT, evidence lanes) |
@@ -389,6 +427,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 
 ---
 ### **7.2 Missing Documentation**
+
 | **Area** | **Status** | **Impact** |
 |----------|------------|------------|
 | **API Documentation** | ❌ Missing | No Swagger/OpenAPI or docstrings for public APIs |
@@ -400,6 +439,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 
 ---
 ### **7.3 Documentation Accuracy**
+
 | **Aspect** | **Status** | **Notes** |
 |------------|------------|-----------|
 | **Product Identity** | ✅ Accurate | `README.md` matches codebase (e.g., AECO focus, SSOT) |
@@ -415,6 +455,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 ---
 
 ### **8.1 Confirmed**
+
 | **Aspect** | **Status** | **Evidence** |
 |------------|------------|--------------|
 | **Build System** | ✅ Exists | `SerapeumAI_Portable.spec`, `build_portable.ps1`, `build_portable.bat` |
@@ -427,6 +468,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 
 ---
 ### **8.2 Unknown**
+
 | **Aspect** | **Status** | **Notes** |
 |------------|------------|-----------|
 | **CI/CD Pipeline** | ❌ Unknown | No `.github/workflows/` or similar files provided |
@@ -444,6 +486,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 ---
 
 ### **9.1 Repository**
+
 | **Unknown** | **Impact** | **Notes** |
 |-------------|------------|-----------|
 | Full branch list | Medium | Cannot assess branch strategy or stale branches |
@@ -453,6 +496,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 
 ---
 ### **9.2 Codebase**
+
 | **Unknown** | **Impact** | **Notes** |
 |-------------|------------|-----------|
 | UI layer implementation | High | No UI files provided; cannot validate user workflows |
@@ -464,6 +508,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 
 ---
 ### **9.3 Architecture**
+
 | **Unknown** | **Impact** | **Notes** |
 |-------------|------------|-----------|
 | External service integrations | Medium | No API clients or service dependencies provided |
@@ -473,6 +518,7 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 
 ---
 ### **9.4 Database**
+
 | **Unknown** | **Impact** | **Notes** |
 |-------------|------------|-----------|
 | Actual database file/schema | High | Schema reconstructed from code, not from live DB |
@@ -482,9 +528,30 @@ Below is the **reconstructed schema** from code analysis (not from a direct SQL 
 
 ---
 ### **9.5 Release**
+
 | **Unknown** | **Impact** | **Notes** |
 |-------------|------------|-----------|
 | CI/CD pipeline | High | No workflow files or pipeline configs |
 | Deployment process | High | No scripts or documentation for deployment |
 | Monitoring/observability | Medium | No logging, metrics, or monitoring configs |
 | User adoption | Medium | No usage analytics or feedback data |
+
+---
+---
+---
+## **Baseline Confidence Section**
+
+| **Area** | **Confidence Level** | **Notes** |
+|----------|----------------------|-----------|
+| **Current repository structure** | High | Verified from provided files and directory structure |
+| **Current architecture understanding** | High | Mapped from provided source files and their relationships |
+| **Complete historical context** | Partial | Git history not fully audited; some milestones known |
+| **Production validation** | Unknown | No production environment access or logs provided |
+| **UI implementation** | Partial | Only `message_renderer.py` provided; other UI components unvalidated |
+| **Snapshot governance** | Partial | Implementation exists but enforcement is inconsistent |
+| **Documentation completeness** | Partial | High-level docs exist but technical documentation is missing |
+| **Test coverage** | Unknown | No test files provided in audit material |
+
+---
+---
+SERAPEUMAI CURRENT REALITY REPORT v1.0 BASELINE REFINED
