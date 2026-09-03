@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import json
 import re
 import os
@@ -21,7 +21,8 @@ class UniversalPdfExtractor(BaseExtractor):
     1. Full Text Extraction (per page).
     2. Doc Type Classification (Scope, Spec, Drawing, Contract).
     """
-    
+    maturity = "PRODUCTION"
+
     @property
     def id(self) -> str:
         return "universal-pdf-extractor-v1"

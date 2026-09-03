@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 PPTXExtractor — BaseExtractor wrapper for .pptx files.
 
@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 class PPTXExtractor(BaseExtractor):
     """Extracts text from .pptx files via PPTProcessor."""
+
+    maturity = "VERIFIED"
 
     @property
     def id(self) -> str:

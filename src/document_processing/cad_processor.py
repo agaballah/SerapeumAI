@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import logging
+import os
 from typing import Any, Dict, List
 
 from .processor_utils import stable_doc_id
@@ -47,14 +49,28 @@ class CADProcessor:
                 msp = doc.modelspace()
 
                 # Cap entities to avoid huge payloads during ingestion
-                cap = None
+                cap = 50_000
+                total_entities = 0
                 for i, e in enumerate(msp):
-                    if cap and i >= cap: break
+                    if i >= cap:
+                        text_parts.append(f"[cad] Entity cap reached at {cap}; truncation is explicit — not a silent failure.")
+                        break
+                    total_entities += 1
                     try:
                         etype = e.dxftype()
                         layer = e.dxf.layer if hasattr(e, "dxf") and hasattr(e.dxf, "layer") else "0"
-                        entities.append({"type": etype, "layer": layer})
-                    except Exception: continue
+                        handle = getattr(e, "handle", "")
+                        entities.append({
+                            "type": etype or "UNKNOWN",
+                            "layer": layer,
+                            "handle": handle,
+                        })
+                    except Exception as exc:
+                        entities.append({
+                            "type": "ERROR",
+                            "layer": "0",
+                            "error": str(exc),
+                        })
 
                 text_parts.append(f"CAD entities: {len(entities)} (Type: {ext.upper()})")
 

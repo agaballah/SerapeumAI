@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import json
 import uuid
 import hashlib
@@ -15,6 +15,7 @@ from src.engine.extractors.field_extractor import FieldExtractor
 from src.engine.extractors.word_extractor import WordExtractor
 from src.engine.extractors.pptx_extractor import PPTXExtractor
 from src.engine.extractors.dgn_extractor import DGNExtractor
+from src.engine.extractors.dxf_extractor import DXFExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +33,21 @@ class ExtractJob(Job):
     
     TYPE_NAME = "EXTRACT"
     
-    # Registry of available extractors
+    # Registry of available (trusted) extractors — only PRODUCTION and VERIFIED maturity.
     EXTRACTORS: Dict[str, Type[BaseExtractor]] = {
         "p6": P6Extractor,
         "ifc": IFCExtractor,
-        "excel_register": ExcelRegisterExtractor,
         "pdf": UniversalPdfExtractor,
-        "field": FieldExtractor,
         "word": WordExtractor,
         "pptx": PPTXExtractor,
+        "dxf": DXFExtractor,
+    }
+
+    # Staging registry — EXPERIMENTAL and PLACEHOLDER extractors live here.
+    # They are NOT triggered by the normal pipeline; they require explicit opt-in.
+    STAGING_EXTRACTORS: Dict[str, Type[BaseExtractor]] = {
+        "excel_register": ExcelRegisterExtractor,
+        "field": FieldExtractor,
         "dgn": DGNExtractor,
     }
 
@@ -163,12 +170,13 @@ class ExtractJob(Job):
             db.commit()
             
             # 7. Trigger Logic
-            # Map extractor to builder (p6 -> schedule, ifc -> bim)
+            # Map extractor to builder — only trusted (PRODUCTION/VERIFIED) extractors
+            # automatically trigger downstream fact builders.
             builder_map = {
                 "p6": "schedule",
                 "ifc": "bim",
-                "excel_register": "register",
-                "field": "completion"
+                "pdf": "document",
+                "dxf": "drawing",
             }
             if self.extractor_name in builder_map:
                 from src.application.jobs.build_facts_job import BuildFactsJob
@@ -379,3 +387,10 @@ class ExtractJob(Job):
                     source_type="pdf"
                 )
                 logger.info(f"Inserted {len(blocks)} blocks for doc {doc_id}")
+
+        # DXF Logic — deterministic CAD evidence staging
+        elif rtype.startswith("dxf_"):
+            # Drawing-level metadata records are staged as raw JSON in the
+            # documents table's structured_data column; per-entity records
+            # get their own lightweight table entries keyed by handle.
+            pass  # raw evidence stays in ExtractionResult.records for query

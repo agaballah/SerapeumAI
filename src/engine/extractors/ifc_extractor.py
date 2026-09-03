@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import re
 import json
 from typing import List, Dict, Any, Optional
@@ -16,7 +16,8 @@ class IFCExtractor(BaseExtractor):
     is unavailable, extraction fails honestly with diagnostics and emits no
     records.
     """
-    
+    maturity = "VERIFIED"
+
     @property
     def id(self) -> str:
         return "ifc-extractor-v1"
