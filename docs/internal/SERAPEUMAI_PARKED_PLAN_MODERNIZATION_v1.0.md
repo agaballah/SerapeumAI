@@ -328,9 +328,9 @@ Specific implications by technology status:
 - **TRIAL T17 (small local ONNX embeddings/reranker)** — No repository evidence of acceptance in this checkout (dated 2026-09-02). Reclassified from ADOPT because no evidence exists. Requires dependency-admission review before any baseline integration.
 - **TRIAL ezdxf (T1)** — Wheel exists in this checkout (dated 2026-09-02). Windows-portability **not validated** by TASK-028; license admission required before baseline integration.
 - **TRIAL Docling (T3)** — License review required; lab isolation prevents baseline packaging impact. Portability/licensing assertions are validation requirements, not settled facts.
-- **TRIAL PaddleOCR (T4)** — Native components; Windows-portable only via opt-in lab; packaging hostile if promoted. Validation required before any baseline consideration.
+- **TRIAL PaddleOCR (T4)** — Native/runtime packaging impact is unvalidated by TASK-028. Candidate remains lab-only. Windows and portable-packaging compatibility must pass a bounded validation/admission review before any baseline integration.
 - **TRIAL Tesseract (T5)** — System-binary path; portability depends on external binary availability, not bundled.
-- **TRIAL IfcOpenShell (T6)** — Python wheel exists in PyPI; licensing acceptable, but packaging validation gate required before baseline integration.
+- **TRIAL IfcOpenShell (T6)** — Dependency licensing and Windows/portable-packaging suitability require explicit admission and validation review before any baseline integration.
 - **DEFER DWG paths (T2)** — licensing and packaging research required.
 - **DEFER Revit bridge (T7)** — client distribution constraint; separate owner-approved research packet.
 - **REJECT active provisioning (T14)** — privacy conflict if executed.
