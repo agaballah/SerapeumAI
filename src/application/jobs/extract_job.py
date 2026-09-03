@@ -109,7 +109,15 @@ class ExtractJob(Job):
         # 2. Instantiate Extractor
         extractor_cls = self.EXTRACTORS.get(self.extractor_name)
         if not extractor_cls:
-            raise ValueError(f"Unknown extractor: {self.extractor_name}")
+            # Staging extractors are intentionally excluded from the normal
+            # pipeline. If one is requested, give a clear diagnostic rather
+            # than silently failing or masking the limitation.
+            known_staging = list(self.STAGING_EXTRACTORS.keys())
+            raise ValueError(
+                f"Unknown extractor: {self.extractor_name}. "
+                f"Known trusted: {list(self.EXTRACTORS.keys())}; "
+                f"known staging (not routed): {known_staging}."
+            )
             
         extractor = extractor_cls()
         
@@ -137,10 +145,10 @@ class ExtractJob(Job):
             doc_id = doc_id_row["doc_id"] if doc_id_row else f"doc_{self.file_version_id}"
             
             # 5. Run Extraction with context
-            def _on_stage(stage_name, message=""):
+            def _on_stage(stage_name, message="", **kwargs):
                 db.execute(
                     "UPDATE extraction_runs SET status=?, diagnostics_json=? WHERE run_id=?",
-                    (f"RUNNING:{stage_name}", json.dumps({"message": message, "stage": stage_name}), run_id)
+                    (f"RUNNING:{stage_name}", json.dumps({**{"message": message, "stage": stage_name}, **kwargs}), run_id)
                 )
                 db.commit()
 
