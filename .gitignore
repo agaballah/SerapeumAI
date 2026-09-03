@@ -1,4 +1,4 @@
-.serapeum/
+﻿.serapeum/
 build/
 dist/
 models/
@@ -16,3 +16,8 @@ venv/
 # AI Developer Control
 .ai_developer_control/archive/
 .ai_developer_control/*.tmp
+
+# Iteration 1B local-only exclusions
+DeveloperTools/.env
+.ai_developer_control/session_logs/
+SerapeumAI/
