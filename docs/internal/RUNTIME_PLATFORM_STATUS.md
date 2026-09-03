@@ -6,6 +6,15 @@ This document records the current implemented status of Runtime Platform Wave 1B
 
 It is an internal status checkpoint. It must not be read as a user manual, installer guide, or provisioning promise.
 
+**Modernization note (2026-09-03):** Per `SERAPEUMAI_PARKED_PLAN_MODERNIZATION_v1.0.md` §8 (corrected), runtime-related statuses are:
+- **GGUF + llama.cpp** baseline runtime — **ADOPT (optional lane, already admitted; class (a))**.
+- **LM Studio / Ollama / OpenAI-compatible providers** — **ADOPT (optional lane, read-model, already admitted; class (a))**.
+- **Embeddings/reranker small local ONNX** — **TRIAL** (reclassified from ADOPT; no repository evidence of acceptance; class (b)).
+- **Dynamic hardware → benchmark → model recommendation** — **DEFER** (read-model only; real provisioning remains REJECTED in baseline).
+- **Runtime provider provisioning actions** (install/download/start/stop/load) — **REJECT (in baseline)**.
+
+All non-enabled behavior below remains in force. This note does not authorize any new dependency, provider behavior, runtime provisioning, packaging inclusion, or production deployment.
+
 ## Current status
 
 Runtime Platform Wave 1B provides a read-only foundation for local runtime awareness.
