@@ -138,8 +138,9 @@ Each row identifies an existing parked artifact, the disposition, the reason, an
 - **RETIRE-AS-PARKED: 0**.
 - **SUPERSEDE-NEW: 0** within the historical 28-file corpus.
 - **Total rows in matrix: 28** (matching the 28 historical `.md` files under `docs/internal/` that existed before TASK-028).
-- **New files created by TASK-028: 2** — this document (`SERAPEUMAI_PARKED_PLAN_MODERNIZATION_v1.0.md`) and the narrowly scoped CAD plan (`SERAPEUMAI_CAD_DRAWING_INTELLIGENCE_PLAN_v1.0.md`, per the CAD rule in §7).
+- **New files created by TASK-028 locally: 2** — this document (`SERAPEUMAI_PARKED_PLAN_MODERNIZATION_v1.0.md`) and the narrowly scoped CAD plan (`SERAPEUMAI_CAD_DRAWING_INTELLIGENCE_PLAN_v1.0.md`, per the CAD rule in §7).
 - **Total `docs/internal/*.md` files after TASK-028: 30** (28 historical + 2 new).
+- **GitHub PR #158 impact:** PR #158 introduces **7 complete new-file additions** (the 2 new plans above plus 5 previously-untracked `docs/internal/*.md` files that were created in prior task cycles but committed to the repo via this PR) and **3 incremental modifications** to existing tracked files (`POST_PUBLISH_UPGRADE_PLAN.md`, `RUNTIME_DISTRIBUTION_CONSENT_MATRIX.md`, `RUNTIME_PLATFORM_STATUS.md`). This distinction is relevant when reviewing merge impact on `main`: the PR carries 10 file changes total (7 new + 3 modified), not merely 2 new files.
 
 Arithmetic check: 20 + 8 + 0 + 0 = 28 historical rows. 28 + 2 new = 30 total `docs/internal/*.md` files.
 
@@ -224,20 +225,20 @@ ADOPT status means one of two strictly bounded cases:
 
 | Candidate | Class | Repository evidence | Verdict |
 |---|---|---|---|
-| T17 — small local ONNX embeddings/reranker | (b) | None in this checkout. `SERAPEUMAI_DEVELOPMENT_ENVIRONMENT_HEALTH_REPORT_v1.0.md` §2.4 does not list any ONNX embeddings package. | **Not ADOPT-eligible.** Reclassified to TRIAL in the final table. |
-| T18 — GGUF + llama.cpp baseline runtime | (a) | `llama_cpp_python 0.3.30` installed per environment health report §2.4. | **ADOPT-eligible.** Already admitted; strategy retains what is permitted. |
-| T19 — LM Studio / Ollama / OpenAI-compatible providers | (a) | Provider discovery implemented per `RUNTIME_PLATFORM_STATUS.md`; `PUBLISH_TRUTH_STATEMENT.md` §5 lists runtime provisioning, download, and control as explicit non-enabled behavior. | **ADOPT-eligible** as read-model only. Active provisioning remains REJECTED. |
+| T17 — small local ONNX embeddings/reranker | (b) | **Historical snapshot evidence** (dated 2026-09-02): None in this checkout. `SERAPEUMAI_DEVELOPMENT_ENVIRONMENT_HEALTH_REPORT_v1.0.md` §2.4 does not list any ONNX embeddings package at that date. This classification is a dated validation observation, not a settled fact for all future checkouts. | **Not ADOPT-eligible.** Reclassified to TRIAL in the final table. |
+| T18 — GGUF + llama.cpp baseline runtime | (a) | **Historical snapshot evidence** (dated 2026-09-02): `llama_cpp_python 0.3.30` installed per environment health report §2.4. Present in this checkout at this date; subject to change in future environments or after dependency upgrades. | **ADOPT-eligible.** Already admitted; strategy retains what is permitted. No packaging validation gate has been executed for this dependency in TASK-028. |
+| T19 — LM Studio / Ollama / OpenAI-compatible providers | (a) | Provider discovery implemented per `RUNTIME_PLATFORM_STATUS.md`; `PUBLISH_TRUTH_STATEMENT.md` §5 lists runtime provisioning, download, and control as explicit non-enabled behavior. Note: "OpenAI-compatible" refers only to endpoints explicitly configured in the local runtime; it does **not** imply all OpenAI-compatible services are local or permitted. | **ADOPT-eligible** as read-model only. Active provisioning remains REJECTED. Non-local endpoints require explicit user consent and owner-approved optional-lane policy. |
 
 **Final technology-status assignments (single status per candidate; corrected from the original draft):**
 
 | # | Candidate | Status | Rationale (with boundary distinction) |
 |---|---|---|---|
-| T1 | **ezdxf** for deterministic DXF extraction | **TRIAL** | Class (b). Library 1.4.4 installed per env report §2.4, but no registered V02 extractor exists. Not admitted to production. Bounded validation gate against Gold Fixture Framework required. |
+| T1 | **ezdxf** for deterministic DXF extraction | **TRIAL** | Class (b). **Historical snapshot evidence** (dated 2026-09-02): Library 1.4.4 installed per env report §2.4, but no registered V02 extractor exists. Not admitted to production. Bounded validation gate against Gold Fixture Framework required. |
 | T2 | **DWG paths requiring fidelity** (LibreDWG, ODA, proprietary SDK) | **DEFER** | Class (b). No repository evidence. Licensing/packaging research required. |
 | T3 | **Docling** (IBM) | **TRIAL** | Class (b). No repository evidence of admission. License-admission review required before any packaging. |
-| T4 | **PaddleOCR / PaddleOCR-VL** | **TRIAL** | Class (b). Not installed (env report §2.4 lists `paddleocr` as missing). Lab-only. |
-| T5 | **Tesseract via pytesseract** | **TRIAL** | Class (b). Library `pytesseract 0.3.13` installed (env report §2.4), but not wired into a registered extractor and engineering-trust acceptance threshold is unproven (Knowledge Coverage Map §2.8). Lab-only. |
-| T6 | **IfcOpenShell (deeper semantic extraction)** | **TRIAL** | Class (b). Geometry extension; `ifcopenshell` not installed in this env (env report §2.4). Existing IFCExtractor uses it conditionally. |
+| T4 | **PaddleOCR / PaddleOCR-VL** | **TRIAL** | Class (b). **Historical snapshot evidence** (dated 2026-09-02): Not installed per env report §2.4. Lab-only. |
+| T5 | **Tesseract via pytesseract** | **TRIAL** | Class (b). **Historical snapshot evidence** (dated 2026-09-02): Library `pytesseract 0.3.13` installed per env report §2.4, but not wired into a registered extractor and engineering-trust acceptance threshold is unproven (Knowledge Coverage Map §2.8). Lab-only. |
+| T6 | **IfcOpenShell (deeper semantic extraction)** | **TRIAL** | Class (b). **Historical snapshot evidence** (dated 2026-09-02): Geometry extension; `ifcopenshell` not installed in this env per env report §2.4. Existing IFCExtractor uses it conditionally. |
 | T7 | **Read-only-first Revit bridge** | **DEFER** | Class (b). No repository evidence. Owner-approved research packet required. |
 | T8 | **Deterministic schedule parsing / CPM / validation** | **TRIAL** | Class (b). Future hardening of existing P6Extractor heuristic; pure-Python. |
 | T9 | **Bounded typed tools; MCP only as possible protocol** | **TRIAL** | Class (b). MCP explicitly excluded from baseline per Upgrade 1B. |
@@ -274,7 +275,7 @@ Three independent research lanes are recognized. They share only the foundationa
 - **Lane V — Visual / Scanned Evidence** (G6 → G7 → G8). Independent of Lane C; may reach its own future acceptance gate without Lane C progress.
 - **Lane F — Real Field Inspection Evidence** (G12). Independent research lane for IR/NCR methodology.
 
-The **CAD Evidence Baseline** (G8) is the integration point where Lane C and Lane V outputs are admitted to governing status. Lane F joins the integration only after its own validation gate is passed.
+The **CAD Evidence Baseline** (G8) is the integration point where Lane C and Lane V outputs become **eligible for bounded integration/promotion**. Passage through G8 does not itself admit output to governing status; governing authority still requires the Evidence Quality Contract, applicable promotion rules, and explicit Owner authorization. Lane F joins the integration only after its own validation gate is passed.
 
 ### 9.2 Gate Sequence (Linked to Post-Publish Upgrade Plan Numbering)
 
@@ -315,21 +316,21 @@ Any future implementation touching the following must preserve each property:
 
 - **Windows-first:** All packaging must remain Windows-portable (SerapeumAI_Portable.spec, build_portable.ps1, build_portable.bat untouched). No POSIX-only assumptions.
 - **Local-first:** No network calls in baseline runtime. Lab lanes may simulate network but must be clearly non-governing.
-- **Privacy-first:** Project data never leaves the machine in baseline. Optional lanes (LM Studio / Ollama / OpenAI-compatible) are explicitly local.
+- **Privacy-first:** Project data never leaves the machine in baseline. Optional lanes for LM Studio and Ollama operate on locally configured endpoints only; OpenAI-compatible providers refer to explicitly configured local endpoints — any non-local endpoint remains outside baseline and requires explicit user consent and owner-approved optional-lane policy.
 - **Portable-packaging:** No silent dependency upgrades. No native blobs added without owner-approved admission review (RUNTIME_DISTRIBUTION_CONSENT_MATRIX.md).
 
 **TASK-028 non-authorization statement:** This document does **not** authorize any new dependency, provider behavior, runtime provisioning, packaging inclusion, or production deployment. The ADOPT (2) designations in §8 (T18, T19) refer to capability that is already admitted and already shipped under the existing doctrine; they do not constitute new approval. All other candidates remain TRIAL / DEFER / REJECT until a future bounded packet passes the gate sequence in §9.
 
 Specific implications by technology status:
 
-- **ADOPT T18 (GGUF + llama.cpp, already admitted)** — pure-Python wheel; Windows-portable; already installed in env. No new admission.
-- **ADOPT T19 (LM Studio / Ollama / OpenAI-compatible, already admitted read-model)** — local-only contract; active provisioning remains REJECTED.
-- **TRIAL T17 (small local ONNX embeddings/reranker)** — reclassified from ADOPT because no repository evidence of acceptance. Requires dependency-admission review before any baseline integration.
-- **TRIAL ezdxf (T1)** — pure-Python wheel; Windows-portable; license admission required.
-- **TRIAL Docling (T3)** — license review; lab isolation prevents baseline packaging impact.
-- **TRIAL PaddleOCR (T4)** — native components; Windows-portable only via opt-in lab; packaging hostile if promoted.
-- **TRIAL Tesseract (T5)** — system-binary path; Windows-portable.
-- **TRIAL IfcOpenShell (T6)** — Python wheel available; license acceptable.
+- **ADOPT T18 (GGUF + llama.cpp, already admitted)** — `llama_cpp_python` wheel exists in this checkout (dated 2026-09-02). Packaging portability has **not** been validated by TASK-028; any future integration requires a packaging validation gate. Already installed in this environment. No new admission.
+- **ADOPT T19 (LM Studio / Ollama / OpenAI-compatible, already admitted read-model)** — Provider discovery is read-model only. "OpenAI-compatible" refers to endpoints explicitly configured in the local runtime; non-local endpoints remain outside baseline and require explicit user consent and owner-approved optional-lane policy. Active provisioning remains REJECTED.
+- **TRIAL T17 (small local ONNX embeddings/reranker)** — No repository evidence of acceptance in this checkout (dated 2026-09-02). Reclassified from ADOPT because no evidence exists. Requires dependency-admission review before any baseline integration.
+- **TRIAL ezdxf (T1)** — Wheel exists in this checkout (dated 2026-09-02). Windows-portability **not validated** by TASK-028; license admission required before baseline integration.
+- **TRIAL Docling (T3)** — License review required; lab isolation prevents baseline packaging impact. Portability/licensing assertions are validation requirements, not settled facts.
+- **TRIAL PaddleOCR (T4)** — Native components; Windows-portable only via opt-in lab; packaging hostile if promoted. Validation required before any baseline consideration.
+- **TRIAL Tesseract (T5)** — System-binary path; portability depends on external binary availability, not bundled.
+- **TRIAL IfcOpenShell (T6)** — Python wheel exists in PyPI; licensing acceptable, but packaging validation gate required before baseline integration.
 - **DEFER DWG paths (T2)** — licensing and packaging research required.
 - **DEFER Revit bridge (T7)** — client distribution constraint; separate owner-approved research packet.
 - **REJECT active provisioning (T14)** — privacy conflict if executed.

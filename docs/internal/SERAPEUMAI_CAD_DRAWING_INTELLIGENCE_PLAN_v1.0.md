@@ -178,10 +178,10 @@ Each decision above requires a written owner-approved artifact before any future
 
 ## 9. Windows / Local-First / Privacy-First / Portable-Packaging Implications
 
-- **Windows-first:** ezdxf is pure-Python with Windows wheels; no native dependency in baseline. DWG path research must produce a Windows-portable solution or be rejected.
+- **Windows-first:** ezdxf portability has **not** been validated by TASK-028. Any claim that it is "pure-Python with Windows wheels" or has "no native dependency" is a validation requirement — a bounded packaging validation gate must confirm this before baseline integration. DWG path research must produce a Windows-portable solution or be rejected.
 - **Local-first:** No network calls; library-only.
 - **Privacy-first:** Drawing content never leaves the machine; no telemetry.
-- **Portable-packaging:** ezdxf adds a small footprint; DWG path selection must not inflate portable distribution beyond owner-approved limits.
+- **Portable-packaging:** ezdxf footprint impact is **unvalidated** by TASK-028. Any claim that it "adds a small footprint" is a validation requirement — packaging impact must be assessed by a bounded validation gate before baseline integration. DWG path selection must not inflate portable distribution beyond owner-approved limits.
 - **Packaging files (`SerapeumAI_Portable.spec`, `build_portable.ps1`, `build_portable.bat`) are sensitive and require explicit owner approval before any change.** This plan explicitly forbids editing them.
 
 ---
