@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 class PPTXExtractor(BaseExtractor):
     """Extracts text from .pptx files via PPTProcessor."""
 
+    maturity = "VERIFIED"
+
     @property
     def id(self) -> str:
         return "pptx-extractor-v1"

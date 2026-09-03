@@ -9,3 +9,10 @@ models/
 .mypy_cache/
 .venv/
 venv/
+.aider*
+
+
+
+# AI Developer Control
+.ai_developer_control/archive/
+.ai_developer_control/*.tmp

@@ -12,7 +12,8 @@ class P6Extractor(BaseExtractor):
     Extracts data from Primavera P6 XER and XML files.
     Focuses on: PROJECT, WBSS, TASK (Activity), TASKPRED (Relationship).
     """
-    
+    maturity = "PRODUCTION"
+
     @property
     def id(self) -> str:
         return "p6-extractor-standard"

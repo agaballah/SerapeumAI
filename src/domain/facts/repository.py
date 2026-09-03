@@ -6,6 +6,15 @@ from src.infra.persistence.database_manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
+# Builders whose VALIDATED output is allowed.  Only facts whose method_id
+# matches one of these prefixes may persist as VALIDATED.  All other VALIDATED
+# facts are demoted to CANDIDATE at write time.
+_ALLOWED_VALIDATED_METHOD_PREFIXES = (
+    "document_builder_v1",
+    "document_builder.semantic_extract.v1",
+)
+
+
 class FactRepository:
     def __init__(self, db: DatabaseManager):
         self.db = db
@@ -49,6 +58,21 @@ class FactRepository:
     def save_facts(self, facts: List[Fact]):
         if not facts:
             return
+
+        # Governance gate: demote VALIDATED facts whose method_id is not in the
+        # trusted allowlist.  This enforces the Evidence Quality Contract at the
+        # single write path for all facts.
+        for fact in facts:
+            if fact.status == FactStatus.VALIDATED:
+                mid = fact.method_id or ""
+                allowed = any(mid.startswith(p) for p in _ALLOWED_VALIDATED_METHOD_PREFIXES)
+                if not allowed:
+                    logger.warning(
+                        "Evidence Authority Gate: demoting fact %s from VALIDATED to "
+                        "CANDIDATE — method_id '%s' is not in the trusted builder allowlist",
+                        fact.fact_id, mid,
+                    )
+                    fact.status = FactStatus.CANDIDATE
 
         with self.db.transaction():
             for fact in facts:

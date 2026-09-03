@@ -32,15 +32,20 @@ class ExtractJob(Job):
     
     TYPE_NAME = "EXTRACT"
     
-    # Registry of available extractors
+    # Registry of available (trusted) extractors — only PRODUCTION and VERIFIED maturity.
     EXTRACTORS: Dict[str, Type[BaseExtractor]] = {
         "p6": P6Extractor,
         "ifc": IFCExtractor,
-        "excel_register": ExcelRegisterExtractor,
         "pdf": UniversalPdfExtractor,
-        "field": FieldExtractor,
         "word": WordExtractor,
         "pptx": PPTXExtractor,
+    }
+
+    # Staging registry — EXPERIMENTAL and PLACEHOLDER extractors live here.
+    # They are NOT triggered by the normal pipeline; they require explicit opt-in.
+    STAGING_EXTRACTORS: Dict[str, Type[BaseExtractor]] = {
+        "excel_register": ExcelRegisterExtractor,
+        "field": FieldExtractor,
         "dgn": DGNExtractor,
     }
 
@@ -163,12 +168,12 @@ class ExtractJob(Job):
             db.commit()
             
             # 7. Trigger Logic
-            # Map extractor to builder (p6 -> schedule, ifc -> bim)
+            # Map extractor to builder — only trusted (PRODUCTION/VERIFIED) extractors
+            # automatically trigger downstream fact builders.
             builder_map = {
                 "p6": "schedule",
                 "ifc": "bim",
-                "excel_register": "register",
-                "field": "completion"
+                "pdf": "document",
             }
             if self.extractor_name in builder_map:
                 from src.application.jobs.build_facts_job import BuildFactsJob

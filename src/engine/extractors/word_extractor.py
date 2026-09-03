@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 class WordExtractor(BaseExtractor):
     """Extracts text from .docx (and limited .doc) files via WordProcessor."""
 
+    maturity = "VERIFIED"
+
     @property
     def id(self) -> str:
         return "word-extractor-v1"

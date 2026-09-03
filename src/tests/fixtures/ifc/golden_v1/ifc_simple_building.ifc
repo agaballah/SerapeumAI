@@ -1,0 +1,21 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;2');
+FILE_NAME('simple_building.ifc','2026-09-02T00:00:00',('Author'),('SerapeumAI Test'),
+  'SerapeumAI Gold Fixture','None','None');
+FILE_SCHEMA(('IFC2X3'));
+ENDSEC;
+DATA;
+#1=IFCPROJECT('3$kL$TQcz7zKzr$p$tY$Mq',$null,$null,$null,$null,$null,$null);
+#2=IFCSITE('2$oLA$iGv5A+Oq|9|GQ|LH',$null,'Main Site',$null,$null,$null,$null,$null,$null,$null,$null);
+#3=IFCBUILDING('1$j|G~aEj5f_+~yZ1yS7|wL',$null,'Ground Floor',$null,$null,#2,$null,$null,$null,$null,$null);
+#4=IFCBUILDINGSTOREY('3$vK~oL_e5D~}tS{CwzJLK',$null,'Ground',$null,#3,$null,$null,$null,$null,$null,$null);
+#5=IFCWALL('2$pTq~Mn{eLzX|7wYR9sKp',$null,'External Wall 01',$null,#4,$null,$null,$null,$null);
+#6=IFCRELCONTAINEDINSPATIALSTRUCTURE('1$mGp~Nq{fMaY|8xZS0tLq',$null,#5,#4);
+#7=IFCRELDEFINESBYPROPERTIES('2$nHq~Or{gNbZ|9yAT1uMr',$null,#5,#8);
+#8=IFCPROPERTYSINGLEVALUE('FireRating',$null,IFCTEXT('2HR'),$);
+#9=IFCWALL('3$oIr~Ps{hOcA|0zBU2vNs',$null,'Internal Wall 01',$null,#4,$null,$null,$null,$null);
+#10=IFCRELDEFINESBYPROPERTIES('4$pJs~Qt{iPdB|1ACw3wOt',$null,#9,#11);
+#11=IFCPROPERTYSINGLEVALUE('FireRating',$null,IFCTEXT('1HR'),$);
+ENDSEC;
+END-ISO-10303-21;

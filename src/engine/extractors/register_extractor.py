@@ -13,7 +13,8 @@ class ExcelRegisterExtractor(BaseExtractor):
     Extracts tabular data from Excel files (Registers/Logs).
     Uses Pandas to infer headers and output strict Key-Value rows.
     """
-    
+    maturity = "EXPERIMENTAL"
+
     @property
     def id(self) -> str:
         return "excel-register-extractor-v1"

@@ -15,18 +15,23 @@ class BaseExtractor(abc.ABC):
     Contract for V02 Extractors.
     Must be deterministic and stateless relative to the file version.
     """
-    
+
+    # Maturity levels: PRODUCTION > VERIFIED > EXPERIMENTAL > PLACEHOLDER
+    # Only PRODUCTION and VERIFIED extractors may appear in ExtractJob.EXTRACTORS.
+    # PLACEHOLDER and EXPERIMENTAL extractors belong in ExtractJob.STAGING_EXTRACTORS.
+    maturity: str = "PLACEHOLDER"
+
     @property
     @abc.abstractmethod
     def id(self) -> str:
         pass
-        
+
     @property
     @abc.abstractmethod
     def version(self) -> str:
         # Semver e.g. "1.0.0"
         pass
-        
+
     @property
     @abc.abstractmethod
     def supported_extensions(self) -> List[str]:

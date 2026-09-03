@@ -15,7 +15,8 @@ class FieldExtractor(BaseExtractor):
     For this implementation, we will use a robust Regex/Heuristic fallback
     to simulate VLM extraction on 'digital' PDFs or wait for actual VLM integration.
     """
-    
+    maturity = "PLACEHOLDER"
+
     @property
     def id(self) -> str:
         return "field-extractor-v1"

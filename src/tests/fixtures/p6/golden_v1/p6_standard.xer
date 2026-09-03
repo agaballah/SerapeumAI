@@ -1,0 +1,19 @@
+%T	PROJECT
+%F	proj_id	proj_short_name
+%R	P1	Standard Project
+%T	PROJWBS
+%F	wbs_id	proj_id	parent_wbs_id	wbs_short_name	wbs_name
+%R	W1	P1		WBS	Main WBS
+%T	TASK
+%F	task_id	proj_id	wbs_id	task_code	task_name	target_start_date	target_end_date	status_code	total_float_hr_cnt
+%R	A1	P1	W1	A-001	Foundation Work	2026-01-01	2026-01-05	TK_Complete	-8
+%R	A2	P1	W1	A-002	Structural Frame	2026-01-06	2026-01-15	TK_Active	0
+%R	A3	P1	W1	A-003	MEP Rough-in	2026-01-16	2026-01-25	TK_Active	16
+%R	A4	P1	W1	A-004	Interior Finishes	2026-01-26	2026-02-10	TK_NotStarted	40
+%R	A5	P1	W1	A-005	Commissioning	2026-02-11	2026-02-20	TK_NotStarted	80
+%T	TASKPRED
+%F	proj_id	task_id	pred_task_id	pred_type	lag
+%R	P1	A2	A1	FS	0
+%R	P1	A3	A2	FS	0
+%R	P1	A4	A3	FS	0
+%R	P1	A5	A4	FS	0
