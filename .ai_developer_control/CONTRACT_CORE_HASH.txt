@@ -1,0 +1,6 @@
+# Contract Core Hash
+# SHA256 of IMMUTABLE_CONSTITUTION (LF-normalized)
+# Generated: 2026-08-31 16:43
+# DO NOT EDIT. Regenerate only on Owner-approved constitutional amendment.
+
+330ec9c73d51b5e8f4a451affeca4d8f128a8938316bbcded1ce859f71c98253
