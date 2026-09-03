@@ -5,6 +5,7 @@ import logging
 import math
 import os
 import re
+import hashlib
 from typing import Any, Dict, List, Optional
 
 from src.engine.extractors.base import BaseExtractor, ExtractionResult
@@ -240,7 +241,13 @@ class DXFExtractor(BaseExtractor):
         if etype is None:
             return None
 
-        handle = getattr(ent, "handle", "")
+        _h = getattr(ent, "handle", "")
+        if not _h:
+            _d = dict(ent.dxf.__dict__)
+            _k = sorted(_d.keys())
+            _v = [_d[k] for k in _k]
+            _h = __import__("hashlib").sha1(str((abs_path, etype, _k, _v)).encode()).hexdigest()[:12]
+        handle = _h
         layer = str(getattr(ent.dxf, "layer", "0"))
 
         base = {

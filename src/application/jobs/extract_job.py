@@ -388,9 +388,181 @@ class ExtractJob(Job):
                 )
                 logger.info(f"Inserted {len(blocks)} blocks for doc {doc_id}")
 
-        # DXF Logic — deterministic CAD evidence staging
+        # CAD/DXF Logic — deterministic evidence staging
         elif rtype.startswith("dxf_"):
-            # Drawing-level metadata records are staged as raw JSON in the
-            # documents table's structured_data column; per-entity records
-            # get their own lightweight table entries keyed by handle.
-            pass  # raw evidence stays in ExtractionResult.records for query
+            self._insert_cad_record(db, vid, doc_id, rtype, data)
+
+    def _insert_cad_record(self, db, vid: str, doc_id: str, rtype: str, data: Dict[str, Any]) -> None:
+        """Persist a single CAD evidence record into the appropriate table.
+
+        Tables:
+          cad_drawings   – one row per file_version (drawing metadata)
+          cad_layers     – one row per layer per file_version (UNIQUE on fv+name)
+          cad_entities   – one row per entity per file_version (UNIQUE on fv+handle)
+          cad_blocks     – one row per block definition per file_version
+          cad_text_annotations – TEXT/MTEXT records keyed by handle
+          cad_dimensions – DIMENSION records keyed by handle
+        """
+        try:
+            if rtype == "dxf_drawing":
+                db.execute(
+                    """INSERT OR REPLACE INTO cad_drawings
+                       (drawing_id, file_version_id, drawing_version, created_at, modified_at,
+                        units, modelspace_entity_count, total_entity_types,
+                        entity_type_counts_json, layout_count, layout_names_json,
+                        layer_count, extents_min_x, extents_min_y, extents_max_x, extents_max_y,
+                        cap_reached, raw_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        f"cad_dwg_{vid}", vid,
+                        data.get("drawing_version"), data.get("created"), data.get("modified"),
+                        data.get("units"),
+                        data.get("modelspace_entity_count"), data.get("total_entity_types"),
+                        json.dumps(data.get("entity_type_counts", {}), ensure_ascii=False),
+                        data.get("layout_count"),
+                        json.dumps(data.get("layout_names", []), ensure_ascii=False),
+                        data.get("layer_count"),
+                        (data.get("extents") or {}).get("min_x"),
+                        (data.get("extents") or {}).get("min_y"),
+                        (data.get("extents") or {}).get("max_x"),
+                        (data.get("extents") or {}).get("max_y"),
+                        1 if data.get("cap_reached") else 0,
+                        json.dumps(data, ensure_ascii=False),
+                    ),
+                )
+
+            elif rtype == "dxf_layer":
+                db.execute(
+                    """INSERT OR REPLACE INTO cad_layers
+                       (layer_id, file_version_id, layer_name, color, linetype,
+                        frozen, locked, on_flag, raw_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        f"cad_lyr_{vid}_{data['layer_name']}", vid,
+                        data["layer_name"], data.get("color"), data.get("linetype"),
+                        1 if data.get("frozen") else 0,
+                        1 if data.get("locked") else 0,
+                        1 if data.get("on") else 0,
+                        json.dumps(data, ensure_ascii=False),
+                    ),
+                )
+
+            elif rtype == "dxf_entity":
+                handle = data.get("handle", "")
+                if not handle:
+                    return  # skip entities without stable handles
+                db.execute(
+                    """INSERT OR REPLACE INTO cad_entities
+                       (entity_id, file_version_id, handle, entity_type, layer, layout,
+                        source_file, raw_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        f"cad_ent_{vid}_{handle}", vid, handle,
+                        data.get("entity_type", rtype.replace("dxf_", "")),
+                        data.get("layer", "0"), data.get("layout", "modelspace"),
+                        data.get("source_file"),
+                        json.dumps(data, ensure_ascii=False),
+                    ),
+                )
+
+            elif rtype == "dxf_block":
+                name = data.get("block_name", "")
+                if not name:
+                    return
+                db.execute(
+                    """INSERT OR REPLACE INTO cad_blocks
+                       (block_id, file_version_id, block_name, entity_count,
+                        insert_references, is_xref, raw_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        f"cad_blk_{vid}_{name}", vid, name,
+                        data.get("entity_count", 0),
+                        data.get("insert_references", 0),
+                        1 if data.get("is_xref") else 0,
+                        json.dumps(data, ensure_ascii=False),
+                    ),
+                )
+
+            elif rtype in ("dxf_text", "dxf_mtext"):
+                handle = data.get("handle", "")
+                if not handle:
+                    return
+                db.execute(
+                    """INSERT OR REPLACE INTO cad_text_annotations
+                       (annotation_id, file_version_id, handle, entity_type, layer,
+                        text_content, x, y, z, rotation_deg, height, width,
+                        text_length, source_file, raw_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        f"cad_txt_{vid}_{handle}", vid, handle,
+                        data.get("entity_type", rtype.replace("dxf_", "")),
+                        data.get("layer", "0"),
+                        data.get("text"), data.get("x"), data.get("y"), data.get("z"),
+                        data.get("rotation_deg"), data.get("height"), data.get("width"),
+                        data.get("text_length"), data.get("source_file"),
+                        json.dumps(data, ensure_ascii=False),
+                    ),
+                )
+
+            elif rtype == "dxf_dimension":
+                handle = data.get("handle", "")
+                if not handle:
+                    return
+                db.execute(
+                    """INSERT OR REPLACE INTO cad_dimensions
+                       (dimension_id, file_version_id, handle, layer, dimension_type,
+                        dimtype_code, measurement,
+                        defpoint_x, defpoint_y, defpoint_z,
+                        defpoint2_x, defpoint2_y, defpoint2_z,
+                        text_override, dimstyle, source_file, raw_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        f"cad_dim_{vid}_{handle}", vid, handle,
+                        data.get("layer", "0"),
+                        data.get("dimension_type"), data.get("dimtype_code"),
+                        data.get("measurement"),
+                        data.get("defpoint_x"), data.get("defpoint_y"), data.get("defpoint_z"),
+                        data.get("defpoint2_x"), data.get("defpoint2_y"), data.get("defpoint2_z"),
+                        data.get("text_override"), data.get("dimstyle"),
+                        data.get("source_file"),
+                        json.dumps(data, ensure_ascii=False),
+                    ),
+                )
+
+            elif rtype == "dxf_unsupported":
+                # Unsupported entity summary — stored as a single aggregated row
+                etype = data.get("entity_type", "UNKNOWN")
+                count = data.get("count", 1)
+                db.execute(
+                    """INSERT OR REPLACE INTO cad_entities
+                       (entity_id, file_version_id, handle, entity_type, layer, layout,
+                        source_file, raw_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        f"cad_unsup_{vid}_{etype}", vid, f"__unsupported__{etype}",
+                        f"UNSUPPORTED:{etype}", "0", "summary",
+                        data.get("source_file"),
+                        json.dumps(data, ensure_ascii=False),
+                    ),
+                )
+
+            else:
+                # Catch-all for any other dxf_* record type (LINE, CIRCLE, ARC, etc.)
+                handle = data.get("handle", "") or f"no-handle-{hash(rtype + json.dumps(data, sort_keys=True)) & 0xFFFFFFFF:08x}"
+                db.execute(
+                    """INSERT OR REPLACE INTO cad_entities
+                       (entity_id, file_version_id, handle, entity_type, layer, layout,
+                        source_file, raw_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        f"cad_ent_{vid}_{handle}", vid, handle,
+                        data.get("entity_type", rtype.replace("dxf_", "")),
+                        data.get("layer", "0"),
+                        data.get("layout", "modelspace"),
+                        data.get("source_file"),
+                        json.dumps(data, ensure_ascii=False),
+                    ),
+                )
+
+        except Exception as exc:
+            logger.warning("[ExtractJob] CAD record insertion failed for %s: %s", rtype, exc, exc_info=True)
