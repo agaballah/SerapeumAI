@@ -395,9 +395,13 @@ class TestDXFIntegrationViaExtractJob:
         assert res["doc_id"] is not None
         assert isinstance(res["structured_data"], list)
         assert len(res["structured_data"]) > 0
+        # First record should have a cad_type key and a layer identifier
+        # (either 'layer' for entity records or 'layer_name' for layer records).
         first = res["structured_data"][0]
-        assert "type" in first
-        assert "layer" in first
+        assert "cad_type" in first or "type" in first
+        assert "layer" in first or "layer_name" in first
+        assert res["meta"]["source"] == "cad-processor"
+        assert res["meta"]["status_diagnostic"] == "SUCCESS"
 
     def test_dxf_extractor_returns_extraction_result(self, extractor, tmp_path):
         f = tmp_path / "er.dxf"
