@@ -153,7 +153,8 @@ class IngestFileJob(Job):
             ".xls": "excel_register",
             ".pdf": "pdf", # Universal PDF Extractor
             ".jpg": "field",
-            ".png": "field"
+            ".png": "field",
+            ".dxf": "dxf",
         }
         
         if ext in extractor_map:

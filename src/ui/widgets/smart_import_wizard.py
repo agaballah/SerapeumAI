@@ -55,7 +55,9 @@ class SmartImportWizard(ctk.CTkToplevel):
     def browse_file(self):
         import os
         filename = filedialog.askopenfilename(filetypes=[
-            ("Engineering Documents", "*.xlsx *.xls *.pdf *.ifc"),
+            ("Engineering Documents", "*.xlsx *.xls *.pdf *.ifc *.dxf"),
+            ("CAD Drawings", "*.dxf"),
+            ("BIM Models", "*.ifc"),
             ("Excel Files", "*.xlsx *.xls"),
             ("Project PDF", "*.pdf"),
             ("All Files", "*.*")

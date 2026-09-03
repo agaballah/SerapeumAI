@@ -2,6 +2,10 @@ import customtkinter as ctk
 import logging
 import os
 
+from src.application.services.cad_evidence_presentation import (
+    build_cad_evidence_view,
+    render_cad_evidence_text,
+)
 from src.application.services.file_inspector_presentation import build_file_inspector_payload
 from src.ui.styles.theme import Theme
 
@@ -9,12 +13,20 @@ logger = logging.getLogger(__name__)
 
 
 class FileDetailPanel(ctk.CTkToplevel):
-    def __init__(self, parent, db, file_id=None, file_path=None):
+    def __init__(self, parent, db, file_id=None, file_path=None, project_id=None):
         super().__init__(parent, fg_color=Theme.BG_DARKEST)
 
         self.db = db
         self.file_path = file_path
         self.file_id = file_id
+        # Project id may be supplied explicitly; otherwise fall back to the
+        # parent controller (if it exposes one). This preserves backward
+        # compatibility with callers that do not pass project_id.
+        if project_id is not None:
+            self.project_id = project_id
+        else:
+            controller = getattr(parent, "controller", None)
+            self.project_id = getattr(controller, "active_project_id", None) if controller is not None else None
 
         self.title("File Inspector")
         self.geometry("980x760")
@@ -39,12 +51,14 @@ class FileDetailPanel(ctk.CTkToplevel):
         self.tab_meta = self.tabview.add("Full Metadata")
         self.tab_raw = self.tabview.add("Raw Deterministic Extraction")
         self.tab_ai = self.tabview.add("AI Output Only")
+        self.tab_cad = self.tabview.add("CAD Evidence")
         self.tabview.set("Consolidated Review")
 
         self.txt_review = self._make_textbox(self.tab_review)
         self.txt_meta = self._make_textbox(self.tab_meta)
         self.txt_raw = self._make_textbox(self.tab_raw)
         self.txt_ai = self._make_textbox(self.tab_ai)
+        self.txt_cad = self._make_textbox(self.tab_cad)
 
         self._load_data()
 
@@ -68,10 +82,17 @@ class FileDetailPanel(ctk.CTkToplevel):
             self._set_text(self.txt_meta, payload.get("full_metadata", "No metadata available."))
             self._set_text(self.txt_raw, payload.get("raw_deterministic_extraction", "No deterministic extraction available."))
             self._set_text(self.txt_ai, payload.get("ai_output_only", "No AI output available."))
+            cad_view = build_cad_evidence_view(
+                self.db,
+                file_id=self.file_id,
+                file_path=self.file_path,
+                project_id=self.project_id,
+            )
+            self._set_text(self.txt_cad, render_cad_evidence_text(cad_view))
         except Exception as e:
             logger.error(f"Error loading file inspector details: {e}", exc_info=True)
             msg = f"File Inspector failed to load details:\n{e}"
-            for widget in (self.txt_review, self.txt_meta, self.txt_raw, self.txt_ai):
+            for widget in (self.txt_review, self.txt_meta, self.txt_raw, self.txt_ai, self.txt_cad):
                 self._set_text(widget, msg)
 
     @staticmethod
