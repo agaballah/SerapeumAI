@@ -2,6 +2,7 @@
 build/
 dist/
 models/
+!src/domain/models/
 **/__pycache__/
 *.pyc
 *.pyo
@@ -9,3 +10,5 @@ models/
 .mypy_cache/
 .venv/
 venv/
+
+_LOCAL_TEST_CORPUS/
