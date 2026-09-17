@@ -164,33 +164,33 @@ def test_pptx_routing_produces_slide_records(tmp_path):
     assert rows["c"] > 0, "PPTX must produce at least one page record"
 
 
-# ── 4. XLS normal routing — must NOT crash (INGEST_ONLY) ──────────────
+# ── 4. XLS/XLSX normal routing — must trigger ExcelExtractor ───────────
 
 
-def test_xls_routed_as_ingest_only_no_crash(tmp_path):
+def test_xls_routed_to_excel_extractor(tmp_path):
     xls_path = CORPUS / "19_XLS_1806 - V14-Arch Drawing Register - DD.xls"
     assert xls_path.exists()
     db = _db(tmp_path)
     vid, submitted = _ingest(db, "P1", str(xls_path), ".xls")
     assert vid is not None
-    # .xls is NOT in extractor_map → no ExtractJob queued → no crash
+    # .xls is now in extractor_map → ExtractJob queued with "excel" extractor
     extract_jobs = [j for j in submitted if isinstance(j, ExtractJob)]
-    assert len(extract_jobs) == 0, \
-        ".xls must NOT trigger an ExtractJob (STAGING extractor must not enter production path)"
+    assert len(extract_jobs) == 1, ".xls must trigger exactly one ExtractJob"
+    assert extract_jobs[0].extractor_name == "excel"
     # File must still appear in documents
     docs = db.execute("SELECT COUNT(*) AS c FROM documents WHERE project_id='P1'").fetchone()["c"]
     assert docs >= 1
 
 
-def test_xlsx_routed_as_ingest_only_no_crash(tmp_path):
+def test_xlsx_routed_to_excel_extractor(tmp_path):
     xlsx_path = CORPUS / "21_XLSX_Fursan 01_NHC_ZONES 9-10 MP_R06 -Villa -ADD.xlsx"
     assert xlsx_path.exists()
     db = _db(tmp_path)
     vid, submitted = _ingest(db, "P1", str(xlsx_path), ".xlsx")
     assert vid is not None
     extract_jobs = [j for j in submitted if isinstance(j, ExtractJob)]
-    assert len(extract_jobs) == 0, \
-        ".xlsx must NOT trigger an ExtractJob (STAGING extractor must not enter production path)"
+    assert len(extract_jobs) == 1, ".xlsx must trigger exactly one ExtractJob"
+    assert extract_jobs[0].extractor_name == "excel"
     docs = db.execute("SELECT COUNT(*) AS c FROM documents WHERE project_id='P1'").fetchone()["c"]
     assert docs >= 1
 
@@ -224,7 +224,8 @@ def test_inject_file_job_excludes_staging_keys_from_map():
 # ── 6. IFC missing-dependency honesty ─────────────────────────────────
 
 
-def test_ifc_missing_dependency_returns_honest_failure(tmp_path):
+def test_ifc_extraction_succeeds_with_dependency(tmp_path):
+    """IFC extraction now succeeds with ifcopenshell installed."""
     import tempfile as _tmpfile
     with _tmpfile.TemporaryDirectory() as td:
         db = _db(Path(td))
@@ -233,15 +234,11 @@ def test_ifc_missing_dependency_returns_honest_failure(tmp_path):
         vid, submitted = _ingest(db, "P1", str(ifc_path), ".ifc")
         assert vid is not None
         results = _run_extracted(submitted, db, "P1")
-        # IfcExtractor returns success=False when ifcopenshell is absent
-        has_fail = any(not r.get("success", True) for r in results)
-        if not results:
-            # No extraction attempted — also honest (dependency blocked)
-            pass
-        else:
-            assert has_fail or any("ifcopenshell" in str(r.get("error", "")).lower()
-                                   for r in results), \
-                f"IFC must report missing dependency, got: {results}"
+        # With ifcopenshell installed, IFC extraction should succeed and produce records
+        has_records = any(r.get("record_count", 0) > 0 for r in results)
+        has_error = any("error" in r for r in results)
+        assert has_records and not has_error, \
+            f"IFC extraction should succeed with ifcopenshell installed, got: {results}"
 
 
 # ── 7. DWG extraction-support honesty ─────────────────────────────────
@@ -294,26 +291,26 @@ def test_rvt_produces_no_cad_evidence(tmp_path):
 # ── 9. Image staging/placeholder honesty ──────────────────────────────
 
 
-def test_jpg_not_routed_to_field_placeholder(tmp_path):
+def test_jpg_routed_to_image_extractor(tmp_path):
     jpg_path = CORPUS / "09_JPG_23-008HVAC-TH_C+_27-5M-OPT-03_kmahmoudG8D9T-NaagaText-5345644.jpg"
     assert jpg_path.exists()
     db = _db(tmp_path)
     vid, submitted = _ingest(db, "P1", str(jpg_path), ".jpg")
     assert vid is not None
     extract_jobs = [j for j in submitted if isinstance(j, ExtractJob)]
-    assert len(extract_jobs) == 0, ".jpg must NOT trigger extraction (FieldExtractor is PLACEHOLDER)"
+    assert len(extract_jobs) >= 1, ".jpg must trigger extraction (ImageExtractor is PRODUCTION)"
     docs = db.execute("SELECT COUNT(*) AS c FROM documents WHERE project_id='P1'").fetchone()["c"]
     assert docs >= 1
 
 
-def test_png_not_routed_to_field_placeholder(tmp_path):
+def test_png_routed_to_image_extractor(tmp_path):
     png_path = CORPUS / "14_PNG_24P076S-TH_B_10M_aahmed4YVNQ-NagaLogo-3751935.png"
     assert png_path.exists()
     db = _db(tmp_path)
     vid, submitted = _ingest(db, "P1", str(png_path), ".png")
     assert vid is not None
     extract_jobs = [j for j in submitted if isinstance(j, ExtractJob)]
-    assert len(extract_jobs) == 0, ".png must NOT trigger extraction (FieldExtractor is PLACEHOLDER)"
+    assert len(extract_jobs) >= 1, ".png must trigger extraction (ImageExtractor is PRODUCTION)"
 
 
 def test_field_extractor_returns_empty_records_on_non_ir_file():
@@ -328,8 +325,8 @@ def test_field_extractor_returns_empty_records_on_non_ir_file():
 # ── 10. Ingest-only vs extractable distinction ────────────────────────
 
 
-def test_ingest_only_formats_have_no_extraction_runs(tmp_path):
-    """TXT, MD, JSON, XML, YAML, LOG, CSV, XLSM should ingest but not extract."""
+def test_structured_formats_produce_extraction_runs(tmp_path):
+    """TXT, MD, JSON, XML, YAML, LOG, CSV now have production extractors and must queue ExtractJobs."""
     text_files = [
         ("17_TXT_TYPE B-S010.txt", ".txt"),
         ("12_MD_kkr_direction1_extraction_pack_v13.md", ".md"),
@@ -338,7 +335,6 @@ def test_ingest_only_formats_have_no_extraction_runs(tmp_path):
         ("23_YAML_ahmed_gaballa_career_working_baseline_v0.yaml", ".yaml"),
         ("11_LOG_plot.log", ".log"),
         ("01_CSV_Lighting Fixture Schedule.csv", ".csv"),
-        ("20_XLSM_villa B1 - Type 28-12-2025 حصر.xlsm", ".xlsm"),
     ]
     db = _db(tmp_path)
     for name, ext in text_files:
@@ -348,7 +344,7 @@ def test_ingest_only_formats_have_no_extraction_runs(tmp_path):
         vid, submitted = _ingest(db, "P1", str(fp), ext)
         assert vid is not None
         extract_jobs = [j for j in submitted if isinstance(j, ExtractJob)]
-        assert len(extract_jobs) == 0, f"{ext} must NOT trigger ExtractJob"
+        assert len(extract_jobs) >= 1, f"{ext} must trigger ExtractJob (has production extractor)"
 
 
 def test_extractable_formats_produce_extraction_runs(tmp_path):
@@ -381,22 +377,19 @@ def test_dwg_cannot_mislead_as_successful_extraction(tmp_path):
     assert view["empty"] is True
 
 
-def test_ifc_dependency_blocked_status_visible_in_view(tmp_path):
-    """IFC with missing dep: view shows QUEUED/FAILED, not SUCCESS."""
+def test_ifc_extraction_status_visible_in_view(tmp_path):
+    """IFC with ifcopenshell installed: view shows SUCCESS with records."""
     ifc_path = CORPUS / "07_IFC_RRE-WP-MOD-KEO-STR-V4-ZZ-MOD-1401.ifc"
     db = _db(tmp_path)
     vid, submitted = _ingest(db, "P1", str(ifc_path), ".ifc")
     # IFC routes to "ifc" extractor which is in EXTRACTORS — will attempt extraction
-    # but fails due to missing ifcopenshell
+    # With ifcopenshell installed, extraction succeeds
     results = _run_extracted(submitted, db, "P1")
-    has_error = any("ifcopenshell" in str(r).lower() for r in results)
-    has_success_with_no_records = any(
-        r.get("record_count", 0) == 0 and r.get("success", False)
-        for r in results
-    )
-    # Either we see the dependency error, or no records were produced
-    assert has_error or not any(r.get("record_count", 0) > 0 for r in results), \
-        "IFC must not silently succeed with zero evidence"
+    has_records = any(r.get("record_count", 0) > 0 for r in results)
+    has_error = any("error" in r for r in results)
+    # IFC must succeed with records when ifcopenshell is available
+    assert has_records and not has_error, \
+        "IFC must succeed with records when ifcopenshell is installed"
 
 
 # ── 12. Project/global DB separation ──────────────────────────────────

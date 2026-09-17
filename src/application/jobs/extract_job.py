@@ -16,6 +16,14 @@ from src.engine.extractors.word_extractor import WordExtractor
 from src.engine.extractors.pptx_extractor import PPTXExtractor
 from src.engine.extractors.dgn_extractor import DGNExtractor
 from src.engine.extractors.dxf_extractor import DXFExtractor
+from src.engine.extractors.mpxj_wrapper import MPXJWrapper
+from src.engine.extractors.text_extractor import TextExtractor
+from src.engine.extractors.json_extractor import JsonExtractor
+from src.engine.extractors.xml_extractor import XmlExtractor
+from src.engine.extractors.yaml_extractor import YamlExtractor
+from src.engine.extractors.csv_extractor import CsvExtractor
+from src.engine.extractors.image_extractor import ImageExtractor
+from src.engine.extractors.excel_extractor import ExcelExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +49,14 @@ class ExtractJob(Job):
         "word": WordExtractor,
         "pptx": PPTXExtractor,
         "dxf": DXFExtractor,
+        "mpp": MPXJWrapper,
+        "text": TextExtractor,
+        "json": JsonExtractor,
+        "xml": XmlExtractor,
+        "yaml": YamlExtractor,
+        "csv": CsvExtractor,
+        "image": ImageExtractor,
+        "excel": ExcelExtractor,
     }
 
     # Staging registry — EXPERIMENTAL and PLACEHOLDER extractors live here.

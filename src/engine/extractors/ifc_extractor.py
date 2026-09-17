@@ -47,6 +47,7 @@ class IFCExtractor(BaseExtractor):
                     "data": {
                         "GlobalId": proj.GlobalId,
                         "Name": proj.Name or "Unnamed Project",
+                        "Schema": f.schema,
                         "Units": str(proj.UnitsInContext) if hasattr(proj, "UnitsInContext") else None
                     },
                     "provenance": {"entity": "IfcProject"}
@@ -109,6 +110,29 @@ class IFCExtractor(BaseExtractor):
                         "Element2Id": connect.RelatedElement.GlobalId,
                     },
                     "provenance": {"entity": connect.is_a()}
+                })
+
+            # 5. Entity Type Counts (for benchmark completeness comparison)
+            entity_types = [
+                "IfcSite", "IfcBuilding", "IfcBuildingStorey",
+                "IfcWall", "IfcSlab", "IfcSpace", "IfcDoor", "IfcWindow",
+                "IfcColumn", "IfcBeam", "IfcCovering", "IfcFurnishingElement",
+                "IfcOpeningElement", "IfcStair", "IfcRamp",
+                "IfcProject", "IfcElement", "IfcProduct",
+                "IfcRelConnectsElements", "IfcRelFillsElement", "IfcRelVoidsElement",
+            ]
+            for entity_type in entity_types:
+                count = len(f.by_type(entity_type))
+                # Strip Ifc prefix for field name: "IfcBuilding" -> "building"
+                short_name = entity_type[3:] if entity_type.startswith("Ifc") else entity_type
+                records.append({
+                    "type": "ifc_entity_count",
+                    "data": {
+                        "EntityType": entity_type,
+                        "Count": count,
+                        "FieldName": f"ifc_{short_name.lower()}__count"
+                    },
+                    "provenance": {"entity": entity_type}
                 })
 
             diagnostics.append(f"Successfully parsed {len(records)} Engineering-Scale IFC entities.")

@@ -153,15 +153,32 @@ class IngestFileJob(Job):
         extractor_map = {
             ".xer": "p6",
             ".ifc": "ifc",
+            ".mpp": "mpp",
             ".pdf": "pdf",
             ".dxf": "dxf",
             ".doc": "word",
             ".docx": "word",
             ".pptx": "pptx",
-            # NOTE: .xlsx/.xls are NOT routed here because the existing
-            # ExcelRegisterExtractor lives in STAGING_EXTRACTORS
-            # (EXPERIMENTAL maturity) and must not enter the production
-            # pipeline per the support-contract principle. See DEFECT_REGISTER D2.
+            ".xls": "excel",
+            ".xlsx": "excel",
+            ".xlsm": "excel",
+            # Wave A — deterministic text/structured/image formats
+            ".txt": "text",
+            ".md": "text",
+            ".log": "text",
+            ".json": "json",
+            ".xml": "xml",
+            ".yaml": "yaml",
+            ".yml": "yaml",
+            ".csv": "csv",
+            ".tsv": "csv",
+            ".png": "image",
+            ".jpg": "image",
+            ".jpeg": "image",
+            ".bmp": "image",
+            ".tif": "image",
+            ".tiff": "image",
+            ".webp": "image",
         }
         
         if ext in extractor_map:

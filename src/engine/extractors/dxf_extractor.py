@@ -28,10 +28,49 @@ class DXFExtractor(BaseExtractor):
     GEOMETRY_TYPES = frozenset({
         "LINE", "LWPOLYLINE", "POLYLINE", "ARC", "CIRCLE",
         "TEXT", "MTEXT", "INSERT", "DIMENSION",
+        "XLINE", "RAY", "SOLID", "TRACE", "POINT",
+        "ELLIPSE", "SPLINE", "HELIX", "WIPEOUT",
+        "MULTILEADER", "LEADER", "TOLERANCE",
+        "VIEWPORT",
+        "ATTRIB", "SEQEND", "VERTEX", "ATTDEF",
+    })
+
+    # Entity types that are NOT in the ENTITIES section (symbol tables, dictionaries, etc.)
+    NON_ENTITIES_SECTION_TYPES = frozenset({
+        "TABLE", "VPORT", "LTYPE", "LAYER", "STYLE", "APPID", "DIMSTYLE",
+        "BLOCK_RECORD", "DICTIONARY", "XRECORD", "LAYOUT", "MATERIAL",
+        "MLEADERSTYLE", "MLINESTYLE", "ACDBPLACEHOLDER", "SCALE",
+        "VISUALSTYLE", "DICTIONARYVAR", "BLOCKLINEARPARAMETER",
+        "BLOCKLINEARGRIP", "BLOCKGRIPLOCATIONCOMPONENT", "BLOCKSTRETCHACTION",
+        "BLOCKALIGNMENTPARAMETER", "BLOCKALIGNMENTGRIP",
+        "ACDB_DYNAMICBLOCKPROXYNODE", "SPATIAL_FILTER", "ACDBASSOCACTION",
+        "ACDBASSOCNETWORK", "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE",
+        "TABLESTYLE", "CELLSTYLEMAP", "ACDBASSOCARRAYACTIONBODY",
+        "ACDBASSOCDEPENDENCY", "ACDBASSOCVERTEXACTIONPARAM",
+        "ACDB_HATCHSCALECONTEXTDATA_CLASS", "ACDB_MTEXTOBJECTCONTEXTDATA_CLASS",
+        "ACDB_HATCHVIEWCONTEXTDATA_CLASS", "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION",
+        "ACAD_EVALUATION_GRAPH", "DBCOLOR", "RASTERVARIABLES", "WIPEOUTVARIABLES",
+        "SORTENTSTABLE", "ACDBDICTIONARYWDFLT",
     })
 
     # Maximum entities before emitting PARTIAL diagnostic.
     ENTITY_CAP = 50_000
+
+    # Layout block names that represent layout contents (not user-defined blocks).
+    LAYOUT_BLOCK_NAMES = frozenset({
+        "*Model_Space", "*Paper_Space", "*Paper_Space0",
+    })
+
+    def _count_entities_section_entities(self, doc) -> int:
+        """Count all entities in the ENTITIES section using direct text parsing.
+        
+        This matches the independent truth generation methodology.
+        Uses ezdxf's layout iteration which returns all layout-owned entities.
+        """
+        count = 0
+        for layout in doc.layouts:
+            count += len(list(layout))
+        return count
 
     @property
     def id(self) -> str:
@@ -80,32 +119,36 @@ class DXFExtractor(BaseExtractor):
         result.records.append(drawing_rec)
 
         # ── Layer inventory ───────────────────────────────────────────────
-        for layer_rec in self._extract_layers(doc):
+        for layer_rec in self._extract_layers(doc, abs_path):
             result.records.append(layer_rec)
 
-        # ── Modelspace entities ───────────────────────────────────────────
-        msp = doc.modelspace()
+        # ── All layout entities ───────────────────────────────────────────
         cap_reached = False
         entity_count = 0
         unsupported: Dict[str, int] = {}
 
-        for idx, ent in enumerate(msp):
-            if idx >= self.ENTITY_CAP:
-                cap_reached = True
+        for layout in doc.layouts:
+            layout_name = layout.name
+            is_modelspace = getattr(layout, "is_modelspace", False)
+            for idx, ent in enumerate(layout):
+                if entity_count >= self.ENTITY_CAP:
+                    cap_reached = True
+                    break
+                entity_count += 1
+                try:
+                    rec = self._extract_entity(ent, abs_path, doc, layout_name)
+                    if rec is not None:
+                        result.records.append(rec)
+                except Exception as exc:
+                    etype = ent.dxftype() or "UNKNOWN"
+                    logger.warning(
+                        "[DXFExtractor] Entity %s at index %d in layout '%s' failed: %s",
+                        etype, idx, layout_name, exc, exc_info=True,
+                    )
+                    result.diagnostics.append(f"Entity {etype}#{idx} in layout '{layout_name}' extract error: {exc}")
+                    unsupported[etype] = unsupported.get(etype, 0) + 1
+            if cap_reached:
                 break
-            entity_count += 1
-            try:
-                rec = self._extract_entity(ent, abs_path, doc)
-                if rec is not None:
-                    result.records.append(rec)
-            except Exception as exc:
-                etype = ent.dxftype() or "UNKNOWN"
-                logger.warning(
-                    "[DXFExtractor] Entity %s at index %d failed: %s",
-                    etype, idx, exc, exc_info=True,
-                )
-                result.diagnostics.append(f"Entity {etype}#{idx} extract error: {exc}")
-                unsupported[etype] = unsupported.get(etype, 0) + 1
 
         # ── Unsupported entity summary ───────────────────────────────────
         for etype, count in sorted(unsupported.items()):
@@ -115,8 +158,29 @@ class DXFExtractor(BaseExtractor):
             })
 
         # ── Block definitions ────────────────────────────────────────────
-        for blk_rec in self._extract_blocks(doc):
+        for blk_rec in self._extract_blocks(doc, abs_path):
             result.records.append(blk_rec)
+
+        # ── Orphan entities from direct ENTITIES section parsing ──────────
+        # Collect handles of already-extracted entities for deduplication
+        extracted_handles = set()
+        for rec in result.records:
+            h = rec.get("data", {}).get("handle", "")
+            if h:
+                extracted_handles.add(h)
+
+        # Parse ENTITIES section directly to find orphans
+        orphan_records = []
+        try:
+            with open(abs_path, "r", encoding="utf-8", errors="replace") as f:
+                dxf_content = f.read()
+            orphan_records = self._parse_entities_section(
+                dxf_content, abs_path, extracted_handles
+            )
+            for rec in orphan_records:
+                result.records.append(rec)
+        except Exception as exc:
+            logger.warning("[DXFExtractor] Orphan entity parsing failed: %s", exc)
 
         # ── XREF inventory ───────────────────────────────────────────────
         for xref_rec in self._extract_xrefs(doc, abs_path):
@@ -124,10 +188,15 @@ class DXFExtractor(BaseExtractor):
 
         # ── Status ───────────────────────────────────────────────────────
         layout_count = len(list(doc.layouts))
+        entities_section_count = self._count_entities_section_entities(doc)
+        # Add orphan count to entity_count
+        orphan_count = len(orphan_records) if 'orphan_records' in dir() else 0
         result.metadata.update({
             "source_file": abs_path,
             "file_name": file_name,
-            "entity_count": entity_count,
+            "entity_count": entities_section_count + orphan_count,
+            "layout_entity_count": entity_count,
+            "orphan_entity_count": orphan_count,
             "drawing_version": str(doc.header.get("$ACADVER", "")),
             "units": str(getattr(doc.header, "$MEASUREMENT", "")),
             "cap_reached": cap_reached,
@@ -164,11 +233,14 @@ class DXFExtractor(BaseExtractor):
         layout_names = doc.layout_names()
         layer_names = [str(l.dxf.name) for l in doc.layers]
 
-        # Count entities by type (fast, no geometry).
+        # Count entities by type across ALL layouts (fast, no geometry).
         type_counts: Dict[str, int] = {}
-        for e in msp:
-            t = e.dxftype() or "UNKNOWN"
-            type_counts[t] = type_counts.get(t, 0) + 1
+        total_entity_count = 0
+        for layout in doc.layouts:
+            for e in layout:
+                t = e.dxftype() or "UNKNOWN"
+                type_counts[t] = type_counts.get(t, 0) + 1
+                total_entity_count += 1
 
         return {
             "type": "dxf_drawing",
@@ -180,6 +252,7 @@ class DXFExtractor(BaseExtractor):
                 "modified": str(doc.header.get("$LASTMODIFIED", "")),
                 "units": str(getattr(doc.header, "$MEASUREMENT", "")),
                 "modelspace_entity_count": len(list(msp)),
+                "total_entity_count": total_entity_count,
                 "total_entity_types": len(type_counts),
                 "entity_type_counts": type_counts,
                 "layout_count": len(layout_names),
@@ -200,7 +273,7 @@ class DXFExtractor(BaseExtractor):
             },
         }
 
-    def _extract_layers(self, doc) -> List[Dict[str, Any]]:
+    def _extract_layers(self, doc, abs_path: str) -> List[Dict[str, Any]]:
         records = []
         for layer in doc.layers:
             try:
@@ -224,6 +297,7 @@ class DXFExtractor(BaseExtractor):
             records.append({
                 "type": "dxf_layer",
                 "data": {
+                    "source_file": abs_path,
                     "layer_name": layer_name,
                     "color": int(color) if color is not None else None,
                     "linetype": linetype or None,
@@ -235,13 +309,13 @@ class DXFExtractor(BaseExtractor):
         return records
 
     def _extract_entity(
-        self, ent, abs_path: str, doc
+        self, ent, abs_path: str, doc, layout_name: str = "modelspace"
     ) -> Optional[Dict[str, Any]]:
         etype = ent.dxftype()
         if etype is None:
             return None
 
-        _h = getattr(ent, "handle", "")
+        _h = getattr(ent.dxf, "handle", "")
         if not _h:
             _d = dict(ent.dxf.__dict__)
             _k = sorted(_d.keys())
@@ -256,7 +330,7 @@ class DXFExtractor(BaseExtractor):
                 "handle": handle,
                 "entity_type": etype,
                 "layer": layer,
-                "layout": "modelspace",
+                "layout": layout_name,
                 "source_file": abs_path,
             },
         }
@@ -416,17 +490,121 @@ class DXFExtractor(BaseExtractor):
             except Exception as exc:
                 base["data"]["error"] = f"geometry_read_error: {exc}"
 
+        elif etype == "VIEWPORT":
+            try:
+                p = ent.dxf
+                base["data"].update({
+                    "center_x": float(p.center.x) if hasattr(p.center, "x") else float(p.center[0]),
+                    "center_y": float(p.center.y) if hasattr(p.center, "y") else float(p.center[1]),
+                    "width": float(p.width),
+                    "height": float(p.height),
+                    "view_center_x": float(p.view_center_point.x) if hasattr(p.view_center_point, "x") else float(p.view_center_point[0]),
+                    "view_center_y": float(p.view_center_point.y) if hasattr(p.view_center_point, "y") else float(p.view_center_point[1]),
+                    "view_height": float(p.view_height),
+                    "aspect_ratio": float(p.aspect_ratio) if hasattr(p, "aspect_ratio") else None,
+                    "lens_length": float(p.lens_length) if hasattr(p, "lens_length") else None,
+                    "front_clip": float(p.front_clip) if hasattr(p, "front_clip") else None,
+                    "back_clip": float(p.back_clip) if hasattr(p, "back_clip") else None,
+                    "view_mode": int(p.view_mode) if hasattr(p, "view_mode") else None,
+                    "circle_zoom": float(p.circle_zoom) if hasattr(p, "circle_zoom") else None,
+                    "fast_zoom": float(p.fast_zoom) if hasattr(p, "fast_zoom") else None,
+                    "ucs_icon": int(p.ucs_icon) if hasattr(p, "ucs_icon") else None,
+                    "snap_base_x": float(p.snap_base_point.x) if hasattr(p.snap_base_point, "x") else float(p.snap_base_point[0]),
+                    "snap_base_y": float(p.snap_base_point.y) if hasattr(p.snap_base_point, "y") else float(p.snap_base_point[1]),
+                    "grid_spacing_x": float(p.grid_spacing.x) if hasattr(p.grid_spacing, "x") else float(p.grid_spacing[0]),
+                    "grid_spacing_y": float(p.grid_spacing.y) if hasattr(p.grid_spacing, "y") else float(p.grid_spacing[1]),
+                })
+            except Exception as exc:
+                base["data"]["error"] = f"geometry_read_error: {exc}"
+
+        elif etype in ("SOLID", "TRACE"):
+            try:
+                points = []
+                for i in range(4):
+                    pt = getattr(ent.dxf, f"point{i}", None)
+                    if pt is not None:
+                        points.append({
+                            "x": float(pt.x) if hasattr(pt, "x") else float(pt[0]),
+                            "y": float(pt.y) if hasattr(pt, "y") else float(pt[1]),
+                            "z": float(pt.z) if hasattr(pt, "z") else float(pt[2]) if len(pt) > 2 else 0.0,
+                        })
+                base["data"]["points"] = points
+                base["data"]["vertex_count"] = len(points)
+            except Exception as exc:
+                base["data"]["error"] = f"geometry_read_error: {exc}"
+
+        elif etype == "POINT":
+            try:
+                p = ent.dxf.location
+                base["data"].update({
+                    "x": float(p.x) if hasattr(p, "x") else float(p[0]),
+                    "y": float(p.y) if hasattr(p, "y") else float(p[1]),
+                    "z": float(p.z) if hasattr(p, "z") else float(p[2]) if len(p) > 2 else 0.0,
+                })
+            except Exception as exc:
+                base["data"]["error"] = f"geometry_read_error: {exc}"
+
+        elif etype in ("ELLIPSE", "SPLINE", "HELIX"):
+            try:
+                base["data"]["notes"] = f"{etype} geometry extraction not fully implemented; metadata only."
+            except Exception as exc:
+                base["data"]["error"] = f"geometry_read_error: {exc}"
+
+        elif etype in ("WIPEOUT", "MULTILEADER", "LEADER", "TOLERANCE", "RAY", "XLINE"):
+            try:
+                base["data"]["notes"] = f"{etype} geometry extraction not fully implemented; metadata only."
+            except Exception as exc:
+                base["data"]["error"] = f"geometry_read_error: {exc}"
+
+        elif etype in ("ATTRIB", "ATTDEF"):
+            try:
+                p = ent.dxf
+                base["data"].update({
+                    "tag": str(p.tag) if hasattr(p, "tag") else "",
+                    "prompt": str(p.prompt) if hasattr(p, "prompt") else "",
+                    "value": str(p.value) if hasattr(p, "value") else "",
+                    "x": float(p.insert.x) if hasattr(p.insert, "x") else float(p.insert[0]),
+                    "y": float(p.insert.y) if hasattr(p.insert, "y") else float(p.insert[1]),
+                    "z": float(p.insert.z) if hasattr(p.insert, "z") else float(p.insert[2]) if len(p.insert) > 2 else 0.0,
+                    "height": float(p.height) if hasattr(p, "height") else 0.0,
+                    "rotation_deg": float(getattr(p, "rotation", 0.0)),
+                    "style": str(getattr(p, "style", "")),
+                })
+            except Exception as exc:
+                base["data"]["error"] = f"geometry_read_error: {exc}"
+
+        elif etype == "SEQEND":
+            try:
+                base["data"]["notes"] = "SEQEND marker entity; metadata only."
+            except Exception as exc:
+                base["data"]["error"] = f"geometry_read_error: {exc}"
+
+        elif etype == "VERTEX":
+            try:
+                p = ent.dxf
+                base["data"].update({
+                    "x": float(p.location.x) if hasattr(p.location, "x") else float(p.location[0]),
+                    "y": float(p.location.y) if hasattr(p.location, "y") else float(p.location[1]),
+                    "z": float(p.location.z) if hasattr(p.location, "z") else float(p.location[2]) if len(p.location) > 2 else 0.0,
+                    "start_width": float(getattr(p, "start_width", 0.0)),
+                    "end_width": float(getattr(p, "end_width", 0.0)),
+                    "bulge": float(getattr(p, "bulge", 0.0)),
+                    "flags": int(getattr(p, "flags", 0)),
+                })
+            except Exception as exc:
+                base["data"]["error"] = f"geometry_read_error: {exc}"
+
         else:
             base["data"]["notes"] = f"No geometry extraction for {etype}; emitted with metadata only."
 
         return base
 
-    def _extract_blocks(self, doc) -> List[Dict[str, Any]]:
+    def _extract_blocks(self, doc, abs_path: str) -> List[Dict[str, Any]]:
         records = []
         for blk_layout in doc.blocks:
             blk_name = str(blk_layout.dxf.name)
-            # Skip default layouts.
-            if blk_name in ("*Model_Space", "*Paper_Space", "*Paper_Space0"):
+            # Skip default layout blocks - they duplicate layout entity data
+            if blk_name in self.LAYOUT_BLOCK_NAMES:
                 continue
             try:
                 rec = blk_layout.block_record
@@ -447,12 +625,92 @@ class DXFExtractor(BaseExtractor):
             records.append({
                 "type": "dxf_block",
                 "data": {
+                    "source_file": abs_path,
                     "block_name": blk_name,
                     "entity_count": entity_count,
                     "insert_references": insert_refs,
                     "is_xref": is_xref,
                 },
             })
+        return records
+
+    def _parse_entities_section(
+        self, content: str, abs_path: str, extracted_handles: set
+    ) -> List[Dict[str, Any]]:
+        """Parse ENTITIES section directly to catch orphan entities ezdxf misses."""
+        records = []
+        lines = content.splitlines()
+        current_section = None
+        current_entity = None
+        i = 0
+        
+        while i < len(lines) - 1:
+            code = lines[i].strip()
+            value = lines[i + 1].strip() if i + 1 < len(lines) else ""
+            i += 2
+            
+            # Section detection
+            if code == "0" and value == "SECTION" and i + 1 < len(lines):
+                section_code = lines[i].strip()
+                section_name = lines[i + 1].strip() if i + 1 < len(lines) else ""
+                if section_code == "2":
+                    current_section = section_name
+                    i += 2
+                    continue
+                elif value == "ENDSEC":
+                    current_section = None
+                    continue
+                elif value == "EOF":
+                    break
+            
+            if current_section != "ENTITIES":
+                continue
+            
+            if code == "0":
+                if value == "ENDSEC":
+                    continue
+                if value == "EOF":
+                    break
+                # Save previous entity if it has a handle
+                if current_entity and current_entity.get("handle"):
+                    h = current_entity["handle"]
+                    if h not in extracted_handles and current_entity["type"] in self.GEOMETRY_TYPES:
+                        rec = {
+                            "type": f"dxf_{current_entity['type'].lower()}",
+                            "data": {
+                                "handle": h,
+                                "entity_type": current_entity["type"],
+                                "layer": current_entity.get("layer", "0"),
+                                "layout": "orphan",
+                                "source_file": abs_path,
+                                "notes": "Orphan entity from direct ENTITIES section parsing",
+                            },
+                        }
+                        records.append(rec)
+                current_entity = {"type": value, "handle": ""}
+                continue
+            
+            if code == "5" and current_entity is not None:
+                current_entity["handle"] = value
+                continue
+        
+        # Save last entity
+        if current_entity and current_entity.get("handle"):
+            h = current_entity["handle"]
+            if h not in extracted_handles and current_entity["type"] in self.GEOMETRY_TYPES:
+                rec = {
+                    "type": f"dxf_{current_entity['type'].lower()}",
+                    "data": {
+                        "handle": h,
+                        "entity_type": current_entity["type"],
+                        "layer": current_entity.get("layer", "0"),
+                        "layout": "orphan",
+                        "source_file": abs_path,
+                        "notes": "Orphan entity from direct ENTITIES section parsing",
+                    },
+                }
+                records.append(rec)
+        
         return records
 
     def _extract_xrefs(
@@ -477,3 +735,4 @@ class DXFExtractor(BaseExtractor):
         except Exception as exc:
             logger.debug("[DXFExtractor] XREF scan failed: %s", exc)
         return records
+

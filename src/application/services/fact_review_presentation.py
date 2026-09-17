@@ -118,18 +118,61 @@ def _value_to_summary(value: Any, max_items: int = 4) -> str:
         return "No recorded value."
     return text
 
-
 def _source_label(source_path: str | None, location_json: Any) -> str:
-    source_name = ntpath.basename(str(source_path or "").replace("/", "\\")).strip() or os.path.basename(str(source_path or "")).strip() or "Unknown source"
+    source_name = (ntpath.basename(str(source_path or "").replace("/", "\\")).strip()
+                   or os.path.basename(str(source_path or "")).strip()
+                   or "Unknown source")
     location = _safe_json(location_json)
     if isinstance(location, dict):
         if "page" in location:
-            return f"{source_name} p.{location['page']}"
+            base = f"{source_name} p.{location['page']}"
+            if "bbox" in location and location["bbox"]:
+                b = location["bbox"]
+                if isinstance(b, (list, tuple)) and len(b) >= 4:
+                    return f"{base} [{b[0]:.0f},{b[1]:.0f}-{b[2]:.0f},{b[3]:.0f}]"
+            return base
         if "row" in location:
             return f"{source_name} row {location['row']}"
         if "activity_id" in location:
             return f"{source_name} activity {location['activity_id']}"
+        if "handle" in location:
+            return f"{source_name} handle={location['handle']}"
+        if "element_id" in location:
+            return f"{source_name} {location['element_id']}"
     return source_name
+
+
+def format_evidence_citation(source_path: str | None, location_json: Any) -> str:
+    """Format a structured evidence citation string for display.
+
+    Uses EvidenceAnchor-compatible location dict. Returns human-readable
+    citation like 'GOLD_0124.pdf p.2 bbox=(681,55-692,68)' or falls back
+    to _source_label for backward compatibility.
+    """
+    loc = _safe_json(location_json)
+    if isinstance(loc, dict):
+        fname = ntpath.basename(str(source_path or "")).strip() or "document"
+        parts = [fname]
+        if loc.get("source_type"):
+            parts[0] = loc["source_type"].upper()
+        if loc.get("page"):
+            parts.append(f"p.{loc['page']}")
+        if loc.get("sheet"):
+            parts.append(f"sheet:{loc['sheet']}")
+        if loc.get("row"):
+            parts.append(f"row.{loc['row']}")
+        if loc.get("cell"):
+            parts[-1] = f"{parts[-1]}!{loc['cell']}"
+        if loc.get("handle"):
+            parts.append(f"h={loc['handle']}")
+        if loc.get("activity_id"):
+            parts.append(f"act={loc['activity_id']}")
+        if loc.get("bbox"):
+            b = loc["bbox"]
+            if isinstance(b, (list, tuple)) and len(b) >= 4:
+                parts.append(f"bbox=({b[0]:.0f},{b[1]:.0f},{b[2]:.0f},{b[3]:.0f})")
+        return " ".join(parts)
+    return _source_label(source_path, location_json)
 
 
 def _origin_label(input_kind: Any, method_id: Any) -> str:

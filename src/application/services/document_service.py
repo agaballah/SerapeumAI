@@ -63,15 +63,18 @@ SUPPORTED_EXT = {
     ".json",
     ".xml",
     ".yaml",
+    ".yml",
     ".log",
     ".doc",
     ".docx",
     ".xls",
     ".xlsx",
     ".xlsm",
+    ".ppt",
     ".pptx",
     ".csv",
-
+    ".tsv",
+ 
     # CAD / BIM
     ".dgn",
     ".dwg",
@@ -82,6 +85,13 @@ SUPPORTED_EXT = {
     ".jpg",
     ".jpeg",
     ".png",
+    ".bmp",
+    ".tif",
+    ".tiff",
+    ".webp",
+    # Schedules
+    ".xer",
+    ".mpp",
 }
 
 

@@ -244,6 +244,13 @@ class AgentOrchestrator:
             coverage=coverage,
         )
 
+        # AI Conflict Safety: deterministic post-processing
+        # If unresolved conflicts exist, ALWAYS append structured disclosure.
+        # This prevents silent selection of one conflicting value.
+        conflict_disclosure = self._compose_conflict_disclosure(trusted_conflicts)
+        if conflict_disclosure:
+            answer = f"{answer}\n\n{conflict_disclosure}"
+
         support_only = not bool(trusted_facts)
         return {
             "answer": answer,
@@ -680,6 +687,55 @@ class AgentOrchestrator:
         else:
             parts.append("Suggested next step: import the relevant project documents and run Extract / Build Facts.")
         return "\n\n".join(parts)
+
+    def _compose_conflict_disclosure(self, trusted_conflicts: List[Dict[str, Any]]) -> str:
+        """Deterministic post-processing: append structured conflict disclosure.
+
+        This method ALWAYS runs when trusted_conflicts is non-empty.
+        It does NOT rely on LLM compliance. The disclosure is appended
+        to the answer regardless of what the LLM wrote.
+
+        Returns empty string if no conflicts.
+        """
+        if not trusted_conflicts:
+            return ""
+
+        parts = ["[CONFLICT DISCLOSURE - UNRESOLVED SOURCES]\n"]
+        parts.append(
+            "The following certified facts have **conflicting values** for the same subject. "
+            "The system does NOT select between them. Human resolution is required in the Facts panel.\n"
+        )
+
+        for i, conflict in enumerate(trusted_conflicts, 1):
+            fact_type = conflict.get("fact_type", "unknown")
+            subject_id = conflict.get("subject_id", "unknown")
+            conflicting_facts = conflict.get("conflicting_facts", [])
+
+            parts.append(f"**Conflict {i}**: `{fact_type}` / subject `{subject_id}`")
+
+            if len(conflicting_facts) >= 2:
+                for j, cf in enumerate(conflicting_facts[:2], 1):
+                    val = cf.get("value", cf.get("value_json", "—"))
+                    status = cf.get("status", "unknown")
+                    source = cf.get("lineage", [{}])[0].get("source_path", "unknown source") if cf.get("lineage") else "unknown source"
+                    method = cf.get("method_id", "unknown")
+                    label = "A" if j == 1 else "B"
+                    parts.append(
+                        f"  - Value {label}: `{str(val)[:100]}` "
+                        f"(status: {status}, method: {method}, source: {source})"
+                    )
+            else:
+                parts.append("  - Insufficient data to display both sides.")
+
+            parts.append("  → **Action required**: Engineer must review and resolve in Facts panel.")
+
+        parts.append("")
+        parts.append(
+            "Until resolved, neither value may be treated as settled. "
+            "Certifying either value will mark the other as SUPERSEDED (not deleted)."
+        )
+
+        return "\n".join(parts)
 
     def _derive_candidate_facts_from_evidence(
         self,

@@ -76,7 +76,31 @@ class BuildFactsJob(Job):
         # 2. Build Facts
         facts = builder.build(self.project_id, self.snapshot_id)
         
-        # 3. Persist
+        # 3. Persist Facts
         repo.save_facts(facts)
+        
+        # 4. Post-build conflict detection (failure-isolated)
+        try:
+            from src.domain.intelligence.conflict_detector import detect_and_store_conflicts
+            # Convert Fact objects to dicts for conflict detector
+            fact_dicts = []
+            for f in facts:
+                fact_dicts.append({
+                    "fact_id": f.fact_id,
+                    "project_id": f.project_id,
+                    "fact_type": f.fact_type,
+                    "subject_id": f.subject_id,
+                    "subject_kind": f.subject_kind,
+                    "value": f.value,
+                    "status": f.status.value,
+                    "confidence": f.confidence,
+                    "method_id": f.method_id,
+                    "inputs": [{"file_version_id": fi.file_version_id, "location": fi.location} for fi in f.inputs],
+                })
+            conflicts = detect_and_store_conflicts(db, self.project_id, fact_dicts)
+            if conflicts:
+                logger.info(f"[BUILD_FACTS] Detected {len(conflicts)} conflict(s) for snapshot {self.snapshot_id}")
+        except Exception as e:
+            logger.warning(f"[BUILD_FACTS] Conflict detection skipped (non-fatal): {e}")
         
         return {"count": len(facts)}

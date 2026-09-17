@@ -70,8 +70,74 @@ class WordProcessor:
                 logger.exception("   [WordProcessor] Failed to parse DOCX: %s", rel_path)
                 text_parts.append(f"[docx] failed to parse: {e}")
         elif ext == ".doc":
-            # .doc requires external conversion; keep a minimal placeholder
-            text_parts.append("[doc] legacy .doc detected; conversion not implemented in this build.")
+            # .doc requires external conversion; use PowerShell COM automation
+            try:
+                import subprocess
+                import tempfile
+                
+                # Escape path for PowerShell
+                escaped_path = abs_path.replace("'", "''").replace('"', '`"')
+                
+                # Create a PowerShell script to extract text from .doc using Word COM
+                ps_script = """
+                $word = $null
+                $doc = $null
+                try {
+                    $word = New-Object -ComObject Word.Application
+                    $word.Visible = $false
+                    $word.DisplayAlerts = 0
+                    $doc = $word.Documents.Open('__DOC_PATH__', $false, $true)
+                    $text = $doc.Content.Text
+                    $doc.Close($false)
+                    Write-Output $text
+                } catch {
+                    Write-Output "[doc] COM extraction failed: $_"
+                } finally {
+                    if ($doc) {
+                        try { $doc.Close($false) } catch { }
+                        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($doc) | Out-Null
+                        $doc = $null
+                    }
+                    if ($word) {
+                        try { $word.Quit() } catch { }
+                        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
+                        $word = $null
+                    }
+                    [System.GC]::Collect()
+                    [System.GC]::WaitForPendingFinalizers()
+                    [System.GC]::Collect()
+                    [System.GC]::WaitForPendingFinalizers()
+                }
+                """.replace("__DOC_PATH__", escaped_path)
+                
+                try:
+                    result = subprocess.run(
+                        ["powershell", "-Command", ps_script],
+                        capture_output=True, text=True, timeout=60, encoding='utf-8', errors='replace'
+                    )
+                except subprocess.TimeoutExpired:
+                    # Defensive: kill any orphan WINWORD processes on timeout
+                    try:
+                        subprocess.run(
+                            ["powershell", "-Command", "Stop-Process -Name WINWORD -Force -ErrorAction SilentlyContinue"],
+                            capture_output=True, text=True, timeout=10, encoding='utf-8', errors='replace'
+                        )
+                    except Exception:
+                        pass
+                    text_parts.append("[doc] extraction timed out")
+                else:
+                    if result.returncode == 0 and result.stdout and result.stdout.strip():
+                        extracted_text = result.stdout.strip()
+                        if not extracted_text.startswith("[doc]"):
+                            text_parts.append(extracted_text)
+                        else:
+                            text_parts.append(extracted_text)
+                    else:
+                        text_parts.append("[doc] extraction failed or returned empty")
+                    
+            except Exception as e:
+                logger.exception("   [WordProcessor] Failed to parse DOC via COM: %s", rel_path)
+                text_parts.append(f"[doc] COM extraction failed: {e}")
         else:
             text_parts.append(f"[word] unsupported extension: {ext}")
 

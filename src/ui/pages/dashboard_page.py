@@ -17,6 +17,7 @@ from src.application.services.dashboard_honesty import (
     throughput_label,
     assess_p6_truth,
 )
+from src.infra.dependency_status import DependencyHealthChecker
 
 logger = logging.getLogger(__name__)
 
@@ -391,3 +392,35 @@ class DashboardPage(BasePage):
             self.tree_status.insert(t5, "end", text=fail_msg[:120], values=("Operator action required", "ERROR"))
         else:
             self.tree_status.insert(t5, "end", text="No runtime alerts", values=("N/A", "STABLE"))
+
+        # Tier 6: Dependency Health (capability availability)
+        t6 = self.tree_status.insert("", "end", text="Dependency Health & Capability Status", open=True)
+        try:
+            deps = DependencyHealthChecker.check_all()
+            critical_missing = DependencyHealthChecker.get_critical_missing()
+            if critical_missing:
+                for dep_name in critical_missing:
+                    dep = next(d for d in deps if d.name == dep_name)
+                    missing_fmts = ", ".join(dep.required_for)
+                    self.tree_status.insert(
+                        t6, "end",
+                        text=f"{dep.name} (required for: {missing_fmts})",
+                        values=(f"Missing — run: {dep.install_command}", "BLOCKED"),
+                    )
+                remaining = [d for d in deps if d.status != "missing"]
+                if remaining:
+                    for d in remaining:
+                        ver = d.version if d.version else "available"
+                        self.tree_status.insert(t6, "end", text=d.name, values=(f"v{ver}", "OK"))
+            else:
+                for d in deps:
+                    ver = d.version if d.version else "available"
+                    self.tree_status.insert(t6, "end", text=d.name, values=(f"v{ver}", "OK"))
+                summary = DependencyHealthChecker.get_summary()
+                self.tree_status.insert(
+                    t6, "end",
+                    text="All dependencies healthy",
+                    values=(f"{summary['installed']} installed, {summary.get('missing', 0)} missing", "STABLE"),
+                )
+        except Exception as e:
+            self.tree_status.insert(t6, "end", text="Dependency check failed", values=(str(e)[:80], "ERROR"))
