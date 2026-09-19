@@ -6,6 +6,9 @@ import os
 from typing import Any, Dict, Iterable, List, Optional
 
 
+from src.domain.facts.models import EvidenceAnchor, FactInput
+
+
 FAMILY_LABELS = {
     "document": "Document",
     "schedule": "Schedule",
@@ -80,7 +83,7 @@ def _shorten(value: Any, limit: int = 140) -> str:
     text = str(value or "").strip()
     if len(text) <= limit:
         return text
-    return text[: max(0, limit - 1)].rstrip() + "…"
+    return text[: max(0, limit - 1)].rstrip() + "..."
 
 
 def _family_and_type(fact_type: str) -> tuple[str, str, str]:
@@ -111,68 +114,33 @@ def _value_to_summary(value: Any, max_items: int = 4) -> str:
         items = [str(_value_to_summary(item, max_items=2)) for item in parsed[:max_items] if item not in (None, "")]
         if not items:
             return "Listed value recorded."
-        suffix = " …" if len(parsed) > max_items else ""
+        suffix = " ..." if len(parsed) > max_items else ""
         return "; ".join(items) + suffix
     text = str(parsed).strip()
     if not text:
         return "No recorded value."
     return text
 
+
 def _source_label(source_path: str | None, location_json: Any) -> str:
-    source_name = (ntpath.basename(str(source_path or "").replace("/", "\\")).strip()
-                   or os.path.basename(str(source_path or "")).strip()
-                   or "Unknown source")
-    location = _safe_json(location_json)
-    if isinstance(location, dict):
-        if "page" in location:
-            base = f"{source_name} p.{location['page']}"
-            if "bbox" in location and location["bbox"]:
-                b = location["bbox"]
-                if isinstance(b, (list, tuple)) and len(b) >= 4:
-                    return f"{base} [{b[0]:.0f},{b[1]:.0f}-{b[2]:.0f},{b[3]:.0f}]"
-            return base
-        if "row" in location:
-            return f"{source_name} row {location['row']}"
-        if "activity_id" in location:
-            return f"{source_name} activity {location['activity_id']}"
-        if "handle" in location:
-            return f"{source_name} handle={location['handle']}"
-        if "element_id" in location:
-            return f"{source_name} {location['element_id']}"
-    return source_name
-
-
-def format_evidence_citation(source_path: str | None, location_json: Any) -> str:
-    """Format a structured evidence citation string for display.
-
-    Uses EvidenceAnchor-compatible location dict. Returns human-readable
-    citation like 'GOLD_0124.pdf p.2 bbox=(681,55-692,68)' or falls back
-    to _source_label for backward compatibility.
-    """
-    loc = _safe_json(location_json)
-    if isinstance(loc, dict):
-        fname = ntpath.basename(str(source_path or "")).strip() or "document"
-        parts = [fname]
-        if loc.get("source_type"):
-            parts[0] = loc["source_type"].upper()
-        if loc.get("page"):
-            parts.append(f"p.{loc['page']}")
-        if loc.get("sheet"):
-            parts.append(f"sheet:{loc['sheet']}")
-        if loc.get("row"):
-            parts.append(f"row.{loc['row']}")
-        if loc.get("cell"):
-            parts[-1] = f"{parts[-1]}!{loc['cell']}"
-        if loc.get("handle"):
-            parts.append(f"h={loc['handle']}")
-        if loc.get("activity_id"):
-            parts.append(f"act={loc['activity_id']}")
-        if loc.get("bbox"):
-            b = loc["bbox"]
+    source_name = ntpath.basename(str(source_path or "").replace("/", "\\")).strip() or os.path.basename(str(source_path or "")).strip() or "Unknown source"
+    anchor = _anchor_from_location(location_json)
+    if anchor.page_or_slide is not None:
+        base = f"{source_name} p.{anchor.page_or_slide}"
+        if anchor.bbox:
+            b = anchor.bbox
             if isinstance(b, (list, tuple)) and len(b) >= 4:
-                parts.append(f"bbox=({b[0]:.0f},{b[1]:.0f},{b[2]:.0f},{b[3]:.0f})")
-        return " ".join(parts)
-    return _source_label(source_path, location_json)
+                return f"{base} [{b[0]:.0f},{b[1]:.0f}-{b[2]:.0f},{b[3]:.0f}]"
+        return base
+    if anchor.row_or_paragraph is not None:
+        return f"{source_name} row {anchor.row_or_paragraph}"
+    if anchor.activity_id:
+        return f"{source_name} activity {anchor.activity_id}"
+    if anchor.entity_handle:
+        return f"{source_name} handle={anchor.entity_handle}"
+    if anchor.element_id:
+        return f"{source_name} element={anchor.element_id}"
+    return source_name
 
 
 def _origin_label(input_kind: Any, method_id: Any) -> str:
@@ -264,20 +232,53 @@ def build_fact_review_view(row: Dict[str, Any]) -> Dict[str, str]:
         "source_document": source_document,
         "origin_label": origin_label,
         "subject_label": subject,
-        "location_label": _format_location(row.get("location_json")),
+        "location_label": format_evidence_citation(row.get("location_json")),
         "type_code": str(row.get("fact_type") or ""),
     }
 
 
-def _format_location(location_json: Any) -> str:
+def _anchor_from_location(location_json: Any) -> EvidenceAnchor:
     location = _safe_json(location_json)
-    if isinstance(location, dict):
-        parts: List[str] = []
-        for key in ("page", "row", "activity_id", "sheet", "bbox"):
-            if key in location and location[key] not in (None, ""):
-                parts.append(f"{_humanize_code(key)}: {location[key]}")
-        return "; ".join(parts) if parts else "Location not recorded"
-    return "Location not recorded"
+    if not isinstance(location, dict):
+        return EvidenceAnchor()
+    return EvidenceAnchor.from_fact_input(
+        FactInput(file_version_id="", location=location)
+    )
+
+
+def format_evidence_citation(location_json: Any) -> str:
+    """
+    Canonical evidence citation formatter.
+
+    Converts a persisted location_json dict into a human-readable citation
+    string using EvidenceAnchor as the intermediate representation.
+    """
+    anchor = _anchor_from_location(location_json)
+    parts: List[str] = []
+    if anchor.page_or_slide is not None:
+        parts.append(f"page: {anchor.page_or_slide}")
+    if anchor.row_or_paragraph is not None:
+        parts.append(f"row: {anchor.row_or_paragraph}")
+    if anchor.activity_id:
+        parts.append(f"activity: {anchor.activity_id}")
+    if anchor.sheet_or_section:
+        parts.append(f"sheet: {anchor.sheet_or_section}")
+    if anchor.bbox:
+        if isinstance(anchor.bbox, (list, tuple)) and len(anchor.bbox) == 4:
+            parts.append(f"bbox: ({anchor.bbox[0]},{anchor.bbox[1]}-{anchor.bbox[2]},{anchor.bbox[3]})")
+        else:
+            parts.append(f"bbox: {anchor.bbox}")
+    if anchor.entity_handle:
+        parts.append(f"handle: {anchor.entity_handle}")
+    if anchor.element_id:
+        parts.append(f"element: {anchor.element_id}")
+    if anchor.cell_address:
+        parts.append(f"cell: {anchor.cell_address}")
+    return "; ".join(parts) if parts else "Location not recorded"
+
+
+def _format_location(location_json: Any) -> str:
+    return format_evidence_citation(location_json)
 
 
 def filter_fact_rows(

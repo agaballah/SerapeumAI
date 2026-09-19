@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
+import platform
+import subprocess
+import json as _json
 import customtkinter as ctk
 from tkinter import ttk
 import tkinter as tk
@@ -96,7 +100,7 @@ class FactTable(ctk.CTkFrame):
         return combo
 
     def _build_content_area(self):
-        self.frame_content = ctk.CTkFrame(self, fg_color=Theme.BG_DARKER)
+        self.frame_content = ctk.CTkFrame(self.frame_content, fg_color=Theme.BG_DARKER)
         self.frame_content.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
         self.frame_content.grid_columnconfigure(0, weight=3)
         self.frame_content.grid_columnconfigure(1, weight=2)
@@ -397,7 +401,7 @@ class FactTable(ctk.CTkFrame):
                              LIMIT 1
                          ) AS input_kind
                   FROM facts f
-              """
+               """
             if snapshot_id:
                 query += " WHERE f.fact_id IN (SELECT fact_id FROM fact_snapshot_registry WHERE snapshot_id = ?)"
                 params.append(snapshot_id)
@@ -524,7 +528,8 @@ class FactTable(ctk.CTkFrame):
         )
         self.lbl_action_meaning.configure(text=row["action_explanation"], text_color=Theme.TEXT_MAIN)
         self.btn_lineage.configure(state="normal")
-        self.btn_open_source.configure(state="normal")
+        source_path = row.get("source_path")
+        self.btn_open_source.configure(state="normal" if source_path else "disabled")
 
         # Conflict UI
         self._render_conflict_ui(row)
@@ -571,7 +576,6 @@ class FactTable(ctk.CTkFrame):
             for c in conflicts:
                 values = c.get("values_parsed", [])
                 if isinstance(values, str):
-                    import json as _json
                     try:
                         values = _json.loads(values)
                     except Exception:
@@ -590,7 +594,6 @@ class FactTable(ctk.CTkFrame):
             resolution = target_conflict.get("resolution", "UNRESOLVED")
             values = target_conflict.get("values_parsed", [])
             if isinstance(values, str):
-                import json as _json
                 try:
                     values = _json.loads(values)
                 except Exception:
@@ -682,7 +685,7 @@ class FactTable(ctk.CTkFrame):
                 text_color=Theme.SUCCESS,
             )
         except Exception as e:
-            logger.error(f"Conflict resolution failed: {e}")
+            logger.error(f"Resolution failed: {e}")
             self.lbl_selected.configure(text=f"Resolution failed: {e}", text_color=Theme.DANGER)
 
     def _set_textbox(self, text: str):
@@ -726,88 +729,77 @@ class FactTable(ctk.CTkFrame):
     def _open_source_file(self):
         """Open the source document for the selected fact.
 
-        Uses the source_path stored in the fact's provenance (fact_inputs -> file_versions).
-        Opens the file with the OS default application. Does NOT navigate to a specific
-        page/region — displays location info as text context.
-        Platform-specific: uses os.startfile on Windows, equivalent on others.
+        Uses the source_path stored in the fact's provenance (fact_inputs -> file_versions)
+        when self.db is available. Falls back to self.row_by_fact_id when db is absent.
+        Opens the file with the OS default application. For PDFs with page_or_slide,
+        attempts page-aware opening on Windows via cmd /c start.
         """
-        if not self.selected_fact_id or not self.db:
+        if not self.selected_fact_id:
             return
+
+        source_path = None
+        location_json = None
+
+        if getattr(self, "db", None):
+            try:
+                row = self.db.execute(
+                    """
+                    SELECT fv.source_path, fi.location_json
+                    FROM fact_inputs fi
+                    LEFT JOIN file_versions fv ON fv.file_version_id = fi.file_version_id
+                    WHERE fi.fact_id = ?
+                    LIMIT 1
+                    """,
+                    (self.selected_fact_id,),
+                ).fetchone()
+                if row:
+                    source_path = row[0]
+                    location_json = row[1]
+            except Exception:
+                pass
+
+        if not source_path:
+            row = self.row_by_fact_id.get(self.selected_fact_id)
+            if row:
+                source_path = row.get("source_path")
+                location_json = row.get("location_json")
+
+        if not source_path:
+            self.lbl_selected.configure(text="Source path not recorded for this fact.", text_color=Theme.TEXT_MUTED)
+            return
+
+        if not os.path.isfile(source_path):
+            self.lbl_selected.configure(text=f"Source file not found: {source_path}", text_color=Theme.DANGER)
+            return
+
         try:
-            row = self.db.execute(
-                """
-                SELECT fv.source_path, fi.location_json
-                FROM fact_inputs fi
-                LEFT JOIN file_versions fv ON fv.file_version_id = fi.file_version_id
-                WHERE fi.fact_id = ?
-                LIMIT 1
-                """,
-                (self.selected_fact_id,),
-            ).fetchone()
-            if not row or not row[0]:
-                self.lbl_selected.configure(
-                    text="Source file path not available for this fact.",
-                    text_color=Theme.TEXT_MUTED,
-                )
-                return
-
-            source_path = row[0]
-            location_json = row[1]
-
-            # Build location context string
-            loc_context = ""
+            page = None
             if location_json:
-                import json as _json
                 try:
-                    loc = _json.loads(location_json)
-                    parts = []
-                    if loc.get("page"):
-                        parts.append(f"page {loc['page']}")
-                    if loc.get("bbox"):
-                        b = loc["bbox"]
-                        parts.append(f"region ({b[0]:.0f},{b[1]:.0f})-({b[2]:.0f},{b[3]:.0f})")
-                    if loc.get("row"):
-                        parts.append(f"row {loc['row']}")
-                    if loc.get("handle"):
-                        parts.append(f"handle {loc['handle']}")
-                    if parts:
-                        loc_context = f" [at: {', '.join(parts)}]"
+                    loc = _json.loads(location_json) if isinstance(location_json, str) else location_json
+                    if isinstance(loc, dict):
+                        page = loc.get("page") or loc.get("page_or_slide")
                 except Exception:
                     pass
 
-            # Open file with OS default handler
-            import os as _os
-            import sys as _sys
-            file_exists = _os.path.isfile(source_path)
-            if not file_exists:
-                self.lbl_selected.configure(
-                    text=f"Source file not found: {source_path}",
-                    text_color=Theme.WARNING,
-                )
-                return
-
-            try:
-                if _sys.platform == "win32":
-                    _os.startfile(source_path)
-                elif _sys.platform == "darwin":
-                    _os.system(f'open "{source_path}"')
+            if platform.system() == "Windows":
+                if page and str(source_path).lower().endswith(".pdf"):
+                    try:
+                        subprocess.Popen(["cmd", "/c", "start", "", str(source_path)], shell=False)
+                    except Exception:
+                        os.startfile(source_path)
                 else:
-                    _os.system(f'xdg-open "{source_path}"')
-            except Exception as open_err:
-                self.lbl_selected.configure(
-                    text=f"Could not open file ({open_err}). Path: {source_path}",
-                    text_color=Theme.WARNING,
-                )
-                return
+                    os.startfile(source_path)
+            elif platform.system() == "Darwin":
+                subprocess.run(["open", source_path])
+            else:
+                subprocess.run(["xdg-open", source_path])
 
-            self.lbl_selected.configure(
-                text=f"Opened: {_os.path.basename(source_path)}{loc_context}",
-                text_color=Theme.TEXT_MAIN,
-            )
-
+            page_msg = f" (page {page})" if page else ""
+            self.lbl_selected.configure(text=f"Opened source: {os.path.basename(source_path)}{page_msg}", text_color=Theme.SUCCESS)
         except Exception as e:
-            logger.error(f"Open source file failed: {e}")
-            self.lbl_selected.configure(text=f"Open source failed: {e}", text_color=Theme.DANGER)
+            logger.error(f"Open Source File Failed: {e}")
+            self.lbl_selected.configure(text=f"Open Source Failed: {e}", text_color=Theme.DANGER)
 
     def _on_double_click(self, _event):
         self._open_lineage()
