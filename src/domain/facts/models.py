@@ -207,10 +207,11 @@ class Link:
         return {
             "link_id": self.link_id,
             "project_id": self.project_id,
-            "fact_type": self.fact_type,
-            "subject_kind": self.subject_kind,
-            "subject_id": self.subject_id,
-            "value": self.value,
+            "link_type": self.link_type,
+            "from_kind": self.from_kind,
+            "from_id": self.from_id,
+            "to_kind": self.to_kind,
+            "to_id": self.to_id,
             "status": self.status.value,
             "confidence_tier": self.confidence_tier
         }

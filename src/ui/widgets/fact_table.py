@@ -100,7 +100,7 @@ class FactTable(ctk.CTkFrame):
         return combo
 
     def _build_content_area(self):
-        self.frame_content = ctk.CTkFrame(self.frame_content, fg_color=Theme.BG_DARKER)
+        self.frame_content = ctk.CTkFrame(self, fg_color=Theme.BG_DARKER)
         self.frame_content.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
         self.frame_content.grid_columnconfigure(0, weight=3)
         self.frame_content.grid_columnconfigure(1, weight=2)
