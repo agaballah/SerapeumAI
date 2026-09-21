@@ -63,12 +63,6 @@ _add_tree(
     "src/compliance",
     allowed_suffixes={".yaml", ".yml", ".json", ".txt", ".md", ".csv"},
 )
-_add_tree(
-    datas,
-    ROOT / "docs",
-    "docs",
-    allowed_suffixes={".md", ".txt", ".json", ".yaml", ".yml"},
-)
 _add_file(datas, ROOT / "README.md", ".")
 
 # Some UI/runtime packages carry data files; collect when installed.
