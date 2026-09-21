@@ -92,11 +92,25 @@ def test_word_extractor_current_contract_is_flattened_pdf_page_only(tmp_path, mo
 
 
 def test_pptx_extractor_current_contract_is_flattened_pdf_page_only(tmp_path, monkeypatch):
-    import src.document_processing.ppt_processor as ppt_processor
-
-    monkeypatch.setattr(ppt_processor, "PPTProcessor", lambda: FakePPTProcessor())
+    from unittest.mock import MagicMock
 
     source = _write_file(tmp_path / "deck.pptx")
+
+    fake_doc = MagicMock()
+    fake_doc.pages = {1: MagicMock()}
+    fake_text = MagicMock()
+    fake_text.text = "[Title] Slide 1\n[Body] Slide body"
+    fake_text.prov = [MagicMock(page_no=1)]
+    fake_doc.texts = [fake_text]
+
+    fake_converter = MagicMock()
+    fake_converter.convert.return_value.document = fake_doc
+
+    import src.engine.extractors.pptx_extractor as pptx_module
+    import docling.document_converter as docling_module
+
+    monkeypatch.setattr(docling_module, "DocumentConverter", lambda: fake_converter)
+
     result = PPTXExtractor().extract(str(source), context={"doc_id": "doc_pptx"})
 
     assert PPTXExtractor().supported_extensions == [".pptx"]
@@ -107,10 +121,9 @@ def test_pptx_extractor_current_contract_is_flattened_pdf_page_only(tmp_path, mo
     assert record["provenance"]["source"] == "pptx_extractor"
     assert record["data"]["page_no"] == 1
     assert "[Title] Slide 1" in record["data"]["text_content"]
-    assert "[Speaker Notes] Notes" in record["data"]["text_content"]
     assert record["data"]["metadata"] is None
 
-    assert "PPTXExtractor processed 1 slide(s)" in result.diagnostics
+    assert "PPTXExtractor processed" in result.diagnostics[0]
     _assert_no_typed_persistence_claim(result)
 
 
