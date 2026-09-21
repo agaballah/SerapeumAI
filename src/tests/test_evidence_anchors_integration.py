@@ -499,9 +499,14 @@ class TestSourceNavigation:
             }
         }
         table.lbl_selected = MagicMock()
+        # Provide _open_pdf_with_page so the fake object can call it;
+        # return True to simulate Acrobat Reader page navigation succeeding.
+        from src.ui.widgets.fact_table import FactTable
+        table._open_pdf_with_page = lambda fp, pn: True
 
-        with patch("subprocess.Popen") as mock_popen, patch("os.startfile") as mock_startfile:
-            from src.ui.widgets.fact_table import FactTable
+        with patch("os.startfile") as mock_startfile:
             FactTable._open_source_file(table)
-            mock_popen.assert_called_once()
+            # When _open_pdf_with_page succeeds, os.startfile must NOT be called
+            mock_startfile.assert_not_called()
+        # Verify the status message includes the cited page
         assert "page 3" in table.lbl_selected.configure.call_args[1]["text"]
