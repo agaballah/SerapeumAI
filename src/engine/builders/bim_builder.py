@@ -38,7 +38,7 @@ class BIMBuilder:
                 method_id="bim_builder_v1",
                 created_at=now,
                 updated_at=now,
-                inputs=[FactInput(file_version_id=snapshot_id, location={"row_id": p["global_id"]})]
+                inputs=[FactInput(file_version_id=snapshot_id, location={"row_id": p["global_id"], "source_type": "ifc", "entity_handle": p["global_id"], "element_id": p["global_id"]})]
             ))
             
         # 2. Spatial (Sites, Buildings, Storeys)
@@ -67,7 +67,7 @@ class BIMBuilder:
                 method_id="bim_builder_v1",
                 created_at=now,
                 updated_at=now,
-                inputs=[FactInput(file_version_id=snapshot_id, location={"row_id": s["element_id"]})]
+                inputs=[FactInput(file_version_id=snapshot_id, location={"row_id": s["element_id"], "source_type": "ifc", "entity_handle": s["element_id"], "element_id": s["element_id"]})]
             ))
        
         # 3. NEW: Elements with inventory tracking
@@ -125,7 +125,7 @@ class BIMBuilder:
                 created_at=now,
                 updated_at=now
             )
-            f_type_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "ifc_elements"}))
+            f_type_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "ifc_elements", "source_type": "ifc"}))
             facts.append(f_type_count)
         
         # 4b. Element count by level (per type)
@@ -147,7 +147,7 @@ class BIMBuilder:
                     created_at=now,
                     updated_at=now
                 )
-                f_level_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "ifc_elements"}))
+                f_level_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "ifc_elements", "source_type": "ifc"}))
                 facts.append(f_level_count)
         
         # 4c. Spatial hierarchy depth
@@ -167,7 +167,7 @@ class BIMBuilder:
             created_at=now,
             updated_at=now
         )
-        f_depth.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "ifc_spatial_structure"}))
+        f_depth.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "ifc_spatial_structure", "source_type": "ifc"}))
         facts.append(f_depth)
         
         logger.info(f"[BIMBuilder] Generated {len(facts)} facts ({len(element_type_counts)} element types)")

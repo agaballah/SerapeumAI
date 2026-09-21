@@ -565,7 +565,7 @@ class MainApp(ctk.CTk):
             for root, dirs, files in os.walk(self.project_root):
                 for file in files:
                     ext = os.path.splitext(file)[1].lower()
-                    if ext in [".xlsx", ".xls", ".pdf", ".jpg", ".png", ".xer", ".ifc"]:
+                    if ext in [".xer", ".ifc", ".mpp", ".pdf", ".dxf", ".doc", ".docx", ".pptx", ".xls", ".xlsx", ".xlsm", ".txt", ".md", ".log", ".json", ".xml", ".yaml", ".yml", ".csv", ".tsv", ".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp"]:
                         path = os.path.join(root, file)
                         import uuid
                         # Check duplication logic? IngestFileJob handles it? logic is inside job usually

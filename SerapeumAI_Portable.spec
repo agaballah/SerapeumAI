@@ -90,6 +90,14 @@ try:
 except Exception:
     pass
 
+# Explicit hidden imports for modules that collect_submodules might miss
+hiddenimports += [
+    "src.ui.widgets.fact_table",
+    "src.ui.widgets.fact_lineage_popup",
+    "src.ui.widgets.smart_import_wizard",
+    "src.ui.widgets.vram_monitor",
+]
+
 
 a = Analysis(
     [str(ROOT / "run.py")],

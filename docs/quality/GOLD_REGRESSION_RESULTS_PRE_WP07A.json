@@ -1,0 +1,2544 @@
+{
+  "benchmark_name": "GOLD_REGRESSION_BENCHMARK_V1",
+  "generated_at": "2026-09-15T13:04:42Z",
+  "corpus_path": "D:\\SerapeumAI\\_LOCAL_TEST_CORPUS\\GOLD_BENCHMARK_V1",
+  "corpus_total_files": 124,
+  "corpus_extensions": 31,
+  "python_version": "3.12.10",
+  "summary": {
+    ".csv": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 0.2,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".dgn": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 218.5,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".doc": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 5686.3,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".docx": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 94.4,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".dxf": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 7820,
+      "avg_timing_ms": 6150.7,
+      "avg_provenance_rate": 0.0,
+      "status": "PASS"
+    },
+    ".ifc": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 32342,
+      "avg_timing_ms": 3285.0,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".json": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 0.4,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".log": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 0.3,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".md": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 0.6,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".mpp": {
+      "files_tested": 3,
+      "successful": 0,
+      "failed": 3,
+      "total_records": 0,
+      "avg_timing_ms": 0.0,
+      "avg_provenance_rate": 0.0,
+      "status": "FAIL"
+    },
+    ".pdf": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 40,
+      "avg_timing_ms": 19477.1,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".ppt": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 4176.7,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".pptx": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 42,
+      "avg_timing_ms": 2573.1,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".tsv": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 3.7,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".txt": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 0.2,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".xer": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 11979,
+      "avg_timing_ms": 41.1,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".xls": {
+      "files_tested": 2,
+      "successful": 2,
+      "failed": 0,
+      "total_records": 92,
+      "avg_timing_ms": 13.7,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".xlsm": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 2258,
+      "avg_timing_ms": 5373.1,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".xlsx": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 1136,
+      "avg_timing_ms": 2071.5,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".xml": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 0.4,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".yaml": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 31.4,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".yml": {
+      "files_tested": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_records": 3,
+      "avg_timing_ms": 8.7,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".image": {
+      "files_tested": 14,
+      "successful": 14,
+      "failed": 0,
+      "total_records": 14,
+      "avg_timing_ms": 1.1,
+      "avg_provenance_rate": 1.0,
+      "status": "PASS"
+    },
+    ".dwg": {
+      "files_tested": 5,
+      "successful": 0,
+      "failed": 0,
+      "total_records": 0,
+      "avg_timing_ms": 0,
+      "avg_provenance_rate": 0,
+      "status": "UNAVAILABLE",
+      "reason": "No open-source DWG extractor exists (proprietary Autodesk format)"
+    },
+    ".rvt": {
+      "files_tested": 5,
+      "successful": 0,
+      "failed": 0,
+      "total_records": 0,
+      "avg_timing_ms": 0,
+      "avg_provenance_rate": 0,
+      "status": "UNAVAILABLE",
+      "reason": "No open-source RVT extractor exists (proprietary Revit format)"
+    }
+  },
+  "per_format": {
+    ".csv": [
+      {
+        "file": "GOLD_0076.csv",
+        "file_path": "GOLD_0076.csv",
+        "file_size_kb": 0.2,
+        "sha256": "1f8555545fc797dcf3e70d669555d80a94b9871f78ebf64b2db902d8ff21e881",
+        "timing_ms": 0.3,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "CsvExtractor parsed 7 rows, 2 columns, delimiter=','"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "row_count",
+          "col_count",
+          "delimiter",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "csv",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0077.csv",
+        "file_path": "GOLD_0077.csv",
+        "file_size_kb": 0.2,
+        "sha256": "395c379c8bc12d7b1961d70f321071b0087fa9514e27492e24c7486813a36a31",
+        "timing_ms": 0.1,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "CsvExtractor parsed 6 rows, 3 columns, delimiter=','"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "row_count",
+          "col_count",
+          "delimiter",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "csv",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0078.csv",
+        "file_path": "GOLD_0078.csv",
+        "file_size_kb": 0.2,
+        "sha256": "4bde31941053b6569e2a4068fd9c4465de8545e558250e64052d293c7c5e25ee",
+        "timing_ms": 0.1,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "CsvExtractor parsed 19 rows, 2 columns, delimiter=','"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "row_count",
+          "col_count",
+          "delimiter",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "csv",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".dgn": [
+      {
+        "file": "GOLD_0147.dgn",
+        "file_path": "GOLD_0147.dgn",
+        "file_size_kb": 100.5,
+        "sha256": "2e754767a506fb8ef94f4a16e2ce584fc600d60551967ba079763090104156a1",
+        "timing_ms": 654.0,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "DGNExtractor: status=no_oda, xrefs=0"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "dgn_status",
+          "xref_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "dgn",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0148.dgn",
+        "file_path": "GOLD_0148.dgn",
+        "file_size_kb": 108.0,
+        "sha256": "c7b92b5878e3832ff184335eb3f5f1551cbfecffc2145ec8f5cfe2fe00bbec1b",
+        "timing_ms": 0.8,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "DGNExtractor: status=no_oda, xrefs=0"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "dgn_status",
+          "xref_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "dgn",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0149.dgn",
+        "file_path": "GOLD_0149.dgn",
+        "file_size_kb": 445.0,
+        "sha256": "226c087f69070618ce357c8900169d1aa135a39ecddbe6dd4afbf717d3efadcb",
+        "timing_ms": 0.6,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "DGNExtractor: status=no_oda, xrefs=0"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "dgn_status",
+          "xref_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "dgn",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".doc": [
+      {
+        "file": "GOLD_0112.doc",
+        "file_path": "GOLD_0112.doc",
+        "file_size_kb": 348.0,
+        "sha256": "d71e95be50b0b4ad7fcd7c68ea4ac636dc11ff9215e47b054b77bb4bcf05d855",
+        "timing_ms": 6913.7,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "WordExtractor processed 1 page(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "doc",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0113.doc",
+        "file_path": "GOLD_0113.doc",
+        "file_size_kb": 367.0,
+        "sha256": "edcc7c9b68acac267a14e38453d082a2dc392c3304e3d74d0d8ed676b4c17d3e",
+        "timing_ms": 5088.7,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "WordExtractor processed 1 page(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "doc",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0114.doc",
+        "file_path": "GOLD_0114.doc",
+        "file_size_kb": 351.5,
+        "sha256": "e9728e218ea846b9f66e4e3ad357f60bc1ec3fb6927b2ee518e318b2c271af6e",
+        "timing_ms": 5056.6,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "WordExtractor processed 1 page(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "doc",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".docx": [
+      {
+        "file": "GOLD_0117.docx",
+        "file_path": "GOLD_0117.docx",
+        "file_size_kb": 385.6,
+        "sha256": "dfa988c076d4d94c65f29b26bdddec45779b50ecebd853af2246e75913117cda",
+        "timing_ms": 126.3,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "WordExtractor processed 1 page(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "docx",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0118.docx",
+        "file_path": "GOLD_0118.docx",
+        "file_size_kb": 178.7,
+        "sha256": "2407369a70bbc8e91650d97720352ece200a47342b8e4e44b487ba38d2d60818",
+        "timing_ms": 128.0,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "WordExtractor processed 1 page(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "docx",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0119.docx",
+        "file_path": "GOLD_0119.docx",
+        "file_size_kb": 188.5,
+        "sha256": "7c72f0380ed322fadcf42d57e00624d6b999b9e1b2ecd40861732e8295c062a7",
+        "timing_ms": 28.8,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "WordExtractor processed 1 page(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "docx",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".dxf": [
+      {
+        "file": "GOLD_0153.dxf",
+        "file_path": "GOLD_0153.dxf",
+        "file_size_kb": 12555.9,
+        "sha256": "fe8946d24d632ef2e1f561292b461a1a424a72feb3f622a9f80876793a59f30e",
+        "timing_ms": 4056.0,
+        "success": true,
+        "record_count": 1791,
+        "provenance_rate": 0.0,
+        "type_distribution": {
+          "dxf_block": 922,
+          "dxf_layer": 216,
+          "dxf_insert": 180,
+          "dxf_text": 169,
+          "dxf_lwpolyline": 145,
+          "dxf_hatch": 143,
+          "dxf_line": 11,
+          "dxf_viewport": 3,
+          "dxf_drawing": 1,
+          "dxf_xline": 1
+        },
+        "diagnostics": [
+          "Processing GOLD_0153.dxf",
+          "Extraction completed successfully"
+        ],
+        "metadata_keys": [
+          "source_file",
+          "file_name",
+          "entity_count",
+          "layout_entity_count",
+          "orphan_entity_count",
+          "drawing_version",
+          "units",
+          "cap_reached",
+          "layout_count"
+        ],
+        "extractor": "dxf",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0154.dxf",
+        "file_path": "GOLD_0154.dxf",
+        "file_size_kb": 59582.9,
+        "sha256": "96517a0f3485ab5b1e41852a6e1997fd2fd3dbeec7680b864ca7a47e7b4f6b56",
+        "timing_ms": 9650.1,
+        "success": true,
+        "record_count": 4584,
+        "provenance_rate": 0.0,
+        "type_distribution": {
+          "dxf_block": 2653,
+          "dxf_text": 763,
+          "dxf_line": 292,
+          "dxf_insert": 252,
+          "dxf_mtext": 243,
+          "dxf_layer": 225,
+          "dxf_lwpolyline": 135,
+          "dxf_arc": 6,
+          "dxf_solid": 4,
+          "dxf_viewport": 4,
+          "dxf_vertex": 4,
+          "dxf_drawing": 1,
+          "dxf_polyline": 1,
+          "dxf_seqend": 1
+        },
+        "diagnostics": [
+          "Processing GOLD_0154.dxf",
+          "Extraction completed successfully"
+        ],
+        "metadata_keys": [
+          "source_file",
+          "file_name",
+          "entity_count",
+          "layout_entity_count",
+          "orphan_entity_count",
+          "drawing_version",
+          "units",
+          "cap_reached",
+          "layout_count"
+        ],
+        "extractor": "dxf",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0155.dxf",
+        "file_path": "GOLD_0155.dxf",
+        "file_size_kb": 12897.5,
+        "sha256": "625a4f9e424fa5798a07234b10e949858fdc33ea14782a5fd8c89b0cd5880d00",
+        "timing_ms": 4746.0,
+        "success": true,
+        "record_count": 1445,
+        "provenance_rate": 0.0,
+        "type_distribution": {
+          "dxf_block": 934,
+          "dxf_layer": 204,
+          "dxf_text": 128,
+          "dxf_hatch": 93,
+          "dxf_multileader": 42,
+          "dxf_lwpolyline": 19,
+          "dxf_viewport": 9,
+          "dxf_attrib": 6,
+          "dxf_insert": 5,
+          "dxf_drawing": 1,
+          "dxf_xline": 1,
+          "dxf_arc": 1,
+          "dxf_line": 1,
+          "dxf_seqend": 1
+        },
+        "diagnostics": [
+          "Processing GOLD_0155.dxf",
+          "Extraction completed successfully"
+        ],
+        "metadata_keys": [
+          "source_file",
+          "file_name",
+          "entity_count",
+          "layout_entity_count",
+          "orphan_entity_count",
+          "drawing_version",
+          "units",
+          "cap_reached",
+          "layout_count"
+        ],
+        "extractor": "dxf",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".ifc": [
+      {
+        "file": "GOLD_0174.ifc",
+        "file_path": "GOLD_0174.ifc",
+        "file_size_kb": 21541.3,
+        "sha256": "0186e6bb345d7437d370e6c14009c49cbb024ed0afabb7ace138780a4ef7d7aa",
+        "timing_ms": 2051.4,
+        "success": true,
+        "record_count": 8335,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "ifc_element_metadata": 6628,
+          "ifc_connection": 1677,
+          "ifc_entity_count": 21,
+          "ifc_spatial": 8,
+          "ifc_project": 1
+        },
+        "diagnostics": [
+          "Successfully parsed 8335 Engineering-Scale IFC entities."
+        ],
+        "metadata_keys": [],
+        "extractor": "ifc",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0158.ifc",
+        "file_path": "GOLD_0158.ifc",
+        "file_size_kb": 32994.0,
+        "sha256": "fb4de26b233d19b1b0372ba9be812c29c022d0f9ee166fca675b30bb9593d726",
+        "timing_ms": 2257.1,
+        "success": true,
+        "record_count": 3853,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "ifc_element_metadata": 3697,
+          "ifc_connection": 130,
+          "ifc_entity_count": 21,
+          "ifc_spatial": 4,
+          "ifc_project": 1
+        },
+        "diagnostics": [
+          "Successfully parsed 3853 Engineering-Scale IFC entities."
+        ],
+        "metadata_keys": [],
+        "extractor": "ifc",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0173.ifc",
+        "file_path": "GOLD_0173.ifc",
+        "file_size_kb": 62618.9,
+        "sha256": "d715a268a710b989aa53d4a3a2ac67e542f39f98ee98060eb377c54cc63fdeb6",
+        "timing_ms": 5546.5,
+        "success": true,
+        "record_count": 20154,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "ifc_element_metadata": 16253,
+          "ifc_connection": 3871,
+          "ifc_entity_count": 21,
+          "ifc_spatial": 8,
+          "ifc_project": 1
+        },
+        "diagnostics": [
+          "Successfully parsed 20154 Engineering-Scale IFC entities."
+        ],
+        "metadata_keys": [],
+        "extractor": "ifc",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".json": [
+      {
+        "file": "GOLD_0018.json",
+        "file_path": "GOLD_0018.json",
+        "file_size_kb": 9.8,
+        "sha256": "79c9682f4c849a71cebdfa2996c9d2f6512222c57ca128995c086bfc67090286",
+        "timing_ms": 0.5,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "JsonExtractor parsed object with 14 keys/items"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "structure_type",
+          "key_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "json",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0019.json",
+        "file_path": "GOLD_0019.json",
+        "file_size_kb": 10.3,
+        "sha256": "a7bb8a7a7cf89fd956a9439fd4ec583174fc144e45903caa6eedfbabbb96ecbb",
+        "timing_ms": 0.4,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "JsonExtractor parsed object with 11 keys/items"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "structure_type",
+          "key_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "json",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0020.json",
+        "file_path": "GOLD_0020.json",
+        "file_size_kb": 11.4,
+        "sha256": "53d7dcf7d76186fcaf73aa9cfea1615972d37bc4652dd8476e6941d343a21548",
+        "timing_ms": 0.3,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "JsonExtractor parsed object with 12 keys/items"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "structure_type",
+          "key_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "json",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".log": [
+      {
+        "file": "GOLD_0038.log",
+        "file_path": "GOLD_0038.log",
+        "file_size_kb": 0.2,
+        "sha256": "4530400a7a39cf5a63eebcadaf3ca442fb554438413746b8587eb8ac5c1613be",
+        "timing_ms": 0.3,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "TextExtractor processed 1 lines, 175 chars, encoding=utf-8"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "line_count",
+          "encoding",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "log",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0039.log",
+        "file_path": "GOLD_0039.log",
+        "file_size_kb": 0.2,
+        "sha256": "705408aba192596c57ece0e2ab45713c5d5b991124b3562fd50406fa67dada16",
+        "timing_ms": 0.3,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "TextExtractor processed 1 lines, 176 chars, encoding=utf-8"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "line_count",
+          "encoding",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "log",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0040.log",
+        "file_path": "GOLD_0040.log",
+        "file_size_kb": 0.2,
+        "sha256": "9176547b3dc09985eda011c37d9ed0b2c1fd68548b70459f3eafea9abc5d9177",
+        "timing_ms": 0.3,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "TextExtractor processed 1 lines, 196 chars, encoding=latin-1"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "line_count",
+          "encoding",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "log",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".md": [
+      {
+        "file": "GOLD_0011.md",
+        "file_path": "GOLD_0011.md",
+        "file_size_kb": 28.2,
+        "sha256": "3159f1931d937d56c34e05a040f30dca7a82f753fe1914947caeda175b1dea30",
+        "timing_ms": 0.8,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "TextExtractor processed 300 lines, 28770 chars, encoding=utf-8"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "line_count",
+          "encoding",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "md",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0012.md",
+        "file_path": "GOLD_0012.md",
+        "file_size_kb": 31.9,
+        "sha256": "f7d7df6cb7b3f72a248c8c5c085df3c5c6d44a1bd8b05ff223198f6f88e8bedb",
+        "timing_ms": 0.6,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "TextExtractor processed 1108 lines, 32593 chars, encoding=utf-8"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "line_count",
+          "encoding",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "md",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_MD_R.md",
+        "file_path": "GOLD_MD_R.md",
+        "file_size_kb": 21.6,
+        "sha256": "ef85c37ae7bcdd6f42c3123f5f552acbdb1902744638c34a1203916f352496b6",
+        "timing_ms": 0.4,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "TextExtractor processed 430 lines, 22069 chars, encoding=utf-8"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "line_count",
+          "encoding",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "md",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".mpp": [
+      {
+        "file": "GOLD_MPP_C.mpp",
+        "file_path": "GOLD_MPP_C.mpp",
+        "file_size_kb": 163.5,
+        "sha256": "dedf061edc47592815e5e7771c218f8608f661f8d6403b67463e4d0e371b6434",
+        "timing_ms": 32.3,
+        "success": false,
+        "record_count": 0,
+        "provenance_rate": 0.0,
+        "type_distribution": {},
+        "diagnostics": [
+          "MPXJ unavailable: MPXJ JVM initialization failed: [WinError 126] JVM DLL not found: C:\\Program Files\\Java\\jre1.8.0_501\\bin\\java.exe"
+        ],
+        "metadata_keys": [
+          "source_file",
+          "file_name",
+          "doc_id"
+        ],
+        "extractor": "mpp",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_MPP_E.mpp",
+        "file_path": "GOLD_MPP_E.mpp",
+        "file_size_kb": 205.5,
+        "sha256": "aaef495dc99be1735de02940a6fb506573035e99de4acf0fa2ffe96344c8be4a",
+        "timing_ms": 1.3,
+        "success": false,
+        "record_count": 0,
+        "provenance_rate": 0.0,
+        "type_distribution": {},
+        "diagnostics": [
+          "MPXJ unavailable: MPXJ JVM initialization failed: [WinError 126] JVM DLL not found: C:\\Program Files\\Java\\jre1.8.0_501\\bin\\java.exe"
+        ],
+        "metadata_keys": [
+          "source_file",
+          "file_name",
+          "doc_id"
+        ],
+        "extractor": "mpp",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_MPP_R1.mpp",
+        "file_path": "GOLD_MPP_R1.mpp",
+        "file_size_kb": 81.0,
+        "sha256": "683da0aeec77c04a92a3131dfa0b90e5cdaf93445bc91bac7a29be12cd0f63de",
+        "timing_ms": 1.1,
+        "success": false,
+        "record_count": 0,
+        "provenance_rate": 0.0,
+        "type_distribution": {},
+        "diagnostics": [
+          "MPXJ unavailable: MPXJ JVM initialization failed: [WinError 126] JVM DLL not found: C:\\Program Files\\Java\\jre1.8.0_501\\bin\\java.exe"
+        ],
+        "metadata_keys": [
+          "source_file",
+          "file_name",
+          "doc_id"
+        ],
+        "extractor": "mpp",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".pdf": [
+      {
+        "file": "GOLD_0122.pdf",
+        "file_path": "GOLD_0122.pdf",
+        "file_size_kb": 4462.9,
+        "sha256": "cb72c5a7eaeba9cfe9dd80c0b0846cb6524a4dd3eff6bc84a750d73b0541b158",
+        "timing_ms": 34518.5,
+        "success": true,
+        "record_count": 3,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1,
+          "doc_classification": 1,
+          "doc_blocks": 1
+        },
+        "diagnostics": [
+          "Extracted 1 semantic blocks for RAG"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "pdf_page_count",
+          "char_count",
+          "block_count",
+          "image_count",
+          "page_composition_counts",
+          "pdf_producer",
+          "pdf_creator",
+          "pdf_author",
+          "pdf_title",
+          "pdf_subject",
+          "pdf_creation_date",
+          "pdf_modified_date",
+          "pdf_raw_metadata"
+        ],
+        "extractor": "pdf",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0123.pdf",
+        "file_path": "GOLD_0123.pdf",
+        "file_size_kb": 127.8,
+        "sha256": "0ef110b577db9cfe93d711421a3eeca80dbdee578380e21610435938a49a4be6",
+        "timing_ms": 23367.4,
+        "success": true,
+        "record_count": 32,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 30,
+          "doc_classification": 1,
+          "doc_blocks": 1
+        },
+        "diagnostics": [
+          "Extracted 221 semantic blocks for RAG"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "pdf_page_count",
+          "char_count",
+          "block_count",
+          "image_count",
+          "page_composition_counts",
+          "pdf_producer",
+          "pdf_creator",
+          "pdf_author",
+          "pdf_title",
+          "pdf_subject",
+          "pdf_creation_date",
+          "pdf_modified_date",
+          "pdf_raw_metadata"
+        ],
+        "extractor": "pdf",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0124.pdf",
+        "file_path": "GOLD_0124.pdf",
+        "file_size_kb": 61.8,
+        "sha256": "57976ba9c3c1e523ab6dc86d37ad17a96470aa41f06776870ccf857e01e782a5",
+        "timing_ms": 545.4,
+        "success": true,
+        "record_count": 5,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 3,
+          "doc_classification": 1,
+          "doc_blocks": 1
+        },
+        "diagnostics": [
+          "Extracted 1 semantic blocks for RAG"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "pdf_page_count",
+          "char_count",
+          "block_count",
+          "image_count",
+          "page_composition_counts",
+          "pdf_producer",
+          "pdf_creator",
+          "pdf_author",
+          "pdf_title",
+          "pdf_subject",
+          "pdf_creation_date",
+          "pdf_modified_date",
+          "pdf_raw_metadata"
+        ],
+        "extractor": "pdf",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".ppt": [
+      {
+        "file": "GOLD_0111.ppt",
+        "file_path": "GOLD_0111.ppt",
+        "file_size_kb": 1255.0,
+        "sha256": "305fc574d011b52c7cdf882634d60eb658d61130f9a7e513ae44bf8f149ee418",
+        "timing_ms": 4607.1,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "PPTXExtractor processed 1 slide(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "ppt",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_PPT_001.ppt",
+        "file_path": "GOLD_PPT_001.ppt",
+        "file_size_kb": 122.5,
+        "sha256": "64275a6685b8f267827178037dcc59de927475e56385725916f4c6039c7ce7f6",
+        "timing_ms": 3900.8,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "PPTXExtractor processed 1 slide(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "ppt",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_PPT_003.ppt",
+        "file_path": "GOLD_PPT_003.ppt",
+        "file_size_kb": 140.0,
+        "sha256": "307cb62b279b1b1014058f26866d905e1f80ac649ecedeb63604371d807233dd",
+        "timing_ms": 4022.2,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "PPTXExtractor processed 1 slide(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "ppt",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".pptx": [
+      {
+        "file": "GOLD_0127.pptx",
+        "file_path": "GOLD_0127.pptx",
+        "file_size_kb": 1072.5,
+        "sha256": "d6a1cf4378cb27588b863ddd818a7be34b196b08d05410100b6177ae0f31760e",
+        "timing_ms": 3074.5,
+        "success": true,
+        "record_count": 10,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 10
+        },
+        "diagnostics": [
+          "PPTXExtractor processed 10 slide(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "pptx",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0128.pptx",
+        "file_path": "GOLD_0128.pptx",
+        "file_size_kb": 102.1,
+        "sha256": "37ea01a1391ef048b27fd7995f09d9896be81fd5b42f92004937013efa59e188",
+        "timing_ms": 552.2,
+        "success": true,
+        "record_count": 16,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 16
+        },
+        "diagnostics": [
+          "PPTXExtractor processed 16 slide(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "pptx",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0129.pptx",
+        "file_path": "GOLD_0129.pptx",
+        "file_size_kb": 2427.0,
+        "sha256": "3efaddfd9c1acd60447e6df7e158b415b2eba60671bb8359b0e29bbb8df60d17",
+        "timing_ms": 4092.6,
+        "success": true,
+        "record_count": 16,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 16
+        },
+        "diagnostics": [
+          "PPTXExtractor processed 16 slide(s)"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "pptx",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".tsv": [
+      {
+        "file": "GOLD_TSV_C.tsv",
+        "file_path": "GOLD_TSV_C.tsv",
+        "file_size_kb": 229.1,
+        "sha256": "969f549cf8b3e9e4206eff3758330304981d9fa4e290bd98b1eb1e72962f6973",
+        "timing_ms": 3.7,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "CsvExtractor parsed 1001 rows, 25 columns, delimiter='\\t'"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "row_count",
+          "col_count",
+          "delimiter",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "tsv",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_TSV_ES.tsv",
+        "file_path": "GOLD_TSV_ES.tsv",
+        "file_size_kb": 356.4,
+        "sha256": "75ddc959e732e2fcfab9e689cdaada32bbe64296f1857c4aa7ee5a54abb6b1d3",
+        "timing_ms": 6.9,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "CsvExtractor parsed 4623 rows, 5 columns, delimiter='\\t'"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "row_count",
+          "col_count",
+          "delimiter",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "tsv",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_TSV_R.tsv",
+        "file_path": "GOLD_TSV_R.tsv",
+        "file_size_kb": 9.1,
+        "sha256": "1f3f83c0d8485ae9148061389d19628607e3f5660e3d6f40ec9102fb398bb12f",
+        "timing_ms": 0.6,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "CsvExtractor parsed 210 rows, 8 columns, delimiter='\\t'"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "row_count",
+          "col_count",
+          "delimiter",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "tsv",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".txt": [
+      {
+        "file": "GOLD_0008.txt",
+        "file_path": "GOLD_0008.txt",
+        "file_size_kb": 0.2,
+        "sha256": "671696641863b88c4b6fa1c34c9dda54e47bae658d8c08a39f939ba327a78223",
+        "timing_ms": 0.2,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "TextExtractor processed 7 lines, 189 chars, encoding=utf-8"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "line_count",
+          "encoding",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "txt",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0009.txt",
+        "file_path": "GOLD_0009.txt",
+        "file_size_kb": 0.2,
+        "sha256": "4b4dfb810b5f30ad8f09f428565240c3b80f491812bc35ff87ab3253a97cb572",
+        "timing_ms": 0.2,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "TextExtractor processed 4 lines, 140 chars, encoding=utf-8"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "line_count",
+          "encoding",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "txt",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0010.txt",
+        "file_path": "GOLD_0010.txt",
+        "file_size_kb": 0.5,
+        "sha256": "a8336d7191e014f4fac064305f4b1ae745fe1afa50776f88b515e9bec8f39ce3",
+        "timing_ms": 0.1,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "TextExtractor processed 8 lines, 299 chars, encoding=utf-8"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "line_count",
+          "encoding",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "txt",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".xer": [
+      {
+        "file": "GOLD_0118_JSON.xer",
+        "file_path": "GOLD_0118_JSON.xer",
+        "file_size_kb": 74.5,
+        "sha256": "a2b87726a685fbefb4f1f778aa4f6356785fc72aaca4efcd2d93088e4236aac2",
+        "timing_ms": 16.0,
+        "success": true,
+        "record_count": 176,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "p6_relation": 101,
+          "p6_activity": 55,
+          "p6_wbs": 19,
+          "p6_project": 1
+        },
+        "diagnostics": [],
+        "metadata_keys": [],
+        "extractor": "xer",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0119_JSON.xer",
+        "file_path": "GOLD_0119_JSON.xer",
+        "file_size_kb": 145.3,
+        "sha256": "b26ef2ec5d8e25516636f91fb3689d2c693cae5e396132ab2d5e939e8e2266f6",
+        "timing_ms": 3.7,
+        "success": true,
+        "record_count": 451,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "p6_relation": 224,
+          "p6_activity": 172,
+          "p6_wbs": 54,
+          "p6_project": 1
+        },
+        "diagnostics": [],
+        "metadata_keys": [],
+        "extractor": "xer",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0120_JSON.xer",
+        "file_path": "GOLD_0120_JSON.xer",
+        "file_size_kb": 5000.0,
+        "sha256": "93b99e974d5ecb7de6de65779e6913819e71c5ca4851a39c3b72ed55a50fae9f",
+        "timing_ms": 103.7,
+        "success": true,
+        "record_count": 11352,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "p6_relation": 6168,
+          "p6_activity": 4046,
+          "p6_wbs": 1137,
+          "p6_project": 1
+        },
+        "diagnostics": [],
+        "metadata_keys": [],
+        "extractor": "xer",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".xls": [
+      {
+        "file": "GOLD_0051.xls",
+        "file_path": "GOLD_0051.xls",
+        "file_size_kb": 32.5,
+        "sha256": "a601817669af4f4932888676bc992a83a065d754e44c261406c937fe106b2074",
+        "timing_ms": 22.8,
+        "success": true,
+        "record_count": 13,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "register_row": 13
+        },
+        "diagnostics": [
+          "xlrd parsed 13 row(s) from 2 sheet(s)"
+        ],
+        "metadata_keys": [
+          "row_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xls",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0053.xls",
+        "file_path": "GOLD_0053.xls",
+        "file_size_kb": 51.0,
+        "sha256": "22785ee7abbdf3bada331013f29aa73dcb207fff3b426d0fc2fb5d09e1e445b6",
+        "timing_ms": 4.6,
+        "success": true,
+        "record_count": 79,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "register_row": 79
+        },
+        "diagnostics": [
+          "xlrd parsed 79 row(s) from 2 sheet(s)"
+        ],
+        "metadata_keys": [
+          "row_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xls",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".xlsm": [
+      {
+        "file": "GOLD_0063.xlsm",
+        "file_path": "GOLD_0063.xlsm",
+        "file_size_kb": 2133.3,
+        "sha256": "914b7dd73bd119f4d2b17769c9e1cf4897297a0294f43d0b36d9e68a58a4ad4a",
+        "timing_ms": 5444.3,
+        "success": true,
+        "record_count": 707,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "register_row": 707
+        },
+        "diagnostics": [
+          "openpyxl parsed 707 row(s) from 17 sheet(s)"
+        ],
+        "metadata_keys": [
+          "row_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xlsm",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0064.xlsm",
+        "file_path": "GOLD_0064.xlsm",
+        "file_size_kb": 2138.9,
+        "sha256": "c8a4a6a9ea110ea7e3fa334f0fc8e293130b0d74cc6670d8a4e1b82069092e47",
+        "timing_ms": 5131.1,
+        "success": true,
+        "record_count": 770,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "register_row": 770
+        },
+        "diagnostics": [
+          "openpyxl parsed 770 row(s) from 17 sheet(s)"
+        ],
+        "metadata_keys": [
+          "row_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xlsm",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0065.xlsm",
+        "file_path": "GOLD_0065.xlsm",
+        "file_size_kb": 2223.6,
+        "sha256": "bef904c213ca9c3a8e79402f4b0943e6e4fae0447892d5e893c8d9ec805f80b6",
+        "timing_ms": 5543.9,
+        "success": true,
+        "record_count": 781,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "register_row": 781
+        },
+        "diagnostics": [
+          "openpyxl parsed 781 row(s) from 17 sheet(s)"
+        ],
+        "metadata_keys": [
+          "row_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xlsm",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".xlsx": [
+      {
+        "file": "GOLD_0142.xlsx",
+        "file_path": "GOLD_0142.xlsx",
+        "file_size_kb": 10.7,
+        "sha256": "6f84aa417ac731f7addae3b0f1cd3262c1421b5ca757ef18185f7eab8795053f",
+        "timing_ms": 2.8,
+        "success": true,
+        "record_count": 4,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "register_row": 4
+        },
+        "diagnostics": [
+          "openpyxl parsed 4 row(s) from 1 sheet(s)"
+        ],
+        "metadata_keys": [
+          "row_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xlsx",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0143.xlsx",
+        "file_path": "GOLD_0143.xlsx",
+        "file_size_kb": 32.3,
+        "sha256": "f604897f2ffa1e396b6d6fc814046b190b9a45072100749d9dbd4a6d70470b63",
+        "timing_ms": 20.5,
+        "success": true,
+        "record_count": 87,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "register_row": 87
+        },
+        "diagnostics": [
+          "openpyxl parsed 87 row(s) from 3 sheet(s)"
+        ],
+        "metadata_keys": [
+          "row_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xlsx",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0144.xlsx",
+        "file_path": "GOLD_0144.xlsx",
+        "file_size_kb": 1163.6,
+        "sha256": "2e58352ec8eb8b44d826a4f09973591352342bacd9cd8ecc72538d5df3ea730c",
+        "timing_ms": 6191.2,
+        "success": true,
+        "record_count": 1045,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "register_row": 1045
+        },
+        "diagnostics": [
+          "openpyxl parsed 1045 row(s) from 41 sheet(s)"
+        ],
+        "metadata_keys": [
+          "row_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xlsx",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".xml": [
+      {
+        "file": "GOLD_0023.xml",
+        "file_path": "GOLD_0023.xml",
+        "file_size_kb": 0.6,
+        "sha256": "1d85c4f77448a83d94b012a91b8db0d65192ec400be1eb943b10b3d39ca2c0f4",
+        "timing_ms": 0.8,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "XmlExtractor parsed root={http://schemas.microsoft.com/office/2006/metadata/properties}properties, children=1"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "root_tag",
+          "child_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xml",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0024.xml",
+        "file_path": "GOLD_0024.xml",
+        "file_size_kb": 0.6,
+        "sha256": "2a77aface7b7e9b8d289eb6aa8c47d2f70a76d53aec5c3f427be62ddd859f00e",
+        "timing_ms": 0.3,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "XmlExtractor parsed root={http://schemas.openxmlformats.org/officeDocument/2006/customXml}datastoreItem, children=1"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "root_tag",
+          "child_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xml",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0025.xml",
+        "file_path": "GOLD_0025.xml",
+        "file_size_kb": 1.1,
+        "sha256": "290a0d8379c6aa653ab70eace0add0e94a00a3fec8712d9b37408863f622aa4b",
+        "timing_ms": 0.2,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "XmlExtractor parsed root={http://schemas.openxmlformats.org/officeDocument/2006/customXml}datastoreItem, children=1"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "root_tag",
+          "child_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "xml",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".yaml": [
+      {
+        "file": "GOLD_0027.yaml",
+        "file_path": "GOLD_0027.yaml",
+        "file_size_kb": 25.1,
+        "sha256": "fd3a7851f0f26afb99f3877195dbf24938791964cd57ae073c1402d6724876bc",
+        "timing_ms": 23.0,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "YamlExtractor parsed object with 1 keys/items"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "structure_type",
+          "key_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "yaml",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0028.yaml",
+        "file_path": "GOLD_0028.yaml",
+        "file_size_kb": 32.0,
+        "sha256": "30557b138bc574e9606991c85fabbe39573b0553aca07985c0fe7d02081080ab",
+        "timing_ms": 39.8,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "YamlExtractor parsed object with 1 keys/items"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "structure_type",
+          "key_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "yaml",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_0029.yaml",
+        "file_path": "GOLD_0029.yaml",
+        "file_size_kb": 34.6,
+        "sha256": "fc5c1cfba1230ae9bff5bdcd671284b88008d4e8559b2dcafd2ec1bc0436a6b1",
+        "timing_ms": 31.5,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "YamlExtractor parsed object with 1 keys/items"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "structure_type",
+          "key_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "yaml",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".yml": [
+      {
+        "file": "GOLD_YML_C.yml",
+        "file_path": "GOLD_YML_C.yml",
+        "file_size_kb": 1.9,
+        "sha256": "f5a5ceea492e3a6d34bc224542336db3559ead8fad5699b58821c2ad882fe099",
+        "timing_ms": 1.8,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "YamlExtractor parsed object with 5 keys/items"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "structure_type",
+          "key_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "yml",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_YML_ES.yml",
+        "file_path": "GOLD_YML_ES.yml",
+        "file_size_kb": 19.7,
+        "sha256": "3e7907383147791b6d35cdad500eae08a3d9696dc0e77629d15f20c1a6e98f76",
+        "timing_ms": 16.8,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "YamlExtractor parsed object with 5 keys/items"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "structure_type",
+          "key_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "yml",
+        "extractor_version": "1.0.0"
+      },
+      {
+        "file": "GOLD_YML_R.yml",
+        "file_path": "GOLD_YML_R.yml",
+        "file_size_kb": 5.3,
+        "sha256": "8811898664da66e974ac14062909c39fbbd8b41ad086328624c069980aa84348",
+        "timing_ms": 7.4,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "YamlExtractor parsed object with 5 keys/items"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "structure_type",
+          "key_count",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "yml",
+        "extractor_version": "1.0.0"
+      }
+    ],
+    ".image": [
+      {
+        "file": "GOLD_BMP_C.bmp",
+        "file_path": "GOLD_BMP_C.bmp",
+        "file_size_kb": 31.9,
+        "sha256": "efccd6ecb8e3e419919582685621d5c1d326e27fc216ce1f4c77fca94a2f3065",
+        "timing_ms": 0.7,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 127x64 RGBA bmp"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".bmp"
+      },
+      {
+        "file": "GOLD_BMP_ES.bmp",
+        "file_path": "GOLD_BMP_ES.bmp",
+        "file_size_kb": 31.9,
+        "sha256": "2923d72afa5d868255ab2d6089466345a35702d4e1ba20038295c4fe3f2c36db",
+        "timing_ms": 0.3,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 127x64 RGBA bmp"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".bmp"
+      },
+      {
+        "file": "GOLD_0088.jpeg",
+        "file_path": "GOLD_0088.jpeg",
+        "file_size_kb": 5.5,
+        "sha256": "4a4e2a3e550cef95728d64afbdfb143c089503e632bc422be532fcc5fd73e456",
+        "timing_ms": 0.5,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 200x74 RGB jpeg"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".jpeg"
+      },
+      {
+        "file": "GOLD_0089.jpeg",
+        "file_path": "GOLD_0089.jpeg",
+        "file_size_kb": 8.4,
+        "sha256": "c3edeab591d166f16885d5ec524935b0d2bae1d732b37cdb6fa3751e6f8f3aa9",
+        "timing_ms": 0.2,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 251x686 RGB jpeg"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".jpeg"
+      },
+      {
+        "file": "GOLD_0085.jpg",
+        "file_path": "GOLD_0085.jpg",
+        "file_size_kb": 1.5,
+        "sha256": "37105752656428b36ae591237c50f9365c3a302358b69ccdd604c431ce4fcc82",
+        "timing_ms": 0.2,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 129x103 RGB jpeg"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".jpg"
+      },
+      {
+        "file": "GOLD_0086.jpg",
+        "file_path": "GOLD_0086.jpg",
+        "file_size_kb": 2.0,
+        "sha256": "6de2ec7bbcc54b104036a9bf4573f8121410a8aad154fb30d14d468d2a4d172c",
+        "timing_ms": 0.2,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 113x116 RGB jpeg"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".jpg"
+      },
+      {
+        "file": "GOLD_0082.png",
+        "file_path": "GOLD_0082.png",
+        "file_size_kb": 1.5,
+        "sha256": "8c2cf2d89b303fb0ead9ec3a0aba39a9486466a75f0b7561dc32259a0976bc33",
+        "timing_ms": 0.5,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 333x253 RGBA png"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".png"
+      },
+      {
+        "file": "GOLD_0083.png",
+        "file_path": "GOLD_0083.png",
+        "file_size_kb": 1.8,
+        "sha256": "0cfec67f4e302a27a2cd2a7c2527a62be1a5d504df642dbefb5a15252049e435",
+        "timing_ms": 0.4,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 49x120 RGBA png"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".png"
+      },
+      {
+        "file": "GOLD_0094.tif",
+        "file_path": "GOLD_0094.tif",
+        "file_size_kb": 302.9,
+        "sha256": "1e56c34a73f3c936fe97836064a71209868063a954a1b653ac86ff007e04df93",
+        "timing_ms": 2.8,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 640x480 L tiff"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".tif"
+      },
+      {
+        "file": "GOLD_TIF_ES.tif",
+        "file_path": "GOLD_TIF_ES.tif",
+        "file_size_kb": 432.3,
+        "sha256": "67a67ac7b11e9e93719642720ebe3d5ec6b6a5203d97caa5b1584a226a460055",
+        "timing_ms": 0.7,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 278x374 RGB tiff"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".tif"
+      },
+      {
+        "file": "GOLD_TIFF_ES.tiff",
+        "file_path": "GOLD_TIFF_ES.tiff",
+        "file_size_kb": 156.2,
+        "sha256": "588908c35421e2322f01ef49e6636c6e1977d1d1957e2aeb9b3698d27450f428",
+        "timing_ms": 0.8,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 278x374 RGB tiff"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".tiff"
+      },
+      {
+        "file": "GOLD_TIFF_C.tiff",
+        "file_path": "GOLD_TIFF_C.tiff",
+        "file_size_kb": 644.5,
+        "sha256": "d4a1e12e3a1500e5acac15c62cc8caa47d20099e7ce0b33dc0b14b18a2b8d5a3",
+        "timing_ms": 0.6,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 640x512 I;16 tiff"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".tiff"
+      },
+      {
+        "file": "GOLD_WEBP_ES.webp",
+        "file_path": "GOLD_WEBP_ES.webp",
+        "file_size_kb": 28.9,
+        "sha256": "af5bf1a0e420467c09d221fbfbb739646956c17f2b67f8280eacfacf87059a37",
+        "timing_ms": 6.0,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 480x360 RGB webp"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".webp"
+      },
+      {
+        "file": "GOLD_WEBP_C.webp",
+        "file_path": "GOLD_WEBP_C.webp",
+        "file_size_kb": 203.0,
+        "sha256": "e000f2c68d1dcbe0cb9b399e6f67031e624f9f1769950efad94e45596cf96f19",
+        "timing_ms": 0.9,
+        "success": true,
+        "record_count": 1,
+        "provenance_rate": 1.0,
+        "type_distribution": {
+          "pdf_page": 1
+        },
+        "diagnostics": [
+          "ImageExtractor processed 245x245 RGBA webp"
+        ],
+        "metadata_keys": [
+          "page_count",
+          "char_count",
+          "detected_format",
+          "pillow_format",
+          "width",
+          "height",
+          "mode",
+          "exif_count",
+          "pillow_error",
+          "doc_id",
+          "source_path",
+          "file_name",
+          "file_size"
+        ],
+        "extractor": "image",
+        "extractor_version": "1.0.0",
+        "extension": ".webp"
+      }
+    ]
+  }
+}

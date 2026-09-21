@@ -7,6 +7,7 @@ from src.ui.widgets.smart_import_wizard import SmartImportWizard
 from src.application.jobs.ingest_file_job import IngestFileJob
 
 from src.ui.panels.file_detail_panel import FileDetailPanel
+from src.infra.dependency_status import DependencyHealthChecker
 
 class DocumentsPage(BasePage):
     def __init__(self, parent, controller):
@@ -140,7 +141,7 @@ class DocumentsPage(BasePage):
                 self.safe_ui_after(0, lambda: self._build_document_rows([], is_global_scope))
                 return
             # Keep the mounted route honest: global scope is backed by the canonical global DB only.
-            rows = target_db.execute("SELECT source_path, file_id FROM file_versions ORDER BY imported_at DESC LIMIT 200").fetchall()
+            rows = target_db.execute("SELECT source_path, file_id, file_ext FROM file_versions ORDER BY imported_at DESC LIMIT 200").fetchall()
             self.safe_ui_after(0, lambda: self._build_document_rows(rows, is_global_scope=is_global_scope))
         except Exception as e:
             print(f"DocumentsPage Error: {e}")
@@ -150,30 +151,39 @@ class DocumentsPage(BasePage):
         if not rows:
             self.lbl_title.configure(text=("Global Standards Library" if is_global_scope else "Project Document Center"))
             return
-            
+
         end_idx = min(start_idx + batch_size, len(rows))
         current_batch = rows[start_idx:end_idx]
-        
+
         for r in current_batch:
             path = r[0]
             fname = path.split("\\")[-1]
             fid = r[1]
-            
+            file_ext = (r[2] or "").lower() if len(r) > 2 else ""
+
             row = ctk.CTkFrame(self.scroll_files, cursor="hand2", fg_color=Theme.SURFACE, corner_radius=8, border_width=1, border_color=Theme.BORDER_DIM)
             row.pack(fill="x", pady=4, padx=10)
-            
+
             # Click Handler
             def open_inspector(event, p=path, f=fid):
                 target_db = self.controller.global_db if is_global_scope else self.controller.db
                 FileDetailPanel(self, target_db, file_id=f, file_path=p)
-            
+
             row.bind("<Button-1>", open_inspector)
-            
+
             lbl = ctk.CTkLabel(row, text=fname, text_color=Theme.TEXT_OFFWHITE, font=("Arial", 13))
             lbl.pack(side="left", padx=15, pady=10)
             lbl.bind("<Button-1>", open_inspector)
-            
-            status = ctk.CTkLabel(row, text="Ingested", text_color=Theme.SUCCESS, font=("Arial", 11, "bold"))
+
+            # Status label with dependency-aware classification
+            dep_info = DependencyHealthChecker.get_dependency_info_for_extension(file_ext)
+            if dep_info:
+                status_text = f"Blocked — {dep_info['dependency']}"
+                status_fg = Theme.DANGER_RED
+            else:
+                status_text = "Ingested"
+                status_fg = Theme.SUCCESS
+            status = ctk.CTkLabel(row, text=status_text, text_color=status_fg, font=("Arial", 11, "bold"))
             status.pack(side="right", padx=15)
             status.bind("<Button-1>", open_inspector)
 

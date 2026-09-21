@@ -140,6 +140,37 @@ class PDFProcessor:
             pass
 
         full_text = "\n\n".join(full_text_parts).strip()
+
+        # Optional: capture text bounding boxes via fitz for evidence anchors
+        bbox_records: List[Dict[str, Any]] = []
+        try:
+            import fitz
+            fitz_doc = fitz.open(abs_path)
+            for i in range(min(len(pages), len(fitz_doc))):
+                fitz_page = fitz_doc[i]
+                text_dict = fitz_page.get_text("dict")
+                spans_with_bbox = []
+                for block in text_dict.get("blocks", []):
+                    if block.get("type") != 0:
+                        continue
+                    for line in block.get("lines", []):
+                        for span in line.get("spans", []):
+                            text = span.get("text", "").strip()
+                            if text:
+                                spans_with_bbox.append({
+                                    "text": text,
+                                    "bbox": list(span.get("bbox", [0, 0, 0, 0])),
+                                    "font": span.get("font", ""),
+                                    "size": round(span.get("size", 0), 1),
+                                })
+                if spans_with_bbox:
+                    bbox_records.append({
+                        "page_index": i,
+                        "spans": spans_with_bbox,
+                    })
+            fitz_doc.close()
+        except Exception:
+            pass  # Bbox capture is best-effort; don't break extraction
         
         # [P0-1] Restore blocks
         blocks = TextChunker.chunk_text(full_text, source_type="pdf")
@@ -151,4 +182,5 @@ class PDFProcessor:
             "blocks": blocks,
             "structured_data": [],
             "meta": {"source": "pdf-processor", "pages": len(pages), "rel_path": rel_path},
+            "bbox_records": bbox_records if bbox_records else None,
         }

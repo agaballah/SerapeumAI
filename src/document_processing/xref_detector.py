@@ -45,19 +45,32 @@ class XREFDetector:
         xrefs: List[XREFInfo] = []
         try:
             doc = ezdxf.readfile(abs_path)
-            # In DXF, XREFs are blocks with a path attribute
+            # In DXF, XREFs are blocks whose BLOCK_RECORD is flagged is_xref.
+            # ezdxf >= 1.x exposes is_xref on block_record, not on the layout.
             for block in doc.blocks:
-                if block.is_xref:
-                    ref_path = block.xref_path
-                    if ref_path:
-                        resolved_abs = self._resolve_path(os.path.dirname(abs_path), ref_path)
-                        if resolved_abs:
-                            xrefs.append(XREFInfo(abs_path, ref_path, resolved_abs))
-                            # Recursive scan
-                            # xrefs.extend(self.scan(resolved_abs, visited)) 
-                            # (Recursive call should be handled by the orchestrator/service)
+                try:
+                    is_xref = bool(block.block_record.is_xref)
+                except Exception:
+                    is_xref = bool(getattr(block, "is_xref", False))
+                if not is_xref:
+                    continue
+                ref_path = getattr(block, "xref_path", None)
+                if ref_path is None:
+                    ref_path = getattr(block.block_record, "xref_path", None)
+                if not ref_path:
+                    logger.debug(
+                        f"[XREFDetector] XREF block present but reference path "
+                        f"not exposed by this ezdxf version: {block.dxf.name}"
+                    )
+                    continue
+                resolved_abs = self._resolve_path(os.path.dirname(abs_path), ref_path)
+                if resolved_abs:
+                    xrefs.append(XREFInfo(abs_path, ref_path, resolved_abs))
+                    # Recursive scan
+                    # xrefs.extend(self.scan(resolved_abs, visited))
+                    # (Recursive call should be handled by the orchestrator/service)
         except Exception as e:
-            logger.error(f"[XREFDetector] Failed to scan {abs_path}: {e}")
+            logger.error(f"[XREFDetector] Failed to scan {abs_path}: {e}", exc_info=True)
 
         return xrefs
 

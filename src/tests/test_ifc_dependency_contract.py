@@ -67,6 +67,7 @@ class FakeConnection:
 
 class FakeModel:
     def __init__(self):
+        self.schema = "IFC2X3"
         self.project = FakeEntity("IfcProject", "project-guid-001", "Project")
         self.site = FakeEntity("IfcSite", "site-guid-001", "Site")
         self.product = FakeEntity("IfcWall", "wall-guid-001", "Wall")
@@ -112,6 +113,7 @@ def test_ifc_available_dependency_emits_only_known_contract_record_types(monkeyp
         "ifc_spatial",
         "ifc_element_metadata",
         "ifc_connection",
+        "ifc_entity_count",
     }
 
     assert all(record["provenance"].get("entity") for record in result.records)

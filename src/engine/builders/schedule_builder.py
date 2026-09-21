@@ -76,7 +76,7 @@ class ScheduleBuilder:
                 created_at=now,
                 updated_at=now
             )
-            f_def.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id}))
+            f_def.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id, "source_type": "xer", "activity_id": act_id}))
             facts.append(f_def)
             
             # 2. Activity Dates
@@ -98,7 +98,7 @@ class ScheduleBuilder:
                 created_at=now,
                 updated_at=now
             )
-            f_dates.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id}))
+            f_dates.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id, "source_type": "xer", "activity_id": act_id}))
             facts.append(f_dates)
             
             # 3. Critical Path Membership
@@ -121,7 +121,7 @@ class ScheduleBuilder:
                     created_at=now,
                     updated_at=now
                 )
-                f_critical.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id}))
+                f_critical.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id, "source_type": "xer", "activity_id": act_id}))
                 facts.append(f_critical)
             
             #4. NEW: Total Float as separate fact
@@ -141,7 +141,7 @@ class ScheduleBuilder:
                     created_at=now,
                     updated_at=now
                 )
-                f_float.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id}))
+                f_float.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "row_id": act_id, "source_type": "xer", "activity_id": act_id}))
                 facts.append(f_float)
 
         # 4. Logic (Relationships)
@@ -177,7 +177,7 @@ class ScheduleBuilder:
                 created_at=now,
                 updated_at=now
             )
-            f_logic.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASKPRED", "row_id": rel_id}))
+            f_logic.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASKPRED", "row_id": rel_id, "source_type": "xer"}))
             facts.append(f_logic)
         
         # 5. NEW: Aggregate/Computed Facts
@@ -200,7 +200,7 @@ class ScheduleBuilder:
                 created_at=now,
                 updated_at=now
             )
-            f_status_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "p6_activities"}))
+            f_status_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "p6_activities", "source_type": "xer"}))
             facts.append(f_status_count)
         
         # 5b. Critical path activity count
@@ -223,7 +223,7 @@ class ScheduleBuilder:
                 created_at=now,
                 updated_at=now
             )
-            f_cp_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "p6_activities"}))
+            f_cp_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "p6_activities", "source_type": "xer"}))
             facts.append(f_cp_count)
         else:
             logger.warning(
@@ -247,7 +247,7 @@ class ScheduleBuilder:
                 created_at=now,
                 updated_at=now
             )
-            f_milestone.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK"}))
+            f_milestone.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "TASK", "source_type": "xer"}))
             facts.append(f_milestone)
 
         logger.info(f"[ScheduleBuilder] Generated {len(facts)} facts ({len(critical_path_set)} critical activities)")

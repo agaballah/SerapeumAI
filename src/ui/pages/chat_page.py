@@ -74,7 +74,22 @@ class ChatPage(BasePage):
         )
         self.lbl_attachments.grid(row=1, column=0, columnspan=3, sticky="ew", padx=12, pady=(0, 8))
 
+        self.lbl_processing = ctk.CTkLabel(
+            self.frame_input,
+            text="",
+            anchor="w",
+            text_color=Theme.TEXT_MUTED,
+            font=("Segoe UI", 11, "italic"),
+        )
+        self.lbl_processing.grid(row=2, column=0, columnspan=3, sticky="ew", padx=12, pady=(0, 4))
+
         self._show_welcome_message()
+
+    def _set_processing(self, active: bool, message: str = "Analyzing project evidence..."):
+        if active:
+            self.lbl_processing.configure(text=message, text_color=Theme.TEXT_MUTED)
+        else:
+            self.lbl_processing.configure(text="")
 
     def _show_welcome_message(self):
         project_id = getattr(self.controller, "active_project_id", None)
@@ -89,6 +104,7 @@ class ChatPage(BasePage):
         self._last_user_query = ""
         self.feedback_events = []
         self._clear_attachments()
+        self._set_processing(False)
         try:
             self.entry_msg.delete(0, "end")
         except Exception:
@@ -143,6 +159,7 @@ class ChatPage(BasePage):
         """Drop late worker errors from a closed or changed project session."""
         if not self._is_current_chat_request(request_token, request_project_id):
             return
+        self._set_processing(False)
         self.add_message("System", f"Error: {str(error)}")
 
     def send_message(self, event=None):
@@ -158,6 +175,7 @@ class ChatPage(BasePage):
         self.add_message("User", msg, attachments=attachment_names)
         self.entry_msg.delete(0, "end")
         self._clear_attachments()
+        self._set_processing(True)
 
         if self.controller.orchestrator:
             request_token = self._chat_session_token
@@ -172,6 +190,7 @@ class ChatPage(BasePage):
                     def _deliver():
                         if not self._is_current_chat_request(request_token, request_project_id):
                             return
+                        self._set_processing(False)
                         self.add_message(
                             "Serapeum",
                             ans,
@@ -182,13 +201,13 @@ class ChatPage(BasePage):
                         )
                     self.safe_ui_after(0, _deliver)
                 except Exception as e:
-                    self.safe_ui_after(
-                        0,
-                        lambda err=e, token=request_token, project=request_project_id: self._deliver_chat_error(token, project, err),
-                    )
-
+                    def _err():
+                        self._set_processing(False)
+                        self._deliver_chat_error(request_token, request_project_id, e)
+                    self.safe_ui_after(0, _err)
             threading.Thread(target=_ask, daemon=True).start()
         else:
+            self._set_processing(False)
             self.add_message("System", "Expert Brain not initialized for this project.")
 
     def add_message(

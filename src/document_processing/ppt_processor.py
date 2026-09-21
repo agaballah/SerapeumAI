@@ -84,11 +84,111 @@ class PPTProcessor:
                         "quality": "queued",
                     }
                 ]
+        elif ext == ".ppt":
+            # .ppt requires external conversion; use PowerShell COM automation
+            try:
+                import subprocess
+                
+                # Escape path for PowerShell
+                escaped_path = abs_path.replace("'", "''").replace('"', '`"')
+                
+                # Create a PowerShell script to extract text from .ppt using PowerPoint COM
+                ps_script = """
+                $ppt = $null
+                $presentation = $null
+                try {
+                    $ppt = New-Object -ComObject PowerPoint.Application
+                    $ppt.Visible = [Microsoft.Office.Core.MsoTriState]::msoFalse
+                    $presentation = $ppt.Presentations.Open('__PPT_PATH__', $false, $true, $false)
+                    $text = ""
+                    foreach ($slide in $presentation.Slides) {
+                        foreach ($shape in $slide.Shapes) {
+                            if ($shape.HasTextFrame) {
+                                $text += $shape.TextFrame.TextRange.Text + "`n"
+                            }
+                        }
+                    }
+                    $presentation.Close()
+                    Write-Output $text
+                } catch {
+                    Write-Output "[ppt] COM extraction failed: $_"
+                } finally {
+                    if ($presentation) {
+                        try { $presentation.Close() } catch { }
+                        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($presentation) | Out-Null
+                        $presentation = $null
+                    }
+                    if ($ppt) {
+                        try { $ppt.Quit() } catch { }
+                        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($ppt) | Out-Null
+                        $ppt = $null
+                    }
+                    [System.GC]::Collect()
+                    [System.GC]::WaitForPendingFinalizers()
+                    [System.GC]::Collect()
+                    [System.GC]::WaitForPendingFinalizers()
+                }
+                """.replace("__PPT_PATH__", escaped_path)
+                
+                try:
+                    result = subprocess.run(
+                        ["powershell", "-Command", ps_script],
+                        capture_output=True, text=True, timeout=60, encoding='utf-8', errors='replace'
+                    )
+                except subprocess.TimeoutExpired:
+                    # Defensive: kill any orphan POWERPNT processes on timeout
+                    try:
+                        subprocess.run(
+                            ["powershell", "-Command", "Stop-Process -Name POWERPNT -Force -ErrorAction SilentlyContinue"],
+                            capture_output=True, text=True, timeout=10, encoding='utf-8', errors='replace'
+                        )
+                    except Exception:
+                        pass
+                    pages.append({
+                        "page_index": 0,
+                        "py_text": "[ppt] extraction timed out",
+                        "text_hint": rel_path,
+                        "quality": "queued",
+                    })
+                else:
+                    if result.returncode == 0 and result.stdout and result.stdout.strip():
+                        extracted_text = result.stdout.strip()
+                        if not extracted_text.startswith("[ppt]"):
+                            full_text_parts.append(extracted_text)
+                            pages.append({
+                                "page_index": 0,
+                                "py_text": extracted_text,
+                                "text_hint": extracted_text[:200] if extracted_text else rel_path,
+                                "quality": "queued",
+                            })
+                        else:
+                            pages.append({
+                                "page_index": 0,
+                                "py_text": extracted_text,
+                                "text_hint": rel_path,
+                                "quality": "queued",
+                            })
+                    else:
+                        pages.append({
+                            "page_index": 0,
+                            "py_text": "[ppt] extraction failed or returned empty",
+                            "text_hint": rel_path,
+                            "quality": "queued",
+                        })
+                    
+            except Exception as e:
+                logger.exception("   [PPTProcessor] Failed to parse PPT via COM: %s", rel_path)
+                pages.append({
+                    "page_index": 0,
+                    "py_text": f"[ppt] COM extraction failed: {e}",
+                    "text_hint": rel_path,
+                    "quality": "queued",
+                })
         else:
             pages = [
                 {
                     "page_index": 0,
-                    "py_text": "[ppt] legacy .ppt detected; conversion not implemented in this build.",
+                    "py_text": f"[ppt] unsupported extension: {ext}",
                     "text_hint": rel_path,
                     "quality": "queued",
                 }

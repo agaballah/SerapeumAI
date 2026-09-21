@@ -165,3 +165,123 @@ class FactRepository:
             (fact_id,)
         ).fetchall()
         return [dict(row) for row in rows]
+
+    # ──────────────────────────────────────────────────────────────────────
+    # CAD evidence queries — deterministic lookups for DXF-derived data
+    # ──────────────────────────────────────────────────────────────────────
+
+    def query_cad_layers(
+        self, project_id: str, file_version_id: str
+    ) -> List[Dict[str, Any]]:
+        """Return all layer records for a file version, with entity counts."""
+        rows = self.db.execute(
+            """
+            SELECT l.layer_name, l.color, l.linetype, l.frozen, l.locked, l.on_flag,
+                   COALESCE(e.cnt, 0) AS entity_count, l.raw_json
+            FROM cad_layers l
+            LEFT JOIN (
+                SELECT layer, file_version_id, COUNT(*) AS cnt
+                FROM cad_entities
+                GROUP BY layer, file_version_id
+            ) e ON e.file_version_id = l.file_version_id AND e.layer = l.layer_name
+            WHERE l.file_version_id = ?
+            ORDER BY l.layer_name
+            """,
+            (file_version_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def count_cad_entities_by_type(
+        self, project_id: str, file_version_id: str, entity_type: str
+    ) -> int:
+        """Return count of entities of a given type on a file version."""
+        row = self.db.execute(
+            """
+            SELECT COUNT(*) AS cnt FROM cad_entities
+            WHERE file_version_id = ? AND entity_type = ?
+            """,
+            (file_version_id, entity_type),
+        ).fetchone()
+        return int(row["cnt"]) if row else 0
+
+    def count_cad_entities_on_layer(
+        self, project_id: str, file_version_id: str, layer_name: str
+    ) -> int:
+        """Return count of entities on a given layer."""
+        row = self.db.execute(
+            """
+            SELECT COUNT(*) AS cnt FROM cad_entities
+            WHERE file_version_id = ? AND layer = ?
+            """,
+            (file_version_id, layer_name),
+        ).fetchone()
+        return int(row["cnt"]) if row else 0
+
+    def list_cad_inserts_on_layer(
+        self, project_id: str, file_version_id: str, layer_name: str
+    ) -> List[Dict[str, Any]]:
+        """Return INSERT entities on a specific layer (for counting/retrieval)."""
+        rows = self.db.execute(
+            """
+            SELECT handle, raw_json FROM cad_entities
+            WHERE file_version_id = ? AND entity_type = 'INSERT' AND layer = ?
+            ORDER BY handle
+            """,
+            (file_version_id, layer_name),
+        ).fetchall()
+        result = []
+        for r in rows:
+            try:
+                d = json.loads(r["raw_json"]) if r["raw_json"] else {}
+            except Exception:
+                d = {}
+            d["handle"] = r["handle"]
+            result.append(d)
+        return result
+
+    def list_cad_text_annotations(
+        self, project_id: str, file_version_id: str
+    ) -> List[Dict[str, Any]]:
+        """Return all TEXT/MTEXT annotations for a file version."""
+        rows = self.db.execute(
+            """
+            SELECT handle, entity_type, layer, text_content, x, y, z,
+                   rotation_deg, height, source_file
+            FROM cad_text_annotations
+            WHERE file_version_id = ?
+            ORDER BY handle
+            """,
+            (file_version_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def list_cad_dimensions(
+        self, project_id: str, file_version_id: str
+    ) -> List[Dict[str, Any]]:
+        """Return all dimension records for a file version."""
+        rows = self.db.execute(
+            """
+            SELECT handle, layer, dimension_type, measurement,
+                   text_override, dimstyle
+            FROM cad_dimensions
+            WHERE file_version_id = ?
+            ORDER BY handle
+            """,
+            (file_version_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_cad_drawing_summary(
+        self, project_id: str, file_version_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Return the drawing-level metadata summary."""
+        row = self.db.execute(
+            """
+            SELECT drawing_version, modelspace_entity_count, layer_count,
+                   layout_count, cap_reached, raw_json
+            FROM cad_drawings
+            WHERE file_version_id = ?
+            """,
+            (file_version_id,),
+        ).fetchone()
+        return dict(row) if row else None

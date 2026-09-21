@@ -92,7 +92,7 @@ class RegisterBuilder:
                 method_id="register_builder_v1",
                 created_at=now,
                 updated_at=now,
-                inputs=[FactInput(file_version_id=snapshot_id, location={"row_id": r["row_id"]})]
+                inputs=[FactInput(file_version_id=snapshot_id, location={"row_id": r["row_id"], "source_type": "xlsx", "sheet_or_section": r["sheet_name"], "row_or_paragraph": r["row_index"]})]
             )
             facts.append(f_main)
             
@@ -118,7 +118,7 @@ class RegisterBuilder:
                     method_id="register_builder_v1_crosswalk",
                     created_at=now,
                     updated_at=now,
-                    inputs=[FactInput(file_version_id=snapshot_id, location={"row_id": r["row_id"]})]
+                    inputs=[FactInput(file_version_id=snapshot_id, location={"row_id": r["row_id"], "source_type": "xlsx", "sheet_or_section": r["sheet_name"], "row_or_paragraph": r["row_index"]})]
                 )
                 facts.append(f_link)
                 

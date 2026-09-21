@@ -52,8 +52,11 @@ logger = logging.getLogger(__name__)
 
 # Files we are willing to ingest for a project.
 # (Per-project scanning still respects ignore folders below.)
+# Note: inclusion here means "recognised for ingestion" only — it does NOT
+# imply that an extractor exists.  See IngestFileJob.extractor_map for the
+# actual extraction routing.
 SUPPORTED_EXT = {
-    # Text & documents
+    # Text & documents  (ingestible; extraction varies by format)
     ".pdf",
     ".txt",
     ".md",
@@ -71,24 +74,22 @@ SUPPORTED_EXT = {
     ".pptx",
     ".csv",
     ".tsv",
-
-    # Images
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".bmp",
-    ".tif",
-    ".tiff",
-    ".webp",
-
+ 
     # CAD / BIM
     ".dgn",
     ".dwg",
     ".dxf",
     ".rvt",
     ".ifc",
-
-    # Schedules / planning
+    # Images  (ingestible; extraction placeholder — see FieldExtractor maturity)
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".bmp",
+    ".tif",
+    ".tiff",
+    ".webp",
+    # Schedules
     ".xer",
     ".mpp",
 }

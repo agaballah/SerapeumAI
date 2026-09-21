@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 DGNExtractor — BaseExtractor wrapper for .dgn (MicroStation) files.
 
@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 class DGNExtractor(BaseExtractor):
     """Extracts metadata and XREF links from .dgn files via dgn_processor."""
+
+    maturity = "EXPERIMENTAL"
 
     @property
     def id(self) -> str:

@@ -139,15 +139,15 @@ class DocumentBuilder:
             return fact
 
         f_page_count = make_fact("page_count", "document.page_count", ValueType.NUM, page_count)
-        f_page_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "pdf_pages", "doc_id": doc_id}))
+        f_page_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "pdf_pages", "doc_id": doc_id, "source_file": doc.get("file_name"), "source_type": "pdf"}))
         facts.append(f_page_count)
 
         f_block_count = make_fact("block_count", "document.block_count", ValueType.NUM, block_count)
-        f_block_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "doc_blocks", "doc_id": doc_id}))
+        f_block_count.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "doc_blocks", "doc_id": doc_id, "source_file": doc.get("file_name"), "source_type": "pdf"}))
         facts.append(f_block_count)
 
         f_has_text = make_fact("has_text", "document.has_text", ValueType.BOOL, has_text)
-        f_has_text.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "pdf_pages", "doc_id": doc_id}))
+        f_has_text.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "pdf_pages", "doc_id": doc_id, "source_file": doc.get("file_name"), "source_type": "pdf"}))
         facts.append(f_has_text)
 
         profile_value = {
@@ -157,28 +157,29 @@ class DocumentBuilder:
             "rel_path": doc.get("rel_path"),
         }
         f_profile = make_fact("profile", "document.profile", ValueType.JSON, profile_value)
-        f_profile.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "documents", "doc_id": doc_id}))
+        f_profile.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "documents", "doc_id": doc_id, "source_file": doc.get("file_name"), "source_type": "pdf"}))
         facts.append(f_profile)
 
         if headings:
             f_headings = make_fact("headings", "document.headings", ValueType.JSON, headings)
-            f_headings.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "doc_blocks", "doc_id": doc_id}))
+            f_headings.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "doc_blocks", "doc_id": doc_id, "source_file": doc.get("file_name"), "source_type": "pdf"}))
             facts.append(f_headings)
 
         if entities:
             f_entities = make_fact("entities", "document.entities", ValueType.JSON, entities)
-            f_entities.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "entity_nodes", "doc_id": doc_id}))
+            f_entities.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "entity_nodes", "doc_id": doc_id, "source_file": doc.get("file_name"), "source_type": "pdf"}))
             facts.append(f_entities)
 
         if abstract:
             f_abstract = make_fact("abstract", "document.abstract", ValueType.TEXT, abstract)
-            f_abstract.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "doc_blocks", "doc_id": doc_id}))
+            f_abstract.inputs.append(FactInput(file_version_id=snapshot_id, location={"table": "doc_blocks", "doc_id": doc_id, "source_file": doc.get("file_name"), "source_type": "pdf"}))
             facts.append(f_abstract)
 
         semantic_facts = self._build_semantic_document_facts(
             project_id=project_id,
             snapshot_id=snapshot_id,
             doc_id=doc_id,
+            doc=doc,
             blocks=blocks,
             pdf_pages=pdf_pages,
             now=now,
@@ -287,6 +288,7 @@ class DocumentBuilder:
         project_id: str,
         snapshot_id: str,
         doc_id: str,
+        doc: Dict[str, Any],
         blocks: List[Dict[str, Any]],
         pdf_pages: List[Dict[str, Any]],
         now: str,
@@ -299,7 +301,7 @@ class DocumentBuilder:
         seen: set[Tuple[str, str]] = set()
         facts: List[Fact] = []
 
-        def add_fact(fact_type: str, value_type: ValueType, value: Any, source_text: str, key_hint: str) -> None:
+        def add_fact(fact_type: str, value_type: ValueType, value: Any, source_text: str, key_hint: str, page_or_slide: Optional[int] = None) -> None:
             norm_value = json.dumps(value, sort_keys=True, ensure_ascii=False) if isinstance(value, (dict, list)) else str(value)
             dedupe_key = (fact_type, norm_value.strip().lower())
             if dedupe_key in seen:
@@ -322,15 +324,18 @@ class DocumentBuilder:
                 created_at=now,
                 updated_at=now,
             )
+            loc = {"table": "doc_blocks", "doc_id": doc_id, "source_file": doc.get("file_name"), "source_type": "pdf", "snippet": source_text[:500]}
+            if page_or_slide is not None:
+                loc["page_or_slide"] = page_or_slide
             fact.inputs.append(
                 FactInput(
                     file_version_id=snapshot_id,
-                    location={"table": "doc_blocks", "doc_id": doc_id, "snippet": source_text[:500]},
+                    location=loc,
                 )
             )
             facts.append(fact)
 
-        for line in lines:
+        for line, page_or_slide in lines:
             lower = line.lower()
 
             area_match = re.search(
@@ -341,23 +346,23 @@ class DocumentBuilder:
             if area_match:
                 num = area_match.group("num")
                 if num:
-                    add_fact("document.area_approx", ValueType.JSON, {"area": float(num), "approx": True}, line, f"area:{num}")
+                    add_fact("document.area_approx", ValueType.JSON, {"area": float(num), "approx": True}, line, f"area:{num}", page_or_slide)
 
             if " in scope" in lower or "inscope" in lower:
                 item = re.sub(r"\b(?:is|are)\s+in\s*scope\b", "", line, flags=re.I)
                 item = re.sub(r"\binscope\b", "", item, flags=re.I)
                 item = self._normalize_item(item)
                 if item:
-                    add_fact("document.scope_item", ValueType.TEXT, item, line, f"scope:{item}")
+                    add_fact("document.scope_item", ValueType.TEXT, item, line, f"scope:{item}", page_or_slide)
 
             includes_match = re.search(r"\b(?:scope|scopes?)\s+includes?\s+(.+)$", line, re.I)
             if includes_match:
                 component = self._normalize_item(includes_match.group(1))
                 if component:
-                    add_fact("document.includes_component", ValueType.TEXT, component, line, f"includes:{component}")
+                    add_fact("document.includes_component", ValueType.TEXT, component, line, f"includes:{component}", page_or_slide)
 
             if re.search(r"\b(?:includes?\s+detailed\s+design|detailed\s+design)\b", lower, re.I):
-                add_fact("document.design_obligation", ValueType.TEXT, "detailed design required", line, "design-obligation:detailed-design")
+                add_fact("document.design_obligation", ValueType.TEXT, "detailed design required", line, "design-obligation:detailed-design", page_or_slide)
 
             requirement_patterns = [
                 r"\bcontractor\s+shall\s+consider\b.+$",
@@ -372,12 +377,12 @@ class DocumentBuilder:
                     continue
                 requirement = self._normalize_phrase(m.group(0))
                 if requirement:
-                    add_fact("document.requirement", ValueType.TEXT, requirement, line, f"req:{requirement}")
+                    add_fact("document.requirement", ValueType.TEXT, requirement, line, f"req:{requirement}", page_or_slide)
                 vendor_match = re.search(r"\bas\s+per\s+(.+)$", m.group(0), re.I)
                 if vendor_match:
                     vendor_basis = self._normalize_phrase(vendor_match.group(1))
                     if vendor_basis:
-                        add_fact("document.vendor_basis", ValueType.TEXT, vendor_basis, line, f"vendor:{vendor_basis}")
+                        add_fact("document.vendor_basis", ValueType.TEXT, vendor_basis, line, f"vendor:{vendor_basis}", page_or_slide)
                 break
 
         return facts
@@ -386,12 +391,15 @@ class DocumentBuilder:
         self,
         blocks: List[Dict[str, Any]],
         pdf_pages: List[Dict[str, Any]],
-    ) -> Iterable[str]:
+    ) -> Iterable[Tuple[str, Optional[int]]]:
         seen: set[str] = set()
         for block in blocks:
             text = (block.get("text") or block.get("block_text") or "").strip()
             if not text:
                 continue
+            page_or_slide = block.get("page_index")
+            if page_or_slide is not None and isinstance(page_or_slide, int):
+                page_or_slide = page_or_slide + 1
             for part in re.split(r"[\n\r]+|\s*•\s*|\s*\*\s*", text):
                 line = self._normalize_phrase(part)
                 if len(line) < 8:
@@ -400,11 +408,12 @@ class DocumentBuilder:
                 if key in seen:
                     continue
                 seen.add(key)
-                yield line
+                yield line, page_or_slide
         for page in pdf_pages:
             text = (page.get("text_content") or "").strip()
             if not text:
                 continue
+            page_or_slide = page.get("page_no")
             for part in re.split(r"[\n\r]+|\s*•\s*|\s*\*\s*", text):
                 line = self._normalize_phrase(part)
                 if len(line) < 8:
@@ -413,7 +422,7 @@ class DocumentBuilder:
                 if key in seen:
                     continue
                 seen.add(key)
-                yield line
+                yield line, page_or_slide
 
     def _normalize_item(self, text: str) -> str:
         text = self._normalize_phrase(text)

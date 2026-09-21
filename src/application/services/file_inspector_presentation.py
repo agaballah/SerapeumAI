@@ -6,6 +6,8 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from src.infra.dependency_status import DependencyHealthChecker
+
 
 def _safe_json(value: Any) -> Any:
     if value in (None, ""):
@@ -278,9 +280,22 @@ def _build_consolidated_review(document: Dict[str, Any], file_version: Dict[str,
         f"Deterministic extraction coverage: {len(py_pages)} page(s) with direct text, {len(ocr_pages)} page(s) with OCR text",
         f"AI interpretation coverage: {len(ai_pages)} page(s)",
     ]
-    if runs:
+
+    # Dependency-aware status
+    file_ext = str(file_version.get("file_ext") or "").lower()
+    dep_info = DependencyHealthChecker.get_dependency_info_for_extension(file_ext)
+    if dep_info:
+        lines.append(f"⚠  Extraction blocked: required dependency '{dep_info['dependency']}' is missing.")
+        lines.append(f"   Install with: {dep_info['install_command']}")
+    elif runs:
         latest = runs[0]
-        lines.append(f"Latest extraction run: {latest.get('status', 'UNKNOWN')} using {latest.get('extractor_id') or latest.get('extractor_name') or 'extractor'}")
+        run_status = latest.get('status', 'UNKNOWN')
+        if run_status == 'FAILED':
+            lines.append(f"Extraction failed: {run_status}")
+        else:
+            lines.append(f"Latest extraction run: {run_status} using {latest.get('extractor_id') or latest.get('extractor_name') or 'extractor'}")
+    else:
+        lines.append("Extraction run: pending")
     if blocks:
         lines.append(f"Structured deterministic blocks: {len(blocks)}")
     lines.append("")

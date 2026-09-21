@@ -59,7 +59,7 @@ class SystemCompletionBuilder:
                 method_id="system_completion_builder_v1",
                 created_at=now,
                 updated_at=now,
-                inputs=[FactInput(file_version_id=snapshot_id, location={"request_id": r["request_id"]})]
+                inputs=[FactInput(file_version_id=snapshot_id, location={"request_id": r["request_id"], "source_type": "field"})]
             )
             facts.append(f)
             

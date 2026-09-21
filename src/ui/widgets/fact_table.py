@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
+import platform
+import subprocess
+import json as _json
 import customtkinter as ctk
 from tkinter import ttk
 import tkinter as tk
@@ -38,6 +42,9 @@ class FactTable(ctk.CTkFrame):
         self.filtered_rows = []
         self.row_by_fact_id = {}
         self.selected_fact_id = None
+        self._current_conflict_id = ""
+        self._conflict_value_a_id = ""
+        self._conflict_value_b_id = ""
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -99,7 +106,7 @@ class FactTable(ctk.CTkFrame):
         self.frame_content.grid_columnconfigure(1, weight=2)
         self.frame_content.grid_rowconfigure(0, weight=1)
 
-        columns = ("review_title", "family", "source", "status")
+        columns = ("review_title", "family", "source", "status", "conflict")
         self.frame_table = ctk.CTkFrame(self.frame_content, fg_color="transparent")
         self.frame_table.grid(row=0, column=0, sticky="nsew", padx=(0, 12), pady=0)
         self.frame_table.grid_columnconfigure(0, weight=1)
@@ -110,10 +117,12 @@ class FactTable(ctk.CTkFrame):
         self.tree.heading("family", text="Family")
         self.tree.heading("source", text="Source / evidence")
         self.tree.heading("status", text="Review State")
+        self.tree.heading("conflict", text="⚠")
         self.tree.column("review_title", width=460)
         self.tree.column("family", width=130)
         self.tree.column("source", width=220)
         self.tree.column("status", width=150)
+        self.tree.column("conflict", width=30)
         self.tree.grid(row=0, column=0, sticky="nsew")
 
         self.scrollbar = ctk.CTkScrollbar(self.frame_table, command=self.tree.yview)
@@ -193,8 +202,71 @@ class FactTable(ctk.CTkFrame):
         )
         self.lbl_action_meaning.grid(row=6, column=0, sticky="ew", padx=18, pady=(0, 8))
 
+        # Conflict detail frame (shown only when conflict_flag=1)
+        self.frame_conflict = ctk.CTkFrame(self.frame_detail, fg_color="#2A1F1F", corner_radius=8, border_width=1, border_color="#FF6B35")
+        self.frame_conflict.grid(row=7, column=0, sticky="ew", padx=18, pady=(0, 8))
+        self.frame_conflict.grid_remove()  # hidden by default
+
+        self.lbl_conflict_status = ctk.CTkLabel(
+            self.frame_conflict, text="Conflict Status: OPEN",
+            font=Theme.FONT_H3, text_color="#FF6B35",
+        )
+        self.lbl_conflict_status.grid(row=0, column=0, sticky="ew", padx=12, pady=(8, 4))
+
+        self.lbl_conflict_value_a = ctk.CTkLabel(
+            self.frame_conflict, text="Value A: —",
+            font=Theme.FONT_BODY, text_color=Theme.TEXT_MAIN,
+            justify="left", anchor="w", wraplength=380,
+        )
+        self.lbl_conflict_value_a.grid(row=1, column=0, sticky="ew", padx=12, pady=2)
+
+        self.lbl_conflict_source_a = ctk.CTkLabel(
+            self.frame_conflict, text="Source A: —",
+            font=Theme.FONT_BODY, text_color=Theme.TEXT_MUTED,
+            justify="left", anchor="w", wraplength=380,
+        )
+        self.lbl_conflict_source_a.grid(row=2, column=0, sticky="ew", padx=12, pady=2)
+
+        self.lbl_conflict_value_b = ctk.CTkLabel(
+            self.frame_conflict, text="Value B: —",
+            font=Theme.FONT_BODY, text_color=Theme.TEXT_MAIN,
+            justify="left", anchor="w", wraplength=380,
+        )
+        self.lbl_conflict_value_b.grid(row=3, column=0, sticky="ew", padx=12, pady=2)
+
+        self.lbl_conflict_source_b = ctk.CTkLabel(
+            self.frame_conflict, text="Source B: —",
+            font=Theme.FONT_BODY, text_color=Theme.TEXT_MUTED,
+            justify="left", anchor="w", wraplength=380,
+        )
+        self.lbl_conflict_source_b.grid(row=4, column=0, sticky="ew", padx=12, pady=2)
+
+        self.frame_conflict_actions = ctk.CTkFrame(self.frame_conflict, fg_color="transparent")
+        self.frame_conflict_actions.grid(row=5, column=0, sticky="ew", padx=12, pady=(4, 10))
+
+        self.btn_conflict_reviewed = ctk.CTkButton(
+            self.frame_conflict_actions, text="Mark Reviewed",
+            width=110, height=28, fg_color=Theme.BG_DARK,
+            command=self._on_conflict_mark_reviewed, state="disabled",
+        )
+        self.btn_conflict_reviewed.grid(row=0, column=0, sticky="w", padx=(0, 6), pady=0)
+
+        self.btn_conflict_accept_a = ctk.CTkButton(
+            self.frame_conflict_actions, text="Accept A",
+            width=90, height=28, fg_color=Theme.SUCCESS,
+            command=self._on_conflict_accept_a, state="disabled",
+        )
+        self.btn_conflict_accept_a.grid(row=0, column=1, sticky="w", padx=6, pady=0)
+
+        self.btn_conflict_accept_b = ctk.CTkButton(
+            self.frame_conflict_actions, text="Accept B",
+            width=90, height=28, fg_color=Theme.SUCCESS,
+            command=self._on_conflict_accept_b, state="disabled",
+        )
+        self.btn_conflict_accept_b.grid(row=0, column=2, sticky="w", padx=(6, 0), pady=0)
+
         self.frame_detail_actions = ctk.CTkFrame(self.frame_detail, fg_color="transparent")
-        self.frame_detail_actions.grid(row=7, column=0, sticky="ew", padx=18, pady=(0, 18))
+        self.frame_detail_actions.grid(row=8, column=0, sticky="ew", padx=18, pady=(0, 18))
         self.frame_detail_actions.grid_columnconfigure(0, weight=1)
 
         self.btn_lineage = ctk.CTkButton(
@@ -205,6 +277,16 @@ class FactTable(ctk.CTkFrame):
             state="disabled",
         )
         self.btn_lineage.grid(row=0, column=0, sticky="w", padx=(0, 8), pady=0)
+
+        self.btn_open_source = ctk.CTkButton(
+            self.frame_detail_actions,
+            text="Open Source File",
+            width=140,
+            command=self._open_source_file,
+            state="disabled",
+            fg_color=Theme.BG_DARK,
+        )
+        self.btn_open_source.grid(row=1, column=0, sticky="w", padx=(0, 8), pady=(4, 0))
 
         self.btn_detail_approve = ctk.CTkButton(
             self.frame_detail_actions,
@@ -296,30 +378,30 @@ class FactTable(ctk.CTkFrame):
         try:
             params = []
             query = """
-                SELECT f.fact_id, f.fact_type, f.subject_id,
-                       f.value_text, f.value_num, f.value_json, f.unit,
-                       f.status, f.method_id, f.created_at,
-                       (
-                           SELECT fv.source_path
-                           FROM fact_inputs fi
-                           LEFT JOIN file_versions fv ON fv.file_version_id = fi.file_version_id
-                           WHERE fi.fact_id = f.fact_id
-                           LIMIT 1
-                       ) AS source_path,
-                       (
-                           SELECT fi.location_json
-                           FROM fact_inputs fi
-                           WHERE fi.fact_id = f.fact_id
-                           LIMIT 1
-                       ) AS location_json,
-                       (
-                           SELECT fi.input_kind
-                           FROM fact_inputs fi
-                           WHERE fi.fact_id = f.fact_id
-                           LIMIT 1
-                       ) AS input_kind
-                FROM facts f
-            """
+                  SELECT f.fact_id, f.fact_type, f.subject_id,
+                         f.value_text, f.value_num, f.value_json, f.unit,
+                         f.status, f.method_id, f.created_at, f.conflict_flag,
+                         (
+                             SELECT fv.source_path
+                             FROM fact_inputs fi
+                             LEFT JOIN file_versions fv ON fv.file_version_id = fi.file_version_id
+                             WHERE fi.fact_id = f.fact_id
+                             LIMIT 1
+                         ) AS source_path,
+                         (
+                             SELECT fi.location_json
+                             FROM fact_inputs fi
+                             WHERE fi.fact_id = f.fact_id
+                             LIMIT 1
+                         ) AS location_json,
+                         (
+                             SELECT fi.input_kind
+                             FROM fact_inputs fi
+                             WHERE fi.fact_id = f.fact_id
+                             LIMIT 1
+                         ) AS input_kind
+                  FROM facts f
+               """
             if snapshot_id:
                 query += " WHERE f.fact_id IN (SELECT fact_id FROM fact_snapshot_registry WHERE snapshot_id = ?)"
                 params.append(snapshot_id)
@@ -373,11 +455,11 @@ class FactTable(ctk.CTkFrame):
 
         for row in self.filtered_rows:
             self.tree.insert(
-                "",
-                "end",
-                iid=row["fact_id"],
-                values=(row["title"], row["family_label"], row["source_label"], row["status_label"]),
-            )
+                  "",
+                  "end",
+                  iid=row["fact_id"],
+                  values=(row["title"], row["family_label"], row["source_label"], row["status_label"], row.get("conflict_flag", 0)),
+              )
 
         if self.filtered_rows:
             first = self.filtered_rows[0]["fact_id"]
@@ -407,7 +489,9 @@ class FactTable(ctk.CTkFrame):
             self.lbl_source_box.configure(text="Source: Not available")
             self._set_textbox("Select a fact to see a plain-language explanation and review guidance.")
             self.lbl_action_meaning.configure(text="Certify and Reject will explain their effect for the selected fact.", text_color=Theme.TEXT_MUTED)
+            self._hide_conflict_ui()
             self.btn_lineage.configure(state="disabled")
+            self.btn_open_source.configure(state="disabled")
             self.btn_detail_approve.configure(state="disabled")
             self.btn_detail_reject.configure(state="disabled")
             self.btn_approve.configure(state="disabled")
@@ -444,6 +528,11 @@ class FactTable(ctk.CTkFrame):
         )
         self.lbl_action_meaning.configure(text=row["action_explanation"], text_color=Theme.TEXT_MAIN)
         self.btn_lineage.configure(state="normal")
+        source_path = row.get("source_path")
+        self.btn_open_source.configure(state="normal" if source_path else "disabled")
+
+        # Conflict UI
+        self._render_conflict_ui(row)
 
         status = row["status_code"]
         if status in ("CANDIDATE", "VALIDATED"):
@@ -466,6 +555,138 @@ class FactTable(ctk.CTkFrame):
             text=f"Selected: {row['title']} | {row['status_label']} | {row['source_document']}",
             text_color=Theme.TEXT_MAIN,
         )
+
+    def _hide_conflict_ui(self):
+        self.frame_conflict.grid_remove()
+
+    def _render_conflict_ui(self, row):
+        """Show conflict detail panel when the selected fact has conflict_flag=1."""
+        conflict_flag = row.get("conflict_flag", 0)
+        if not conflict_flag or not self.db:
+            self._hide_conflict_ui()
+            return
+
+        try:
+            # Find the conflict for this fact
+            conflicts = self.db.get_project_conflicts(
+                row.get("project_id", ""), resolution_filter=None
+            )
+            # Find the conflict that includes this fact
+            target_conflict = None
+            for c in conflicts:
+                values = c.get("values_parsed", [])
+                if isinstance(values, str):
+                    try:
+                        values = _json.loads(values)
+                    except Exception:
+                        values = []
+                for v in values:
+                    if v.get("fact_id") == row.get("fact_id"):
+                        target_conflict = c
+                        break
+                if target_conflict:
+                    break
+
+            if not target_conflict:
+                self._hide_conflict_ui()
+                return
+
+            resolution = target_conflict.get("resolution", "UNRESOLVED")
+            values = target_conflict.get("values_parsed", [])
+            if isinstance(values, str):
+                try:
+                    values = _json.loads(values)
+                except Exception:
+                    values = []
+
+            # Set up labels
+            val_a = values[0] if len(values) > 0 else {}
+            val_b = values[1] if len(values) > 1 else {}
+
+            self.lbl_conflict_status.configure(
+                text=f"Conflict Status: {resolution}",
+                text_color="#FF6B35" if resolution == "UNRESOLVED" else ("#F0A500" if resolution == "REVIEWED" else Theme.SUCCESS),
+            )
+            self.lbl_conflict_value_a.configure(text=f"Value A: {val_a.get('value', '—')}")
+            self.lbl_conflict_source_a.configure(
+                text=f"Source A: {val_a.get('source', val_a.get('method_id', 'unknown'))} "
+                     f"(confidence: {val_a.get('confidence', 'n/a')})"
+            )
+            self.lbl_conflict_value_b.configure(text=f"Value B: {val_b.get('value', '—')}")
+            self.lbl_conflict_source_b.configure(
+                text=f"Source B: {val_b.get('source', val_b.get('method_id', 'unknown'))} "
+                     f"(confidence: {val_b.get('confidence', 'n/a')})"
+            )
+
+            # Show the frame
+            self.frame_conflict.grid()
+
+            # Enable/disable buttons based on resolution state
+            if resolution == "UNRESOLVED":
+                self.btn_conflict_reviewed.configure(state="normal")
+                self.btn_conflict_accept_a.configure(state="normal")
+                self.btn_conflict_accept_b.configure(state="normal")
+            elif resolution == "REVIEWED":
+                self.btn_conflict_reviewed.configure(state="disabled", text="Reviewed ✓")
+                self.btn_conflict_accept_a.configure(state="normal")
+                self.btn_conflict_accept_b.configure(state="normal")
+            else:  # RESOLVED
+                self.btn_conflict_reviewed.configure(state="disabled", text="Reviewed ✓")
+                self.btn_conflict_accept_a.configure(state="disabled")
+                self.btn_conflict_accept_b.configure(state="disabled")
+                # Show which was accepted
+                resolved_by = target_conflict.get("resolved_by", "")
+                self.lbl_conflict_status.configure(
+                    text=f"Conflict Status: RESOLVED (by {resolved_by} or auto)",
+                    text_color=Theme.SUCCESS,
+                )
+
+            # Store conflict_id for handler methods
+            self._current_conflict_id = target_conflict.get("conflict_id", "")
+            self._conflict_value_a_id = val_a.get("fact_id", "")
+            self._conflict_value_b_id = val_b.get("fact_id", "")
+
+        except Exception as e:
+            logger.warning(f"Conflict UI render failed: {e}")
+            self._hide_conflict_ui()
+
+    def _on_conflict_mark_reviewed(self):
+        """Transition conflict from OPEN to REVIEWED."""
+        if not self._current_conflict_id or not self.db:
+            return
+        try:
+            self.db.mark_conflict_reviewed(self._current_conflict_id, reviewer="engineer")
+            self.load_facts(snapshot_id=self.snapshot_id)
+            self.lbl_selected.configure(text="Conflict marked as REVIEWED", text_color=Theme.TEXT_MUTED)
+        except Exception as e:
+            logger.error(f"Mark reviewed failed: {e}")
+            self.lbl_selected.configure(text=f"Mark reviewed failed: {e}", text_color=Theme.DANGER)
+
+    def _on_conflict_accept_a(self):
+        """Resolve conflict by accepting Value A."""
+        self._resolve_conflict(self._conflict_value_a_id, "A")
+
+    def _on_conflict_accept_b(self):
+        """Resolve conflict by accepting Value B."""
+        self._resolve_conflict(self._conflict_value_b_id, "B")
+
+    def _resolve_conflict(self, accepted_fact_id: str, label: str):
+        if not self._current_conflict_id or not accepted_fact_id or not self.db:
+            return
+        try:
+            self.db.resolve_conflict(
+                self._current_conflict_id,
+                accepted_fact_id=accepted_fact_id,
+                resolver=f"engineer:accepted_{label}",
+            )
+            self.load_facts(snapshot_id=self.snapshot_id)
+            self.lbl_selected.configure(
+                text=f"Conflict resolved — accepted Value {label}. Original evidence preserved.",
+                text_color=Theme.SUCCESS,
+            )
+        except Exception as e:
+            logger.error(f"Resolution failed: {e}")
+            self.lbl_selected.configure(text=f"Resolution failed: {e}", text_color=Theme.DANGER)
 
     def _set_textbox(self, text: str):
         self.txt_meaning.configure(state="normal")
@@ -504,6 +725,126 @@ class FactTable(ctk.CTkFrame):
             return
         from src.ui.widgets.fact_lineage_popup import FactLineagePopup
         FactLineagePopup(self, self.db, self.selected_fact_id)
+
+    def _open_source_file(self):
+        """Open the source document for the selected fact.
+
+        Uses the source_path stored in the fact's provenance (fact_inputs -> file_versions)
+        when self.db is available. Falls back to self.row_by_fact_id when db is absent.
+        Opens the file with the OS default application. For PDFs with page_or_slide,
+        attempts page-aware opening on Windows via Acrobat Reader /A flag;
+        falls back to default open with explicit page citation.
+        """
+        if not self.selected_fact_id:
+            return
+
+        source_path = None
+        location_json = None
+        page = None
+        bbox = None
+
+        if getattr(self, "db", None):
+            try:
+                row = self.db.execute(
+                    """
+                    SELECT fv.source_path, fi.location_json
+                    FROM fact_inputs fi
+                    LEFT JOIN file_versions fv ON fv.file_version_id = fi.file_version_id
+                    WHERE fi.fact_id = ?
+                    LIMIT 1
+                    """,
+                    (self.selected_fact_id,),
+                ).fetchone()
+                if row:
+                    source_path = row[0]
+                    location_json = row[1]
+            except Exception:
+                pass
+
+        if not source_path:
+            row = self.row_by_fact_id.get(self.selected_fact_id)
+            if row:
+                source_path = row.get("source_path")
+                location_json = row.get("location_json")
+
+        if not source_path:
+            self.lbl_selected.configure(text="Source path not recorded for this fact.", text_color=Theme.TEXT_MUTED)
+            return
+
+        if not os.path.isfile(source_path):
+            self.lbl_selected.configure(text=f"Source file not found: {source_path}", text_color=Theme.DANGER)
+            return
+
+        try:
+            # Extract evidence location from location_json
+            if location_json:
+                try:
+                    loc = _json.loads(location_json) if isinstance(location_json, str) else location_json
+                    if isinstance(loc, dict):
+                        page = loc.get("page") or loc.get("page_or_slide")
+                        bbox = loc.get("bbox")
+                except Exception:
+                    pass
+
+            citation_parts = []
+            if page:
+                citation_parts.append(f"page {page}")
+            if bbox:
+                b = bbox
+                if isinstance(b, (list, tuple)) and len(b) >= 4:
+                    citation_parts.append(f"region ({b[0]:.0f},{b[1]:.0f})-({b[2]:.0f},{b[3]:.0f})")
+
+            citation_text = f" — cited: {'; '.join(citation_parts)}" if citation_parts else ""
+
+            if platform.system() == "Windows":
+                if page and str(source_path).lower().endswith(".pdf"):
+                    # Attempt page-aware opening via Acrobat Reader
+                    success = self._open_pdf_with_page(str(source_path), int(page))
+                    if not success:
+                        os.startfile(source_path)
+                else:
+                    os.startfile(source_path)
+            elif platform.system() == "Darwin":
+                subprocess.run(["open", source_path])
+            else:
+                subprocess.run(["xdg-open", source_path])
+
+            page_msg = f"Opened source: {os.path.basename(source_path)}{citation_text}"
+            self.lbl_selected.configure(text=page_msg, text_color=Theme.SUCCESS)
+        except Exception as e:
+            logger.error(f"Open Source File Failed: {e}")
+            self.lbl_selected.configure(text=f"Open Source Failed: {e}", text_color=Theme.DANGER)
+
+    @staticmethod
+    def _open_pdf_with_page(file_path: str, page_no: int) -> bool:
+        """Attempt to open a PDF at a specific page using Acrobat Reader.
+
+        Returns True if successful, False otherwise (caller should fall back
+        to os.startfile or equivalent).
+        """
+        import shutil
+        candidates = [
+            r"C:\Program Files\Adobe\Acrobat DC\Acrobat\AcroRd32.exe",
+            r"C:\Program Files (x86)\Adobe\Acrobat DC\Acrobat\AcroRd32.exe",
+            "AcroRd32.exe",
+        ]
+        reader = None
+        for candidate in candidates:
+            if os.path.isfile(candidate):
+                reader = candidate
+                break
+        if not reader:
+            reader = shutil.which("AcroRd32.exe")
+        if not reader:
+            return False
+        try:
+            subprocess.Popen(
+                [reader, "/A", f"page={page_no}", file_path],
+                shell=False,
+            )
+            return True
+        except Exception:
+            return False
 
     def _on_double_click(self, _event):
         self._open_lineage()

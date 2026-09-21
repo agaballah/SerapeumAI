@@ -1274,6 +1274,76 @@ class DatabaseManager:
             (conflict_id, doc_id, page_num, field_name, native_val, vlm_val, spatial_val, conflict_type, confidence),
         )
 
+    def get_project_conflicts(self, project_id: str, resolution_filter: str = None) -> List[Dict[str, Any]]:
+        """Return conflict records for a project, optionally filtered by resolution status."""
+        sql = "SELECT * FROM fact_conflicts WHERE project_id = ?"
+        params: list = [project_id]
+        if resolution_filter:
+            sql += " AND resolution = ?"
+            params.append(resolution_filter)
+        sql += " ORDER BY created_at DESC"
+        return [dict(r) for r in self._query(sql, tuple(params))]
+
+    def get_open_conflicts(self, project_id: str) -> List[Dict[str, Any]]:
+        """Return unresolved conflicts for a project."""
+        return self.get_project_conflicts(project_id, resolution_filter="UNRESOLVED")
+
+    def resolve_conflict(self, conflict_id: str, accepted_fact_id: str, resolver: str = "system") -> bool:
+        """Mark a conflict as resolved, recording which fact was accepted."""
+        now = self._ts()
+        self._exec(
+            "UPDATE fact_conflicts SET resolution='RESOLVED', resolved_by=?, resolved_at=? WHERE conflict_id=?",
+            (resolver, now, conflict_id),
+        )
+        # Mark non-accepted facts as SUPERSEDED
+        self._exec(
+            """
+            UPDATE facts SET status='SUPERSEDED', updated_at=?
+            WHERE conflict_flag=1 AND project_id IN (
+                SELECT project_id FROM fact_conflicts WHERE conflict_id=?
+            ) AND fact_id != ? AND status IN ('CANDIDATE','VALIDATED')
+            """,
+            (now, conflict_id, accepted_fact_id),
+        )
+        return True
+
+    def mark_conflict_reviewed(self, conflict_id: str, reviewer: str = "system") -> bool:
+        """Transition conflict from UNRESOLVED to REVIEWED.
+
+        REVIEWED means: a human has examined both values but has not yet chosen.
+        Does NOT change fact status or resolve the conflict.
+        Preserves all original evidence.
+        """
+        now = self._ts()
+        self._exec(
+            "UPDATE fact_conflicts SET resolution='REVIEWED' "
+            "WHERE conflict_id=? AND resolution='UNRESOLVED'",
+            (conflict_id,),
+        )
+        # Log the review action for audit trail (uses existing fact_conflicts.resolved_by
+        # field temporarily; a full audit table would be future work)
+        self._exec(
+            "UPDATE fact_conflicts SET resolved_by=COALESCE(resolved_by, ?) "
+            "WHERE conflict_id=? AND resolution='REVIEWED'",
+            (reviewer, conflict_id),
+        )
+        return True
+
+    def get_conflict_by_id(self, conflict_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch a single conflict record with parsed values."""
+        row = self._query_one(
+            "SELECT * FROM fact_conflicts WHERE conflict_id=?", (conflict_id,)
+        )
+        if not row:
+            return None
+        d = dict(row)
+        try:
+            import json as _json
+            d["values_parsed"] = _json.loads(d.get("values_json", "[]"))
+        except Exception:
+            d["values_parsed"] = []
+        return d
+
     def log_failed_extraction(
         self,
         failure_id: str,

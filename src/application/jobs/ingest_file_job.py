@@ -146,14 +146,39 @@ class IngestFileJob(Job):
         # 5. Trigger Downstream Jobs
         # A) Extraction (if supported)
         ext = os.path.splitext(filename)[1].lower()
+        # Note: extension is lowercased here; any mixed-case extension
+        # (e.g. ".JPG") is handled correctly by this normalization.
+        # Staging/placeholder extractors are intentionally excluded from
+        # the normal pipeline — they must be routed explicitly.
         extractor_map = {
             ".xer": "p6",
             ".ifc": "ifc",
-            ".xlsx": "excel_register",
-            ".xls": "excel_register",
-            ".pdf": "pdf", # Universal PDF Extractor
-            ".jpg": "field",
-            ".png": "field"
+            ".mpp": "mpp",
+            ".pdf": "pdf",
+            ".dxf": "dxf",
+            ".doc": "word",
+            ".docx": "word",
+            ".pptx": "pptx",
+            ".xls": "excel",
+            ".xlsx": "excel",
+            ".xlsm": "excel",
+            # Wave A — deterministic text/structured/image formats
+            ".txt": "text",
+            ".md": "text",
+            ".log": "text",
+            ".json": "json",
+            ".xml": "xml",
+            ".yaml": "yaml",
+            ".yml": "yaml",
+            ".csv": "csv",
+            ".tsv": "csv",
+            ".png": "image",
+            ".jpg": "image",
+            ".jpeg": "image",
+            ".bmp": "image",
+            ".tif": "image",
+            ".tiff": "image",
+            ".webp": "image",
         }
         
         if ext in extractor_map:
