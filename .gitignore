@@ -12,3 +12,46 @@ models/
 venv/
 
 _LOCAL_TEST_CORPUS/
+_LOCAL_APP_ARCHIVE/
+
+# Research / scratch / benchmark artifacts
+benchmark/
+corpus/
+experiments/
+docs/quality/
+docs/technology/
+tmp_tests/
+test_excel.py
+test_excel2.py
+test_write.txt
+get_diff.py
+probe_evidence_report.md
+report_5c.md
+
+# Kilo agent tooling
+.kilo/
+.agents/
+
+# Scratch files at repository root
+GOLD_0*.dxf
+GOLD_0*.ifc
+GOLD_0*.docx
+GOLD_0*.xlsx
+GOLD_0*.pptx
+gold_0*
+f3_diagnostic_0171/
+slik_rvt_scripts_260902.zip
+slik_rvt_scripts_extracted/
+
+# Environment artifacts
+.stage2_generated/
+.stage2b_generated/
+.env
+*.env
+
+# macOS
+.DS_Store
+__MACOSX/
+
+# Windows
+Thumbs.db

@@ -1,295 +1,307 @@
 # SerapeumAI
 
-**Windows-first local AECO review workspace for engineers.**
+**A Windows-first, local-first AECO document review workspace.**
 
-SerapeumAI helps engineering and construction reviewers inspect project documents, separate deterministic evidence from AI-generated support, certify facts, and ask project questions with visible evidence lanes.
-
-The Facts page lets reviewers inspect, validate, certify, or reject extracted project facts before relying on them in chat. Chat answers expose a Show Evidence path so reviewers can inspect supporting facts, extracted evidence, linked support, and AI synthesis separately. Clean shutdown is part of the release gate: background workers should stop cleanly without Tk/bgerror/invalid-command shutdown noise. Schedule interaction is review assistance only in this release; schedule-related answers must remain evidence-labeled and are not governing authority unless validated by the reviewer.
-
-Interactive priority over backlog means active reviewer actions should stay responsive while background ingest/extract work runs. Interactive chat should stay responsive. Chat history should reset when the active project closes or changes. Red-X close should internally close the project before destroying the app window. Closing the main window should end the live session cleanly. The Schedule page is review assistance only in this release; it does not claim a Schedule Truth Workspace, CPM engine, or autonomous schedule action.
-
-It is built for engineers who need a local review workspace, not a generic chatbot.
+SerapeumAI ingests project documents, extracts structured evidence with transparent provenance, supports fact review and certification, surfaces conflicts, and provides evidence-grounded AI assistance when a local runtime is available. Everything runs on your machine.
 
 ---
 
-## Download for Windows
+## What SerapeumAI Does
 
-### Current status
+SerapeumAI helps engineering and construction reviewers:
 
-```text
-Published release: v0.1.0-3u
-Release URL: https://github.com/agaballah/SerapeumAI/releases/tag/v0.1.0-3u
+- **Ingest** project files into a local project workspace
+- **Extract** structured information from each document type using domain-specific parsers
+- **Inspect evidence** through separated lanes (deterministic extraction, AI output, metadata)
+- **Review and certify facts** before relying on them — every fact shows its source, location, and review state
+- **Identify conflicts** where different documents state different values for the same subject
+- **Ask project questions** through Expert Chat, with answers that show visible evidence lanes and refuse when evidence is insufficient
+
+The application is **review assistance with evidence and provenance**, not a design tool, compliance engine, or autonomous workflow system.
+
+---
+
+## Current Capabilities
+
+| Capability | Status |
+|-----------|--------|
+| Document ingestion from 14+ formats | Production |
+| Structured fact extraction (PDF, IFC, P6, DXF) | Production |
+| Evidence provenance on every record | Production |
+| Fact review and certification lifecycle | Production |
+| Conflict detection and resolution | Production |
+| Expert Chat with evidence-labeled answers | Production |
+| File Inspector with 5 lanes | Production |
+| Honest runtime/dependency reporting | Production |
+| Per-project SQLite isolation | Production |
+| Portable Windows EXE (no install required) | Production |
+
+---
+
+## Supported File Formats
+
+SerapeumAI supports the following file types for extraction. Files are processed via the Import Documents button or by placing them in the project folder and clicking **Sync Project**:
+
+| Format | Extension(s) | What It Produces |
+|--------|-------------|-----------------|
+| AutoCAD DXF drawings | `.dxf` | Drawing entities, layers, blocks |
+| Primavera P6 / XER schedules | `.xer` | Activities, WBS, critical path |
+| PDF documents | `.pdf` | Page text (native or OCR), metadata |
+| IFC BIM models | `.ifc` | Project, spatial structure, element inventory |
+| Microsoft Word | `.doc`, `.docx` | Document text with pages |
+| Microsoft PowerPoint | `.pptx` | Slide-level text extraction |
+| Excel workbooks | `.xls`, `.xlsx`, `.xlsm` | Spreadsheet register rows |
+| Plain text | `.txt`, `.md`, `.log` | Raw text |
+| Structured data | `.json`, `.xml`, `.yaml`, `.yml` | Parsed structured records |
+| Spreadsheets | `.csv`, `.tsv` | Table rows |
+| Images | `.png`, `.jpg`, `.jpeg`, `.bmp`, `.tif`, `.tiff`, `.webp` | Image metadata |
+
+**Formats not currently supported or intentionally excluded:**
+
+- `.dwg`, `.rvt`, `.dgn` — proprietary CAD/BIM formats; not in the trusted pipeline
+- `.ppt` (legacy PowerPoint) — not supported; use `.pptx`
+- Stage 2 BIM files, field extractions — reserved for future phases
+
+---
+
+## What Happens When a Document Is Imported
+
+1. The file is registered in a local SQLite database (`.serapeum/` folder in your project directory).
+2. A background extraction job runs using the appropriate format-specific extractor.
+3. Extracted records are persisted to a `pdf_pages` table (one entry per page of content).
+4. For PDF, IFC, P6, and DXF formats, a fact-builder automatically produces structured, reviewable facts.
+5. For other formats (PPTX, Word, text, images, spreadsheets), raw evidence is persisted and available for chat, but no reviewable facts are automatically created.
+6. All extracted records carry immutable provenance: source file, page or location, extractor method, and composition (native text vs. OCR).
+
+---
+
+## Evidence / Provenance / Fact Review
+
+SerapeumAI maintains a strict separation between evidence types:
+
+```
+Raw Deterministic Extraction  (no AI)
+AI Output Only                (marked as non-governing)
+Full Metadata                 (file properties, JSON metadata)
 ```
 
-The Windows executable proven during packaging is:
+The **File Inspector** presents each document through these lanes so you can always verify what is machine-extracted versus AI-generated.
 
-```text
-dist\SerapeumAI_Portable\SerapeumAI.exe
-size: 110206723 bytes
+The **Facts** page shows all extracted facts in a reviewable table:
+
+- Each fact shows: what it says, the source document, evidence location (page, element ID, activity), and review state
+- **Review states**: Candidate (machine-produced), Validated (system-checked), Human Certified (reviewer approved), Rejected
+- You can **Certify** or **Reject** each fact after verifying it against the source
+- Only **Validated** and **Human Certified** facts are used to answer Expert Chat questions
+
+The **Truth Map** shows relationships between facts and source evidence across document domains.
+
+---
+
+## Expert Chat and Local AI Runtime
+
+Expert Chat answers questions about your project using evidence that has been extracted and reviewed.
+
+**How answers work:**
+- The answer begins with a **source basis banner** indicating whether the information comes from certified facts, extracted evidence, linked support, or AI-generated synthesis
+- Click **Show Evidence** to see the supporting items in four color-coded lanes
+- Answers that touch conflicting certified facts include a **conflict disclosure** section
+- If the required information is not available, the app **refuses to answer** and explains what evidence would be needed
+
+**Local runtime requirement:**
+- Expert Chat and AI-assisted PDF analysis require a local LLM runtime (LM Studio-compatible)
+- The application reports runtime state honestly in the sidebar: **READY** or **MODEL_NOT_LOADED / not ready**
+- No external API keys or cloud accounts are required
+- If the runtime is unavailable, extraction and fact review still work fully
+
+---
+
+## Dependencies and Optional Capabilities
+
+SerapeumAI bundles its core runtime. The table below lists what is required versus optional.
+
+| Capability | Dependency | Required? | What You See If Missing |
+|-----------|-----------|----------|------------------------|
+| Document ingestion (all formats) | Bundled application | **Yes** | Application will not start |
+| Scanned PDF text extraction | Tesseract OCR + Poppler | **Optional** | PDFs extract digital text only; scanned PDFs show "Extraction blocked: Tesseract unavailable" in File Inspector; install from the links below to enable |
+| IFC BIM extraction | `ifcopenshell` (pip) | **Optional** | `.ifc` files show red "Blocked — ifcopenshell" in Documents; File Inspector shows "Extraction blocked: required dependency 'ifcopenshell' is missing" with install command |
+| MPP schedule extraction | Java + `mpxj`/`jpype1` (pip) | **Optional** | `.mpp` files show red "Blocked — mpxj" status; Dashboard dependency panel shows install command |
+| Legacy XLS extraction | `xlrd` (pip) | **Optional** | `.xls` files show red "Blocked — xlrd"; `.xlsx`/`.xlsm` work normally via built-in openpyxl |
+| Expert Chat / AI analysis | LM Studio-compatible local runtime | **Optional** | Chat answers show "Expert Brain not initialized" until runtime is available; fact review and evidence extraction work independently |
+
+**Install commands shown in the application:**
+- Tesseract: `Install Tesseract OCR from https://github.com/UB-Mannheim/tesseract/wiki`
+- Poppler: `Install poppler from https://poppler.freedesktop.org/`
+- ifcopenshell: `pip install ifcopenshell`
+- mpxj: `pip install mpxj jpype1`
+- xlrd: `pip install xlrd`
+
+---
+
+## Download and Installation
+
+### Step 1: Download
+
+1. Go to the [GitHub Releases page](https://github.com/agaballah/SerapeumAI/releases).
+2. Download the latest portable ZIP release (e.g., `SerapeumAI_Portable_v0.1.0-3u.zip`).
+3. If the release is split into parts (e.g., `.part001`, `.part002`), download **all parts**.
+4. Verify the SHA-256 checksum (see below).
+
+### Step 2: Verify (optional but recommended)
+
 ```
-
-Download all split release assets from:
-
-```text
-GitHub Releases -> Latest release
-```
-
-Expected release asset name:
-
-```text
-SerapeumAI_Portable_v0.1.0-3u.zip.part001
-SerapeumAI_Portable_v0.1.0-3u.zip.part002
 SHA256SUMS_v0.1.0-3u.txt
-README_RECOMBINE_v0.1.0-3u.txt
 ```
 
-Expected run path after unzip:
-
-```text
-SerapeumAI_Portable\SerapeumAI.exe
-```
-
-> Download all parts and follow README_RECOMBINE_v0.1.0-3u.txt to rebuild the portable ZIP.
-
----
-
-## What SerapeumAI does
-
-SerapeumAI helps engineers:
-
-- ingest project files into a local project workspace;
-- review project documents from a mounted Documents page;
-- inspect evidence through File Inspector lanes;
-- review and certify facts with lineage;
-- ask Expert Chat questions with evidence-labeled answers;
-- keep AI-generated support separate from trusted facts.
-
-SerapeumAI is **review assistance with evidence and provenance**. It is **not** a guaranteed-compliance engine, legal approval engine, autonomous design-authoring tool, or generic chatbot.
-
----
-
-## Current release authority
-
-```text
-Published release: v0.1.0-3u
-Release authority: 16723b0970a81c181bb0df6801178c7032d49f21
-Packaging proof issue: #125 - PASS
-Publication hygiene issue: #127 / PR #128 - PASS
-Final release issue: #126 - closed as completed
-Broader Windows validation: #129 - closed as completed
-```
-
-Packaging-proof source authority:
-
-```text
-51bc3280e1adf9e3cc53859cb2f99bc0b8847548
-```
-
-PR #128 was documentation/repository metadata only. It did not change source, tests, packaging files, dependencies, build outputs, or `dist` artifacts.
-
----
-
-## Fast start
-
-### For users after a GitHub Release is published
-
-1. Open the latest GitHub Release.
-2. Download the Windows portable ZIP.
-3. Unzip it.
-4. Run:
-
-```text
-SerapeumAI_Portable\SerapeumAI.exe
-```
-
-### For local development
-
-From the repository root:
+On Windows, verify the downloaded file:
 
 ```powershell
-python run.py
+Get-FileHash SerapeumAI_Portable\SerapeumAI.exe -Algorithm SHA256
 ```
 
-See:
+Compare the output hash against the hash in the release's `SHA256SUMS` file.
 
-- `INSTALL.md`
-- `TROUBLESHOOTING.md`
-- `RELEASE_NOTES.md`
+### Step 3: Extract
+
+1. Extract the **complete** ZIP contents to a folder of your choice.
+2. **Do NOT move or delete the `_internal` folder.** The application requires it at runtime.
+
+### Step 4: Run
+
+1. Double-click `SerapeumAI.exe`.
+2. No Python installation is required.
+3. No administrator privileges are required.
+4. No internet connection is required (except for LM Studio on your local machine).
+
+### Where Data Is Stored
+
+When you open or create a project folder, SerapeumAI creates a `.serapeum/` subfolder inside your project directory. This contains:
+
+- The project SQLite database
+- Vector embeddings (for chat)
+- Extraction output cache
+
+Your project documents outside `.serapeum/` are never modified.
 
 ---
 
-## Runtime expectation
+## First Use
 
-The current mounted runtime path expects a local LM Studio-compatible runtime for model-backed analysis and chat features.
+1. **Open** the application by double-clicking `SerapeumAI.exe`.
+2. **Create/open a project**: Select a folder containing your project documents. The app creates a `.serapeum/` subfolder inside it.
+3. **Import documents**: Click **Import Documents** in the Documents page, browse to select files, then click **Run Ingestion**. Or place files in the project folder and click **Sync Project** in the sidebar.
+4. **Inspect extraction**: Open the **Dashboard** page to see pipeline activity and per-format throughput after a few seconds.
+5. **Review facts**: Go to the **Facts** page. Review each fact against its cited source, then click **Certify** or **Reject**.
+6. **Inspect evidence**: Click any file to open the **File Inspector**. Verify the evidence lanes separate deterministic extraction from AI output.
+7. **Ask chat questions**: Use **Expert Chat** to ask questions. Check the **source basis banner** and click **Show Evidence** to verify each answer.
+8. **Verify evidence**: For any chat answer, trace through the shown evidence lanes back to the original source document. Judge AI answers against the displayed project evidence.
 
-The application should report runtime state honestly:
+---
 
-```text
-READY - local runtime/model is reachable and loaded
-MODEL_NOT_LOADED / not ready - runtime or model is unavailable
+## Controlled Colleague Testing
+
+This software is ready for real-world engineering review testing. The recommended flow:
+
+1. Start the application
+2. Create or open a project folder
+3. Import several of your normal project documents
+4. Try different supported formats (PDF, DXF, XER, IFC, PPTX, DOCX, Excel)
+5. Inspect extraction results in the Dashboard and File Inspector
+6. Review extracted facts and test certification
+7. Check provenance and evidence for facts that interest you
+8. Test conflict presentation if you have documents that disagree
+9. If LM Studio is available, test Expert Chat with questions you know the answer to
+10. Try a question where you expect the answer is not in evidence — confirm it refuses
+11. Close and reopen the project — verify your data persists
+
+> **Tip**: Your confusion is test evidence. If something is unclear, that is a finding worth reporting — even if the software eventually works correctly.
+
+---
+
+## How to Report Findings
+
+Use the template below and open an issue on GitHub, or email your findings:
+
+```
+Finding
+
+File/type:
+What I tried:
+What I expected:
+What happened:
+Why it matters:
+Screenshot:
 ```
 
-Current publish generative runtime:
-
-```text
-qwen2.5-coder-7b-instruct
-```
-
-Embeddings are separate from the generative model.
-
-Calculations and deterministic checks must be performed by application code/tools, not by LLM arithmetic.
+**Do not include in your reports:**
+- Passwords
+- API keys or tokens
+- Private credentials
+- Confidential project documents
+- Sensitive client information
 
 ---
 
-## Engineering workflow
+## Known Limitations
 
-### 1. Dashboard
+These are intentional limitations of the current release, not bugs:
 
-Project counts, runtime state, pipeline diagnostics, and health/honesty indicators.
+1. **Dependency-controlled capabilities**: PDF OCR, IFC extraction, MPP extraction, and XLS extraction require optional dependencies. Without them, the affected file types show clear "Blocked" warnings instead of failing silently.
 
-### 2. Documents
+2. **Limited fact-builder coverage**: Only PDF, IFC, P6, and DXF automatically produce structured, reviewable facts. Other formats preserve raw evidence for chat use but do not generate reviewable facts.
 
-Browse ingested project documents and open the File Inspector.
+3. **Acrobat-dependent page navigation**: When opening a PDF fact's source file at a specific page, the application attempts page-aware opening using Acrobat Reader. If Acrobat Reader is not installed, the PDF opens at page 1 in the default viewer, but the cited page is always shown in the status bar.
 
-### 3. File Inspector
+4. **Schedule is review assistance only**: The Schedule page and schedule-aware facts support review and inspection. SerapeumAI does **not** implement a Schedule Truth Workspace, autonomous scheduling, or a critical path method (CPM) engine.
 
-File Inspector separates evidence into four lanes:
+5. **No AI arithmetic**: LLM responses are informational only. All numerical calculations and deterministic checks are performed by the application's own tools, not by the LLM.
 
-```text
-Consolidated Review
-Full Metadata
-Raw Deterministic Extraction
-AI Output Only
-```
+6. **Windows-first**: The application is built and tested for Windows. macOS and Linux are not currently packaged.
 
-AI Output Only is non-governing unless promoted through review/certification.
-
-### 4. Facts
-
-Review facts, inspect meaning/source/review state, and open lineage/evidence.
-
-Trusted answer sources are:
-
-```text
-VALIDATED
-HUMAN_CERTIFIED
-```
-
-Candidate facts are visible for review but do not silently govern answers. Rejected facts are excluded from trusted answer paths.
-
-### 5. Expert Chat
-
-Expert Chat gives a direct answer first, labels the basis of the answer, and exposes optional evidence lanes.
-
-The visible chat is bound to the active project. Project A must not answer from Project B.
+7. **Local-only by design**: No cloud services, no external API calls, no telemetry. All processing happens on the local machine.
 
 ---
 
-## Trust and evidence model
+## Privacy / Local-First Statement
 
-SerapeumAI separates:
+SerapeumAI is designed to keep all data and processing on your machine:
 
-- deterministic extraction;
-- parser/OCR output;
-- reviewed facts;
-- linked support;
-- AI-generated synthesis.
-
-Rules:
-
-- trusted facts outrank retrieval/vector support;
-- vector/retrieval stores are derived support, not governing truth;
-- AI Output Only is non-governing unless reviewed/promoted;
-- support-only answers must not be presented as certified truth.
+- All extracted evidence, facts, and chat history are stored in a local SQLite database inside the project folder (`.serapeum/`).
+- No data is sent to external servers.
+- No API keys, tokens, or cloud credentials are stored by the application.
+- Optional AI features (Expert Chat, PDF AI analysis) require a local LM Studio runtime — no cloud LLM is used.
+- Each project has its own isolated database; facts from one project cannot appear in another project's chat.
 
 ---
 
-## Proven release-candidate behavior
+## Important Non-Claims
 
-Completed proof rails include:
+The current release does **not** and **cannot**:
 
-- mounted chat active-project authority and project isolation;
-- sourced answer authority labeling;
-- support-only answer labeling;
-- snapshot/imported-date wording honesty;
-- PDF metadata completeness and routing proof;
-- IFC dependency/no-fallback honesty;
-- Office/DGN flattened extraction contract;
-- P6 critical-path unknown honesty;
-- P6 relation uniqueness/fidelity;
-- File Inspector four-lane separation;
-- final packaging proof;
-- packaged-app smoke on the owner Windows machine;
-- publication documentation/license/repository hygiene.
+- Guarantee compliance with legal, contractual, regulatory, or certification requirements
+- Replace human engineering judgment or professional review
+- Provide autonomous document correction or design authoring
+- Access external APIs or cloud services
+- Perform OCR on scanned PDFs without Tesseract installed
+- Extract structured facts from non-PDF/IFC/P6/DXF formats automatically
+- Navigate proprietary CAD formats (`.dwg`, `.rvt`, `.dgn`)
+- Perform autonomous schedule analysis or CPM calculations
 
 ---
 
-## Known caveats
+## Project Status
 
-The current artifact passed packaging and packaged smoke, but these caveats remain important:
+SerapeumAI is under active development. The current release represents a v0.3 engineering baseline with colleague-testing readiness gate passed.
 
-- broader Windows machine validation is still pending;
-- constrained 8 GB VRAM laptops may show runtime, VRAM, or GPU-temperature warnings;
-- model routing may downgrade analysis to chat when VRAM is limited;
-- embeddings may load on CPU when VRAM is reserved or insufficient;
-- page-level model-output parse retries can occur during AI-assisted analysis;
-- `THIRD_PARTY_NOTICES.md` is a summary and is not a full legal dependency audit.
-
-These caveats do not change the owner-machine packaging proof, but they are relevant before a wider public announcement.
+- **Stable release**: v0.1.0-3u (published)
+- **Current development**: v0.3 engineering baseline
+- **License**: Apache 2.0 — see `LICENSE` and `NOTICE`
+- **Third-party notices**: `THIRD_PARTY_NOTICES.md`
 
 ---
 
-## Explicit non-enabled behavior
+## Contributing
 
-The current published release does **not** enable or claim:
+SerapeumAI is not currently accepting public pull requests. If you find a bug or have a question, please open an issue on GitHub.
 
-- autonomous chat tool execution;
-- LLM tool-call parser in the visible chat UI;
-- MCP integration;
-- autonomous agent loops;
-- audit persistence implementation;
-- project memory implementation;
-- runtime/provider provisioning or model download control;
-- snapshot governance implementation;
-- Revit bridge;
-- Schedule Truth Workspace implementation;
-- CPM engine;
-- PDF VLM routing;
-- IFC fallback parser when `ifcopenshell` is missing;
-- typed Office/CAD persistence;
-- generic Excel workbook semantic persistence;
-- guaranteed legal, contractual, regulatory, or compliance approval.
-
----
-
-## Repository rules for contributors
-
-- `src/**` is the primary editable source surface.
-- `run.py` and `run_tests.py` are editable only when needed.
-- `SerapeumAI_Portable.spec`, `build_portable.ps1`, and `build_portable.bat` are sensitive packaging files.
-- Do not treat `build/**`, `dist/**`, `.serapeum/**`, `models/**`, or `**/__pycache__/**` as normal editing targets.
-- Avoid dependency upgrades unless explicitly approved.
-- Preserve Windows portability and packaging behavior.
-- Prefer minimal, reviewable diffs.
-
-See `CONTRIBUTING.md`.
-
----
-
-## License
-
-SerapeumAI is released under the Apache License, Version 2.0. See `LICENSE` and `NOTICE`.
-
-Third-party dependency and runtime notes are summarized in `THIRD_PARTY_NOTICES.md`.
-
----
-
-## Future planning
-
-The branch below is preserved as a parked future-upgrade planning branch only:
-
-```text
-docs/total-quality-upgrade-v3-3
-```
-
-It is not the current release authority and must be reconciled against `main` before future implementation.
+See `CONTRIBUTING.md` for internal contributor guidelines.
