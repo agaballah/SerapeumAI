@@ -13,12 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 class FileDetailPanel(ctk.CTkToplevel):
-    def __init__(self, parent, db, file_id=None, file_path=None, project_id=None):
+    def __init__(self, parent, db, file_id=None, file_path=None, project_id=None, page_no=None):
         super().__init__(parent, fg_color=Theme.BG_DARKEST)
 
         self.db = db
         self.file_path = file_path
         self.file_id = file_id
+        self.page_no = page_no
         # Project id may be supplied explicitly; otherwise fall back to the
         # parent controller (if it exposes one). This preserves backward
         # compatibility with callers that do not pass project_id.
@@ -35,14 +36,27 @@ class FileDetailPanel(ctk.CTkToplevel):
         self.grid_rowconfigure(1, weight=1)
 
         filename = os.path.basename(file_path) if file_path else "Unknown"
+        page_context = f" — page {page_no}" if page_no else ""
         self.lbl_title = ctk.CTkLabel(
             self,
-            text=f"File Inspector — {filename}",
+            text=f"File Inspector — {filename}{page_context}",
             font=Theme.FONT_H2,
             text_color=Theme.TEXT_MAIN,
             fg_color=Theme.BG_DARKEST,
         )
-        self.lbl_title.grid(row=0, column=0, pady=20, padx=30, sticky="w")
+        self.lbl_title.grid(row=0, column=0, pady=(20, 0), padx=30, sticky="w")
+
+        # Citation banner when navigated from a specific page
+        if page_no:
+            self.lbl_citation = ctk.CTkLabel(
+                self,
+                text=f"Cited location: page {page_no} of {filename}",
+                font=Theme.FONT_BODY,
+                text_color=Theme.WARNING,
+                fg_color=Theme.BG_DARKER,
+                corner_radius=6,
+            )
+            self.lbl_citation.grid(row=0, column=0, pady=(55, 0), padx=30, sticky="w")
 
         self.tabview = ctk.CTkTabview(self)
         self.tabview.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)

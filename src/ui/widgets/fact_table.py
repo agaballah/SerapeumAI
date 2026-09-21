@@ -732,13 +732,16 @@ class FactTable(ctk.CTkFrame):
         Uses the source_path stored in the fact's provenance (fact_inputs -> file_versions)
         when self.db is available. Falls back to self.row_by_fact_id when db is absent.
         Opens the file with the OS default application. For PDFs with page_or_slide,
-        attempts page-aware opening on Windows via cmd /c start.
+        attempts page-aware opening on Windows via Acrobat Reader /A flag;
+        falls back to default open with explicit page citation.
         """
         if not self.selected_fact_id:
             return
 
         source_path = None
         location_json = None
+        page = None
+        bbox = None
 
         if getattr(self, "db", None):
             try:
@@ -773,20 +776,31 @@ class FactTable(ctk.CTkFrame):
             return
 
         try:
-            page = None
+            # Extract evidence location from location_json
             if location_json:
                 try:
                     loc = _json.loads(location_json) if isinstance(location_json, str) else location_json
                     if isinstance(loc, dict):
                         page = loc.get("page") or loc.get("page_or_slide")
+                        bbox = loc.get("bbox")
                 except Exception:
                     pass
 
+            citation_parts = []
+            if page:
+                citation_parts.append(f"page {page}")
+            if bbox:
+                b = bbox
+                if isinstance(b, (list, tuple)) and len(b) >= 4:
+                    citation_parts.append(f"region ({b[0]:.0f},{b[1]:.0f})-({b[2]:.0f},{b[3]:.0f})")
+
+            citation_text = f" — cited: {'; '.join(citation_parts)}" if citation_parts else ""
+
             if platform.system() == "Windows":
                 if page and str(source_path).lower().endswith(".pdf"):
-                    try:
-                        subprocess.Popen(["cmd", "/c", "start", "", str(source_path)], shell=False)
-                    except Exception:
+                    # Attempt page-aware opening via Acrobat Reader
+                    success = self._open_pdf_with_page(str(source_path), int(page))
+                    if not success:
                         os.startfile(source_path)
                 else:
                     os.startfile(source_path)
@@ -795,11 +809,42 @@ class FactTable(ctk.CTkFrame):
             else:
                 subprocess.run(["xdg-open", source_path])
 
-            page_msg = f" (page {page})" if page else ""
-            self.lbl_selected.configure(text=f"Opened source: {os.path.basename(source_path)}{page_msg}", text_color=Theme.SUCCESS)
+            page_msg = f"Opened source: {os.path.basename(source_path)}{citation_text}"
+            self.lbl_selected.configure(text=page_msg, text_color=Theme.SUCCESS)
         except Exception as e:
             logger.error(f"Open Source File Failed: {e}")
             self.lbl_selected.configure(text=f"Open Source Failed: {e}", text_color=Theme.DANGER)
+
+    @staticmethod
+    def _open_pdf_with_page(file_path: str, page_no: int) -> bool:
+        """Attempt to open a PDF at a specific page using Acrobat Reader.
+
+        Returns True if successful, False otherwise (caller should fall back
+        to os.startfile or equivalent).
+        """
+        import shutil
+        candidates = [
+            r"C:\Program Files\Adobe\Acrobat DC\Acrobat\AcroRd32.exe",
+            r"C:\Program Files (x86)\Adobe\Acrobat DC\Acrobat\AcroRd32.exe",
+            "AcroRd32.exe",
+        ]
+        reader = None
+        for candidate in candidates:
+            if os.path.isfile(candidate):
+                reader = candidate
+                break
+        if not reader:
+            reader = shutil.which("AcroRd32.exe")
+        if not reader:
+            return False
+        try:
+            subprocess.Popen(
+                [reader, "/A", f"page={page_no}", file_path],
+                shell=False,
+            )
+            return True
+        except Exception:
+            return False
 
     def _on_double_click(self, _event):
         self._open_lineage()
