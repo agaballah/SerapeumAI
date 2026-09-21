@@ -22,7 +22,7 @@ class SmartImportWizard(ctk.CTkToplevel):
         self.frame_top = ctk.CTkFrame(self)
         self.frame_top.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
         
-        self.btn_browse = ctk.CTkButton(self.frame_top, text="Browse Excel...", command=self.browse_file)
+        self.btn_browse = ctk.CTkButton(self.frame_top, text="Browse Documents...", command=self.browse_file)
         self.btn_browse.pack(side="left", padx=10, pady=10)
         
         self.lbl_file = ctk.CTkLabel(self.frame_top, text="No file selected")
@@ -70,7 +70,7 @@ class SmartImportWizard(ctk.CTkToplevel):
             if ext in ('.xlsx', '.xls'):
                 self.load_preview()
             else:
-                self.update_info_display(f"Engineering Standard: {os.path.basename(filename)}\nReady for direct ingestion.")
+                self.update_info_display(f"Ready for ingestion: {os.path.basename(filename)}")
                 self.btn_import.configure(state="normal")
             
     def load_preview(self):
