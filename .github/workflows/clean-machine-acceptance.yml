@@ -48,9 +48,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $asset = gh release view ${{ github.event.release.tag_name }} --json assets --jq '.assets[] | select(.name == "SerapeumAI_v0.3_colleague_test.zip") | .browser_download_url'
-          if (-not $asset) { Write-Error "Asset not found in release ${{ github.event.release.tag_name }}"; exit 1 }
-          Invoke-WebRequest -Uri $asset -OutFile SerapeumAI_v0.3_colleague_test.zip
+          gh release download ${{ github.event.release.tag_name }} \
+            -p "SerapeumAI_v0.3_colleague_test.zip" \
+            -D . -R ${{ github.repository }}
+          if (-not (Test-Path SerapeumAI_v0.3_colleague_test.zip)) {
+            Write-Error "Failed to download release asset"
+            exit 1
+          }
           Write-Host "Downloaded from release ${{ github.event.release.tag_name }}"
 
       - name: Use local package (dispatch)
@@ -62,13 +66,13 @@ jobs:
           if ($src -and $src.Trim()) {
             Copy-Item $src SerapeumAI_v0.3_colleague_test.zip -Force
           } else {
-            # Fallback: try release asset download URL
+            # Fallback: download from release asset
             $releaseTag = "${{ github.event.inputs.release_tag }}"
             if ($releaseTag -and $releaseTag.Trim()) {
-              $url = gh release view $releaseTag --json assets --jq '.assets[] | select(.name == "SerapeumAI_v0.3_colleague_test.zip") | .browser_download_url'
-              if ($url) {
-                Invoke-WebRequest -Uri $url -OutFile SerapeumAI_v0.3_colleague_test.zip
-              } else {
+              gh release download $releaseTag `
+                -p "SerapeumAI_v0.3_colleague_test.zip" `
+                -D . -R ${{ github.repository }}
+              if (-not (Test-Path SerapeumAI_v0.3_colleague_test.zip)) {
                 Write-Error "No frozen package found. Provide zip_path or release_tag."
                 exit 1
               }
@@ -172,9 +176,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $asset = gh release view ${{ github.event.release.tag_name }} --json assets --jq '.assets[] | select(.name == "SerapeumAI_v0.3_colleague_test.zip") | .browser_download_url'
-          if (-not $asset) { Write-Error "Asset not found in release ${{ github.event.release.tag_name }}"; exit 1 }
-          Invoke-WebRequest -Uri $asset -OutFile SerapeumAI_v0.3_colleague_test.zip
+          gh release download ${{ github.event.release.tag_name }} \
+            -p "SerapeumAI_v0.3_colleague_test.zip" \
+            -D . -R ${{ github.repository }}
+          if (-not (Test-Path SerapeumAI_v0.3_colleague_test.zip)) {
+            Write-Error "Failed to download release asset"
+            exit 1
+          }
           Write-Host "Downloaded from release ${{ github.event.release.tag_name }}"
 
       - name: Use local package (dispatch)
@@ -186,13 +194,13 @@ jobs:
           if ($src -and $src.Trim()) {
             Copy-Item $src SerapeumAI_v0.3_colleague_test.zip -Force
           } else {
-            # Fallback: try release asset download URL
+            # Fallback: download from release asset
             $releaseTag = "${{ github.event.inputs.release_tag }}"
             if ($releaseTag -and $releaseTag.Trim()) {
-              $url = gh release view $releaseTag --json assets --jq '.assets[] | select(.name == "SerapeumAI_v0.3_colleague_test.zip") | .browser_download_url'
-              if ($url) {
-                Invoke-WebRequest -Uri $url -OutFile SerapeumAI_v0.3_colleague_test.zip
-              } else {
+              gh release download $releaseTag `
+                -p "SerapeumAI_v0.3_colleague_test.zip" `
+                -D . -R ${{ github.repository }}
+              if (-not (Test-Path SerapeumAI_v0.3_colleague_test.zip)) {
                 Write-Error "No frozen package found. Provide zip_path or release_tag."
                 exit 1
               }
