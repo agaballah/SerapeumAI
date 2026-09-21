@@ -152,3 +152,16 @@ class DependencyHealthChecker:
             for fmt in meta.get("required_for", []):
                 formats.add(fmt)
         return sorted(formats)
+
+    @classmethod
+    def get_dependency_info_for_extension(cls, ext: str) -> Optional[Dict[str, str]]:
+        """Return missing dependency info for a specific file extension, or None if available."""
+        ext_lower = ext.lower() if ext else ""
+        for dep in cls.check_all():
+            if ext_lower in dep.required_for and dep.status == "missing":
+                return {
+                    "dependency": dep.name,
+                    "install_command": dep.install_command,
+                    "severity": dep.severity,
+                }
+        return None
