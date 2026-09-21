@@ -25,6 +25,7 @@ Write-Host "[SerapeumAI] PyInstaller: $PyInstallerCheck"
 Write-Host "[SerapeumAI] Removing old local build outputs..."
 if (Test-Path (Join-Path $RepoRoot "build")) { Remove-Item (Join-Path $RepoRoot "build") -Recurse -Force }
 if (Test-Path (Join-Path $RepoRoot "dist")) { Remove-Item (Join-Path $RepoRoot "dist") -Recurse -Force }
+if (Test-Path (Join-Path $RepoRoot ".serapeum")) { Remove-Item (Join-Path $RepoRoot ".serapeum") -Recurse -Force }
 
 Write-Host "[SerapeumAI] Running PyInstaller..."
 py -m PyInstaller --clean --noconfirm $SpecPath
