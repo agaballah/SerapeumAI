@@ -422,7 +422,7 @@ jobs:
             ${{ runner.temp }}/serapeum-app-stdout.txt
             SerapeumTest/.serapeum/
             ${{ env.USERPROFILE }}/SerapeumAI/.serapeum/
-           retention-days: 30
+          retention-days: 30
 
   # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   # STAGE 1C: Summary
