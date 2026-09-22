@@ -224,36 +224,45 @@ jobs:
                Select-Object FullName, Length | ConvertTo-Json |
                Out-File "$env:RUNNER_TEMP\fs-before.json" -Encoding utf8
 
-      - name: Launch application and measure startup
-        id: launch
-        run: |
-          $sw = [System.Diagnostics.Stopwatch]::StartNew()
-          $proc = Start-Process "$PWD\SerapeumTest\SerapeumAI.exe" -PassThru -WindowStyle Normal
-          $processId = $proc.Id
-          Write-Host "Launched PID $processId"
+       - name: Launch application and measure startup
+         id: launch
+         run: |
+           $sw = [System.Diagnostics.Stopwatch]::StartNew()
+           # Capture stdout/stderr so we can diagnose silent failures
+           $outFile = Join-Path $env:RUNNER_TEMP "serapeum-app-stdout.txt"
+           $proc = Start-Process "$PWD\SerapeumTest\SerapeumAI.exe" `
+             -PassThru -WindowStyle Normal `
+             -RedirectStandardOutput $outFile `
+             -ErrorAction SilentlyContinue
+           $processId = $proc.Id
+           Write-Host "Launched PID $processId"
 
-          # Wait up to 90 seconds for the process to become responsive or exit
-          $deadline = (Get-Date).AddSeconds(90)
-          while (-not $proc.HasExited) {
-            Start-Sleep -Milliseconds 500
-            try {
-              $proc.Refresh()
-              if ($proc.Responding) {
-                Write-Host "Application responded after $($sw.Elapsed.TotalSeconds)s"
-                break
-              }
-            } catch {}
-            if ((Get-Date) -gt $deadline) {
-              Write-Warning "Timeout waiting for application response"
-              break
-            }
-          }
-          $sw.Stop()
-          echo "startup_seconds=$([math]::Round($sw.Elapsed.TotalSeconds, 2))" >> $env:GITHUB_OUTPUT
-          echo "has_exited=$($proc.HasExited)" >> $env:GITHUB_OUTPUT
-          echo "exit_code=$($proc.ExitCode)" >> $env:GITHUB_OUTPUT
-          echo "processId=$processId" >> $env:GITHUB_OUTPUT
-          Write-Host "Startup: $($sw.Elapsed.TotalSeconds)s  Exited: $($proc.HasExited)  Code: $($proc.ExitCode)"
+           # Wait up to 90 seconds for the process to become responsive or exit
+           $deadline = (Get-Date).AddSeconds(90)
+           while (-not $proc.HasExited) {
+             Start-Sleep -Milliseconds 500
+             try {
+               $proc.Refresh()
+               if ($proc.Responding) {
+                 Write-Host "Application responded after $($sw.Elapsed.TotalSeconds)s"
+                 break
+               }
+             } catch {}
+             if ((Get-Date) -gt $deadline) {
+               Write-Warning "Timeout waiting for application response"
+               break
+             }
+           }
+           $sw.Stop()
+           echo "startup_seconds=$([math]::Round($sw.Elapsed.TotalSeconds, 2))" >> $env:GITHUB_OUTPUT
+           echo "has_exited=$($proc.HasExited)" >> $env:GITHUB_OUTPUT
+           echo "exit_code=$($proc.ExitCode)" >> $env:GITHUB_OUTPUT
+           echo "processId=$processId" >> $env:GITHUB_OUTPUT
+           Write-Host "Startup: $($sw.Elapsed.TotalSeconds)s  Exited: $($proc.HasExited)  Code: $($proc.ExitCode)"
+           if (Test-Path $outFile) {
+             Write-Host "=== App stdout (last 30 lines) ==="
+             Get-Content $outFile -Tail 30
+           }
 
       - name: Check for crash / unexpected exit
         run: |
@@ -269,47 +278,117 @@ jobs:
             Write-Host "Application still running (timeout exceeded 90s, likely rendered window)"
           }
 
-      - name: Wait for log file creation
-        run: |
-          $timeout = 30
-          $deadline = (Get-Date).AddSeconds($timeout)
-          # APP_ROOT resolves from __file__ location → extracted SerapeumTest directory
-          $logDir = Join-Path $PWD "SerapeumTest\.serapeum\logs"
-          while (-not (Test-Path (Join-Path $logDir "serapeum.log"))) {
-            if ((Get-Date) -gt $deadline) {
-              Write-Error "serapeum.log not created within ${timeout}s"
-              exit 1
-            }
-            Start-Sleep -Milliseconds 500
-          }
-          Write-Host "Log file created at $logDir"
+       - name: Wait for log file creation
+         run: |
+           $timeout = 60
+           $deadline = (Get-Date).AddSeconds($timeout)
+           $logFound = $false
+           $logPath  = $null
+           # Search known locations where the app may write serapeum.log
+           $searchPaths = @(
+             Join-Path $PWD "SerapeumTest\.serapeum\logs\serapeum.log",
+             Join-Path $env:USERPROFILE "SerapeumAI\.serapeum\logs\serapeum.log",
+             Join-Path $env:LOCALAPPDATA "SerapeumAI\.serapeum\logs\serapeum.log"
+           )
+           foreach ($p in $searchPaths) {
+             if (Test-Path $p) {
+               $logFound = $true
+               $logPath  = $p
+               break
+             }
+           }
+           # If not found yet, poll for up to $timeout seconds
+           while (-not $logFound -and (Get-Date) -lt $deadline) {
+             Start-Sleep -Milliseconds 500
+             foreach ($p in $searchPaths) {
+               if (Test-Path $p) {
+                 $logFound = $true
+                 $logPath  = $p
+                 break
+               }
+             }
+           }
+           if (-not $logFound) {
+             # Scan workspace and USERPROFILE for any .serapeum/logs/serapeum.log
+             $fallback = Get-ChildItem $PWD, $env:USERPROFILE -Recurse -Depth 5 `
+               -Filter "serapeum.log" -ErrorAction SilentlyContinue | Select-Object -First 1
+             if ($fallback) {
+               $logFound = $true
+               $logPath  = $fallback.FullName
+               Write-Host "Log found at fallback path: $logPath"
+             }
+           }
+           if (-not $logFound) {
+             Write-Error "serapeum.log not found within ${timeout}s in any expected location"
+             exit 1
+           }
+           Write-Host "Log file found at: $logPath"
+           echo "log_path=$logPath" >> $env:GITHUB_OUTPUT
 
-      - name: Inspect application log
-        run: |
-          $logDir = Join-Path $PWD "SerapeumTest\.serapeum\logs"
-          $log = Join-Path $logDir "serapeum.log"
-          Write-Host "=== Last 50 lines of serapeum.log ==="
-          Get-Content $log -Tail 50
-          Write-Host ""
-          Write-Host "=== Error/Critical entries ==="
-          $errors = Select-String $log -Pattern "ERROR|CRITICAL|Exception|Traceback" -AllMatches
-          if ($errors) {
-            $errors | ForEach-Object { Write-Host $_.Line }
-          } else {
-            Write-Host "No errors or exceptions found in log"
-          }
+       - name: Inspect application log
+         run: |
+           $logPath = "${{ steps.launch.outputs.log_path }}"
+           if (-not $logPath -or -not (Test-Path $logPath)) {
+             # Fallback: search again
+             $candidates = @(
+               Join-Path $PWD "SerapeumTest\.serapeum\logs\serapeum.log",
+               Join-Path $env:USERPROFILE "SerapeumAI\.serapeum\logs\serapeum.log"
+             )
+             foreach ($c in $candidates) {
+               if (Test-Path $c) { $logPath = $c; break }
+             }
+           }
+           if (-not $logPath -or -not (Test-Path $logPath)) {
+             Write-Warning "Application log not found; skipping inspection"
+             return
+           }
+           Write-Host "=== Last 50 lines of serapeum.log ==="
+           Get-Content $logPath -Tail 50
+           Write-Host ""
+           Write-Host "=== Error/Critical entries ==="
+           $errors = Select-String $logPath -Pattern "ERROR|CRITICAL|Exception|Traceback" -AllMatches
+           if ($errors) {
+             $errors | ForEach-Object { Write-Host $_.Line }
+           } else {
+             Write-Host "No errors or exceptions found in log"
+           }
 
-      - name: Check for unexpected .serapeum data on host
-        run: |
-          # On a GitHub runner this should be empty (clean ephemeral VM)
-          # Only scan within the workspace, not the entire C:\ drive
-          $found = Get-ChildItem $PWD -Directory -Filter ".serapeum" -Recurse -Depth 2 -ErrorAction SilentlyContinue
-          if ($found) {
-            Write-Warning "Pre-existing .serapeum directories found (runner may not be fully clean):"
-            $found | ForEach-Object { Write-Warning "  $($_.FullName)" }
-          } else {
-            Write-Host "No pre-existing .serapeum data — runner is clean"
-          }
+       - name: Check for unexpected .serapeum data on host
+         run: |
+           # On a GitHub runner this should be empty (clean ephemeral VM)
+           # Only scan within the workspace, not the entire C:\ drive
+           $found = Get-ChildItem $PWD -Directory -Filter ".serapeum" -Recurse -Depth 2 -ErrorAction SilentlyContinue
+           if ($found) {
+             Write-Warning "Pre-existing .serapeum directories found (runner may not be fully clean):"
+             $found | ForEach-Object { Write-Warning "  $($_.FullName)" }
+           } else {
+             Write-Host "No pre-existing .serapeum data — runner is clean"
+           }
+
+      - name: Scan for application-created data
+         run: |
+           Write-Host "=== Scanning for .serapeum data created by app ==="
+           $scanRoots = @($PWD, $env:USERPROFILE)
+           foreach ($root in $scanRoots) {
+             if (-not (Test-Path $root)) { continue }
+             $found = Get-ChildItem $root -Directory -Filter ".serapeum" `
+               -Recurse -Depth 3 -ErrorAction SilentlyContinue
+             if ($found) {
+               Write-Host "Found .serapeum at:"
+               $found | ForEach-Object { Write-Host "  $($_.FullName)" }
+             } else {
+               Write-Host "No .serapeum data found under $root"
+             }
+           }
+           # Also show any serapeum.log files found
+           $logs = Get-ChildItem $PWD, $env:USERPROFILE -Recurse -Depth 5 `
+             -Filter "serapeum.log" -ErrorAction SilentlyContinue
+           if ($logs) {
+             Write-Host "serapeum.log files found:"
+             $logs | ForEach-Object { Write-Host "  $($_.FullName) ($($_.Length) bytes)" }
+           } else {
+             Write-Host "No serapeum.log files found anywhere scanned"
+           }
 
       - name: Terminate application
         run: |
@@ -333,15 +412,17 @@ jobs:
           Write-Host "Files created during test:"
           $created | ForEach-Object { Write-Host "  $($_.FullName)" }
 
-      - name: Archive application logs
-        uses: actions/upload-artifact@v4
-        with:
-          name: stage1-logs
-          path: |
-            SerapeumTest/.serapeum/logs/
-            ${{ runner.temp }}/fs-before.json
-            ${{ runner.temp }}/fs-after.json
-          retention-days: 30
+       - name: Archive application logs
+         uses: actions/upload-artifact@v4
+         with:
+           name: stage1-logs
+           path: |
+             ${{ runner.temp }}/fs-before.json
+             ${{ runner.temp }}/fs-after.json
+             ${{ runner.temp }}/serapeum-app-stdout.txt
+             SerapeumTest/.serapeum/
+             ${{ env.USERPROFILE }}/SerapeumAI/.serapeum/
+           retention-days: 30
 
   # ──────────────────────────────────────────────
   # STAGE 1C: Summary
