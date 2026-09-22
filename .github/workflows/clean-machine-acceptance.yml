@@ -129,26 +129,39 @@ jobs:
           }
           Write-Host "EXE hash verified: $actual"
 
-      - name: Check prohibited content
-        run: |
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $zip = [System.IO.Compression.ZipFile]::OpenRead("SerapeumAI_v0.3_colleague_test.zip")
-          $prohibited = @(".serapeum","docs/internal","docs/quality","benchmark","experiment",
-                          ".kilo","__pycache__","src/tests","build/","dist/")
-          $violations = @()
-          foreach ($entry in $zip.Entries) {
-            foreach ($p in $prohibited) {
-              if ($entry.FullName.ToLower().Contains($p.ToLower())) {
-                $violations += $entry.FullName
-              }
-            }
-          }
-          $entryCount = $zip.Entries.Count
-          $zip.Dispose()
-          if ($violations.Count -gt 0) {
-            Write-Error "Prohibited content found:"
-            $violations | ForEach-Object { Write-Error "  $_" }
-            exit 1
+       - name: Check prohibited content
+         run: |
+           Add-Type -AssemblyName System.IO.Compression.FileSystem
+           $zip = [System.IO.Compression.ZipFile]::OpenRead("SerapeumAI_v0.3_colleague_test.zip")
+           # Match prohibited patterns as path segments (not substrings) to avoid
+           # false positives from third-party libraries (e.g. torch/_experimental/)
+           $prohibitedPatterns = @(
+             '\.serapeum/',   '\.serapeum$'
+             'docs/internal/', 'docs/quality/'
+             '^benchmark/',   '/benchmark/'
+             '^experiment/',  '/experiment/'
+             '\.kilo/',       '\.kilo$'
+             '__pycache__/',  '__pycache__$'
+             'src/tests/',    'src/tests$'
+             '^build/',       '/build/'
+             '^dist/',        '/dist/'
+           )
+           $violations = @()
+           foreach ($entry in $zip.Entries) {
+             $path = $entry.FullName.ToLower()
+             foreach ($pat in $prohibitedPatterns) {
+               if ($path -match $pat) {
+                 $violations += $entry.FullName
+                 break
+               }
+             }
+           }
+           $entryCount = $zip.Entries.Count
+           $zip.Dispose()
+           if ($violations.Count -gt 0) {
+             Write-Error "Prohibited content found:"
+             $violations | Select-Object -Unique | ForEach-Object { Write-Error "  $_" }
+             exit 1
           }
           Write-Host "Prohibited content check passed ($entryCount entries scanned)"
 
