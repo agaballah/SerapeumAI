@@ -230,7 +230,7 @@ jobs:
            $sw = [System.Diagnostics.Stopwatch]::StartNew()
            # Capture stdout/stderr so we can diagnose silent failures
            $outFile = Join-Path $env:RUNNER_TEMP "serapeum-app-stdout.txt"
-           $proc = Start-Process "$PWD\SerapeumTest\SerapeumAI.exe" `
+           $proc = Start-Process "$env:GITHUB_WORKSPACE\SerapeumTest\SerapeumAI.exe" `
              -PassThru -WindowStyle Normal `
              -RedirectStandardOutput $outFile `
              -ErrorAction SilentlyContinue
@@ -286,7 +286,7 @@ jobs:
            $logPath  = $null
            # Search known locations where the app may write serapeum.log
            $searchPaths = @(
-             Join-Path $PWD "SerapeumTest\.serapeum\logs\serapeum.log",
+             Join-Path $env:GITHUB_WORKSPACE "SerapeumTest\.serapeum\logs\serapeum.log",
              Join-Path $env:USERPROFILE "SerapeumAI\.serapeum\logs\serapeum.log",
              Join-Path $env:LOCALAPPDATA "SerapeumAI\.serapeum\logs\serapeum.log"
            )
@@ -310,7 +310,7 @@ jobs:
            }
            if (-not $logFound) {
              # Scan workspace and USERPROFILE for any .serapeum/logs/serapeum.log
-             $fallback = Get-ChildItem $PWD, $env:USERPROFILE -Recurse -Depth 5 `
+             $fallback = Get-ChildItem $env:GITHUB_WORKSPACE, $env:USERPROFILE -Recurse -Depth 5 `
                -Filter "serapeum.log" -ErrorAction SilentlyContinue | Select-Object -First 1
              if ($fallback) {
                $logFound = $true
@@ -331,7 +331,7 @@ jobs:
            if (-not $logPath -or -not (Test-Path $logPath)) {
              # Fallback: search again
              $candidates = @(
-               Join-Path $PWD "SerapeumTest\.serapeum\logs\serapeum.log",
+               Join-Path $env:GITHUB_WORKSPACE "SerapeumTest\.serapeum\logs\serapeum.log",
                Join-Path $env:USERPROFILE "SerapeumAI\.serapeum\logs\serapeum.log"
              )
              foreach ($c in $candidates) {
@@ -357,7 +357,7 @@ jobs:
         run: |
            # On a GitHub runner this should be empty (clean ephemeral VM)
            # Only scan within the workspace, not the entire C:\ drive
-           $found = Get-ChildItem $PWD -Directory -Filter ".serapeum" -Recurse -Depth 2 -ErrorAction SilentlyContinue
+           $found = Get-ChildItem $env:GITHUB_WORKSPACE -Directory -Filter ".serapeum" -Recurse -Depth 2 -ErrorAction SilentlyContinue
            if ($found) {
              Write-Warning "Pre-existing .serapeum directories found (runner may not be fully clean):"
              $found | ForEach-Object { Write-Warning "  $($_.FullName)" }
@@ -368,7 +368,7 @@ jobs:
       - name: Scan for application-created data
         run: |
            Write-Host "=== Scanning for .serapeum data created by app ==="
-           $scanRoots = @($PWD, $env:USERPROFILE)
+           $scanRoots = @($env:GITHUB_WORKSPACE, $env:USERPROFILE)
            foreach ($root in $scanRoots) {
              if (-not (Test-Path $root)) { continue }
              $found = Get-ChildItem $root -Directory -Filter ".serapeum" `
@@ -381,7 +381,7 @@ jobs:
              }
            }
            # Also show any serapeum.log files found
-           $logs = Get-ChildItem $PWD, $env:USERPROFILE -Recurse -Depth 5 `
+           $logs = Get-ChildItem $env:GITHUB_WORKSPACE, $env:USERPROFILE -Recurse -Depth 5 `
              -Filter "serapeum.log" -ErrorAction SilentlyContinue
            if ($logs) {
              Write-Host "serapeum.log files found:"
