@@ -5,12 +5,8 @@ on:
     types: [published]
   workflow_dispatch:
     inputs:
-      zip_path:
-        description: "Path to frozen ZIP inside the repo (e.g. dist/SerapeumAI_v0.3_colleague_test.zip)"
-        required: false
-        default: ""
       release_tag:
-        description: "GitHub release tag to download the ZIP from (e.g. v0.3-colleague-test)"
+        description: "GitHub release tag containing the frozen ZIP asset (e.g. v0.3-colleague-test)"
         required: false
         default: ""
       expected_zip_sha256:
@@ -41,9 +37,8 @@ jobs:
     outputs:
       zip_hash: ${{ steps.hash_zip.outputs.hash }}
       exe_hash: ${{ steps.hash_exe.outputs.hash }}
-      package_size: ${{ steps.size.outputs.size }}
     steps:
-      - name: Download frozen package
+      - name: Download frozen package from release
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -57,47 +52,37 @@ jobs:
           }
           Write-Host "Downloaded from release ${{ github.event.release.tag_name }}"
 
-      - name: Use local package (dispatch)
+      - name: Download frozen package (dispatch)
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $src = "${{ github.event.inputs.zip_path }}"
-          if ($src -and $src.Trim()) {
-            Copy-Item $src SerapeumAI_v0.3_colleague_test.zip -Force
-          } else {
-            # Fallback: download from release asset
-            $releaseTag = "${{ github.event.inputs.release_tag }}"
-            if ($releaseTag -and $releaseTag.Trim()) {
-              gh release download $releaseTag `
-                -p "SerapeumAI_v0.3_colleague_test.zip" `
-                -D . -R ${{ github.repository }}
-              if (-not (Test-Path SerapeumAI_v0.3_colleague_test.zip)) {
-                Write-Error "No frozen package found. Provide zip_path or release_tag."
-                exit 1
-              }
-            } else {
-              Write-Error "No frozen package found. Provide zip_path or release_tag."
+          $releaseTag = "${{ github.event.inputs.release_tag }}"
+          if ($releaseTag -and $releaseTag.Trim()) {
+            gh release download $releaseTag `
+              -p "SerapeumAI_v0.3_colleague_test.zip" `
+              -D . -R ${{ github.repository }}
+            if (-not (Test-Path SerapeumAI_v0.3_colleague_test.zip)) {
+              Write-Error "No frozen package found. Provide release_tag pointing to a release with the ZIP asset."
               exit 1
             }
+          } else {
+            Write-Error "No frozen package found. Provide release_tag for the release containing the ZIP asset."
+            exit 1
           }
+          Write-Host "Downloaded from release $releaseTag"
 
-      - name: Compute ZIP hash and size
+      - name: Compute ZIP hash
         id: hash_zip
         run: |
           $h = (Get-FileHash SerapeumAI_v0.3_colleague_test.zip -Algorithm SHA256).Hash.ToLower()
-          $s = (Get-Item SerapeumAI_v0.3_colleague_test.zip).Length
           echo "hash=$h" >> $env:GITHUB_OUTPUT
-          echo "size=$s" >> $env:GITHUB_OUTPUT
           Write-Host "ZIP hash:   $h"
-          Write-Host "ZIP size:   $s bytes"
 
       - name: Verify ZIP identity
         run: |
           $expected = "${{ github.event.inputs.expected_zip_sha256 }}".Trim().ToLower()
           $actual  = "${{ steps.hash_zip.outputs.hash }}"
-          $size    = "${{ steps.hash_zip.outputs.size }}"
-          $expSize = "${{ github.event.inputs.expected_package_size }}"
           if (-not $expected) { $expected = "69457b13334d87b8f9720be2c42b308681d1fedddeb18e34dae16f576cb20c86" }
           if ($actual -ne $expected) {
             Write-Error "ZIP hash mismatch: actual=$actual expected=$expected"
@@ -129,39 +114,39 @@ jobs:
           }
           Write-Host "EXE hash verified: $actual"
 
-       - name: Check prohibited content
-         run: |
-           Add-Type -AssemblyName System.IO.Compression.FileSystem
-           $zip = [System.IO.Compression.ZipFile]::OpenRead("SerapeumAI_v0.3_colleague_test.zip")
-           # Match prohibited patterns as path segments (not substrings) to avoid
-           # false positives from third-party libraries (e.g. torch/_experimental/)
-           $prohibitedPatterns = @(
-             '\.serapeum/',   '\.serapeum$'
-             'docs/internal/', 'docs/quality/'
-             '^benchmark/',   '/benchmark/'
-             '^experiment/',  '/experiment/'
-             '\.kilo/',       '\.kilo$'
-             '__pycache__/',  '__pycache__$'
-             'src/tests/',    'src/tests$'
-             '^build/',       '/build/'
-             '^dist/',        '/dist/'
-           )
-           $violations = @()
-           foreach ($entry in $zip.Entries) {
-             $path = $entry.FullName.ToLower()
-             foreach ($pat in $prohibitedPatterns) {
-               if ($path -match $pat) {
-                 $violations += $entry.FullName
-                 break
-               }
-             }
-           }
-           $entryCount = $zip.Entries.Count
-           $zip.Dispose()
-           if ($violations.Count -gt 0) {
-             Write-Error "Prohibited content found:"
-             $violations | Select-Object -Unique | ForEach-Object { Write-Error "  $_" }
-             exit 1
+      - name: Check prohibited content
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead("SerapeumAI_v0.3_colleague_test.zip")
+          # Match prohibited patterns as path segments (not substrings) to avoid
+          # false positives from third-party libraries (e.g. torch/_experimental/)
+          $prohibitedPatterns = @(
+            '\.serapeum/',   '\.serapeum$'
+            'docs/internal/', 'docs/quality/'
+            '^benchmark/',   '/benchmark/'
+            '^experiment/',  '/experiment/'
+            '\.kilo/',       '\.kilo$'
+            '__pycache__/',  '__pycache__$'
+            'src/tests/',    'src/tests$'
+            '^build/',       '/build/'
+            '^dist/',        '/dist/'
+          )
+          $violations = @()
+          foreach ($entry in $zip.Entries) {
+            $path = $entry.FullName.ToLower()
+            foreach ($pat in $prohibitedPatterns) {
+              if ($path -match $pat) {
+                $violations += $entry.FullName
+                break
+              }
+            }
+          }
+          $entryCount = $zip.Entries.Count
+          $zip.Dispose()
+          if ($violations.Count -gt 0) {
+            Write-Error "Prohibited content found:"
+            $violations | Select-Object -Unique | ForEach-Object { Write-Error "  $_" }
+            exit 1
           }
           Write-Host "Prohibited content check passed ($entryCount entries scanned)"
 
@@ -184,7 +169,7 @@ jobs:
     needs: artifact-integrity
     runs-on: windows-latest
     steps:
-      - name: Download frozen package
+      - name: Download frozen package from release
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -198,30 +183,25 @@ jobs:
           }
           Write-Host "Downloaded from release ${{ github.event.release.tag_name }}"
 
-      - name: Use local package (dispatch)
+      - name: Download frozen package (dispatch)
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $src = "${{ github.event.inputs.zip_path }}"
-          if ($src -and $src.Trim()) {
-            Copy-Item $src SerapeumAI_v0.3_colleague_test.zip -Force
-          } else {
-            # Fallback: download from release asset
-            $releaseTag = "${{ github.event.inputs.release_tag }}"
-            if ($releaseTag -and $releaseTag.Trim()) {
-              gh release download $releaseTag `
-                -p "SerapeumAI_v0.3_colleague_test.zip" `
-                -D . -R ${{ github.repository }}
-              if (-not (Test-Path SerapeumAI_v0.3_colleague_test.zip)) {
-                Write-Error "No frozen package found. Provide zip_path or release_tag."
-                exit 1
-              }
-            } else {
-              Write-Error "No frozen package found. Provide zip_path or release_tag."
+          $releaseTag = "${{ github.event.inputs.release_tag }}"
+          if ($releaseTag -and $releaseTag.Trim()) {
+            gh release download $releaseTag `
+              -p "SerapeumAI_v0.3_colleague_test.zip" `
+              -D . -R ${{ github.repository }}
+            if (-not (Test-Path SerapeumAI_v0.3_colleague_test.zip)) {
+              Write-Error "No frozen package found. Provide release_tag for the release containing the ZIP asset."
               exit 1
             }
+          } else {
+            Write-Error "No frozen package found. Provide release_tag for the release containing the ZIP asset."
+            exit 1
           }
+          Write-Host "Downloaded from release $releaseTag"
 
       - name: Extract
         run: Expand-Archive -Path SerapeumAI_v0.3_colleague_test.zip -DestinationPath SerapeumTest -Force
@@ -249,8 +229,8 @@ jobs:
         run: |
           $sw = [System.Diagnostics.Stopwatch]::StartNew()
           $proc = Start-Process "$PWD\SerapeumTest\SerapeumAI.exe" -PassThru -WindowStyle Normal
-          $pid = $proc.Id
-          Write-Host "Launched PID $pid"
+          $processId = $proc.Id
+          Write-Host "Launched PID $processId"
 
           # Wait up to 90 seconds for the process to become responsive or exit
           $deadline = (Get-Date).AddSeconds(90)
@@ -272,7 +252,7 @@ jobs:
           echo "startup_seconds=$([math]::Round($sw.Elapsed.TotalSeconds, 2))" >> $env:GITHUB_OUTPUT
           echo "has_exited=$($proc.HasExited)" >> $env:GITHUB_OUTPUT
           echo "exit_code=$($proc.ExitCode)" >> $env:GITHUB_OUTPUT
-          echo "pid=$pid" >> $env:GITHUB_OUTPUT
+          echo "processId=$processId" >> $env:GITHUB_OUTPUT
           Write-Host "Startup: $($sw.Elapsed.TotalSeconds)s  Exited: $($proc.HasExited)  Code: $($proc.ExitCode)"
 
       - name: Check for crash / unexpected exit
@@ -333,10 +313,10 @@ jobs:
 
       - name: Terminate application
         run: |
-          $pid = "${{ steps.launch.outputs.pid }}"
-          if ($pid -and $pid.Trim()) {
-            Stop-Process -Id ([int]$pid) -Force -ErrorAction SilentlyContinue
-            Write-Host "Terminated PID $pid"
+          $processId = "${{ steps.launch.outputs.processId }}"
+          if ($processId -and $processId.Trim()) {
+            Stop-Process -Id ([int]$processId) -Force -ErrorAction SilentlyContinue
+            Write-Host "Terminated PID $processId"
           }
 
       - name: Snapshot filesystem after launch
@@ -358,9 +338,9 @@ jobs:
         with:
           name: stage1-logs
           path: |
-            ${{ env.USERPROFILE }}/SerapeumAI/.serapeum/logs/
+            SerapeumTest/.serapeum/logs/
             ${{ runner.temp }}/fs-before.json
-            ${{ runner.temp }}/fs-after.json
+            $${{ runner.temp }}/fs-after.json
           retention-days: 30
 
   # ──────────────────────────────────────────────
