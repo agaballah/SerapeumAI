@@ -225,8 +225,8 @@ jobs:
                Out-File "$env:RUNNER_TEMP\fs-before.json" -Encoding utf8
 
       - name: Launch application and measure startup
-         id: launch
-         run: |
+        id: launch
+        run: |
            $sw = [System.Diagnostics.Stopwatch]::StartNew()
            # Capture stdout/stderr so we can diagnose silent failures
            $outFile = Join-Path $env:RUNNER_TEMP "serapeum-app-stdout.txt"
@@ -279,7 +279,7 @@ jobs:
           }
 
       - name: Wait for log file creation
-         run: |
+        run: |
            $timeout = 60
            $deadline = (Get-Date).AddSeconds($timeout)
            $logFound = $false
@@ -326,7 +326,7 @@ jobs:
            echo "log_path=$logPath" >> $env:GITHUB_OUTPUT
 
       - name: Inspect application log
-         run: |
+        run: |
            $logPath = "${{ steps.launch.outputs.log_path }}"
            if (-not $logPath -or -not (Test-Path $logPath)) {
              # Fallback: search again
@@ -354,7 +354,7 @@ jobs:
            }
 
       - name: Check for unexpected .serapeum data on host
-         run: |
+        run: |
            # On a GitHub runner this should be empty (clean ephemeral VM)
            # Only scan within the workspace, not the entire C:\ drive
            $found = Get-ChildItem $PWD -Directory -Filter ".serapeum" -Recurse -Depth 2 -ErrorAction SilentlyContinue
@@ -366,7 +366,7 @@ jobs:
            }
 
       - name: Scan for application-created data
-         run: |
+        run: |
            Write-Host "=== Scanning for .serapeum data created by app ==="
            $scanRoots = @($PWD, $env:USERPROFILE)
            foreach ($root in $scanRoots) {
@@ -413,15 +413,15 @@ jobs:
           $created | ForEach-Object { Write-Host "  $($_.FullName)" }
 
       - name: Archive application logs
-         uses: actions/upload-artifact@v4
-         with:
-           name: stage1-logs
-           path: |
-             ${{ runner.temp }}/fs-before.json
-             ${{ runner.temp }}/fs-after.json
-             ${{ runner.temp }}/serapeum-app-stdout.txt
-             SerapeumTest/.serapeum/
-             ${{ env.USERPROFILE }}/SerapeumAI/.serapeum/
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage1-logs
+          path: |
+            ${{ runner.temp }}/fs-before.json
+            ${{ runner.temp }}/fs-after.json
+            ${{ runner.temp }}/serapeum-app-stdout.txt
+            SerapeumTest/.serapeum/
+            ${{ env.USERPROFILE }}/SerapeumAI/.serapeum/
            retention-days: 30
 
   # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
