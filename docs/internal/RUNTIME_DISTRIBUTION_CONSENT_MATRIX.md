@@ -4,6 +4,15 @@ Task class: release task / post-publish runtime-distribution planning
 
 Status: authoritative planning guardrail before runtime-provider implementation
 
+**Modernization note (2026-09-03):** Per `SERAPEUMAI_PARKED_PLAN_MODERNIZATION_v1.0.md` §8, the distribution-tier consent language aligns with these technology statuses:
+- **GGUF + llama.cpp** — **ADOPT (optional lane, already admitted; class (a))**.
+- **LM Studio / Ollama / OpenAI-compatible providers** — **ADOPT (optional lane, read-model, already admitted; class (a))**.
+- **Small local ONNX embeddings/reranker** — **TRIAL**, pending a separate owner-approved dependency-admission packet; this planning document does not authorize its admission.
+- **TensorRT / TensorRT-LLM / AWQ / GPTQ / EXL2** — **DEFER (workstation-experimental)**.
+- **Active runtime provisioning** (install / download / start / stop / load) — **REJECT (in baseline)**; optional-lane consent remains the only path.
+
+This document authorizes no new dependency, provider behavior, runtime provisioning, packaging inclusion, or production deployment. Its existing non-negotiables (§2) are unchanged.
+
 This document defines how SerapeumAI should distinguish bundled baseline capability, detected local dependencies, optional providers, optional model downloads, and future workstation/enterprise lanes.
 
 It exists to prevent three product failures:

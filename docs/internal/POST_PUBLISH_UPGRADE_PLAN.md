@@ -4,6 +4,13 @@ Task class: release task / post-publish planning artifact
 Status: authoritative internal plan after current publish closure
 Branch policy: `main` is the only long-lived authority
 
+**Modernization note (2026-09-03):** This document remains the master numbered roadmap. Per `SERAPEUMAI_PARKED_PLAN_MODERNIZATION_v1.0.md`:
+- **Upgrade 5** (Optional OCR / Layout / Vision Lab) is **elevated from "optional" to P1-consideration,** gated by lab validation (§9 Gate G6-G7).
+- **Upgrade 6** (Safe Revit Bridge) is **accelerated from long-term to P2-consideration,** gated by Revit API research (§9 Gate G10-G11).
+- **Upgrade 1 / 1C / 7 / Runtime Platform Wave** remain deferred-optional (§9 Gate G13, G15, G17-G18).
+- A **single new narrowly scoped plan** has been created: `SERAPEUMAI_CAD_DRAWING_INTELLIGENCE_PLAN_v1.0.md` to address the only remaining uncovered P1 gap (CAD/DWG/DXF). This plan does not alter the numbered upgrades; it operates in parallel as Gate G3-G5 / G8.
+- Technology candidate statuses (ADOPT / TRIAL / DEFER / REJECT) are assigned in `SERAPEUMAI_PARKED_PLAN_MODERNIZATION_v1.0.md` §8.
+
 ---
 
 ## 1. Purpose
