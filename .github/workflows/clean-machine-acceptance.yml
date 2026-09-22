@@ -1,4 +1,4 @@
-name: Clean-Machine Acceptance Test (Stage 1 — Automated)
+﻿name: Clean-Machine Acceptance Test (Stage 1 â€” Automated)
 
 on:
   release:
@@ -27,10 +27,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ──────────────────────────────────────────────
+  # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   # STAGE 1A: Artifact integrity verification
   # Runs on every workflow trigger; gates all downstream work.
-  # ──────────────────────────────────────────────
+  # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   artifact-integrity:
     name: Artifact Integrity
     runs-on: windows-latest
@@ -159,11 +159,11 @@ jobs:
             *.log
           retention-days: 30
 
-  # ──────────────────────────────────────────────
+  # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   # STAGE 1B: Application smoke test
   # Measures startup, checks for crashes, validates logs.
   # Runs only if Stage 1A passes.
-  # ──────────────────────────────────────────────
+  # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   app-smoke-test:
     name: Application Smoke Test
     needs: artifact-integrity
@@ -224,7 +224,7 @@ jobs:
                Select-Object FullName, Length | ConvertTo-Json |
                Out-File "$env:RUNNER_TEMP\fs-before.json" -Encoding utf8
 
-       - name: Launch application and measure startup
+      - name: Launch application and measure startup
          id: launch
          run: |
            $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -273,12 +273,12 @@ jobs:
               Write-Error "Application exited with code $code (expected 0)"
               exit 1
             }
-            Write-Warning "Application exited before timeout — may have crashed"
+            Write-Warning "Application exited before timeout â€” may have crashed"
           } else {
             Write-Host "Application still running (timeout exceeded 90s, likely rendered window)"
           }
 
-       - name: Wait for log file creation
+      - name: Wait for log file creation
          run: |
            $timeout = 60
            $deadline = (Get-Date).AddSeconds($timeout)
@@ -325,7 +325,7 @@ jobs:
            Write-Host "Log file found at: $logPath"
            echo "log_path=$logPath" >> $env:GITHUB_OUTPUT
 
-       - name: Inspect application log
+      - name: Inspect application log
          run: |
            $logPath = "${{ steps.launch.outputs.log_path }}"
            if (-not $logPath -or -not (Test-Path $logPath)) {
@@ -353,7 +353,7 @@ jobs:
              Write-Host "No errors or exceptions found in log"
            }
 
-       - name: Check for unexpected .serapeum data on host
+      - name: Check for unexpected .serapeum data on host
          run: |
            # On a GitHub runner this should be empty (clean ephemeral VM)
            # Only scan within the workspace, not the entire C:\ drive
@@ -362,7 +362,7 @@ jobs:
              Write-Warning "Pre-existing .serapeum directories found (runner may not be fully clean):"
              $found | ForEach-Object { Write-Warning "  $($_.FullName)" }
            } else {
-             Write-Host "No pre-existing .serapeum data — runner is clean"
+             Write-Host "No pre-existing .serapeum data â€” runner is clean"
            }
 
       - name: Scan for application-created data
@@ -412,7 +412,7 @@ jobs:
           Write-Host "Files created during test:"
           $created | ForEach-Object { Write-Host "  $($_.FullName)" }
 
-       - name: Archive application logs
+      - name: Archive application logs
          uses: actions/upload-artifact@v4
          with:
            name: stage1-logs
@@ -424,9 +424,9 @@ jobs:
              ${{ env.USERPROFILE }}/SerapeumAI/.serapeum/
            retention-days: 30
 
-  # ──────────────────────────────────────────────
+  # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   # STAGE 1C: Summary
-  # ──────────────────────────────────────────────
+  # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   summary:
     name: Acceptance Summary
     needs: [artifact-integrity, app-smoke-test]
@@ -435,7 +435,7 @@ jobs:
     steps:
       - name: Report results
         run: |
-          echo "# Clean-Machine Acceptance Test — Stage 1 Summary" >> $GITHUB_STEP_SUMMARY
+          echo "# Clean-Machine Acceptance Test â€” Stage 1 Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
@@ -444,8 +444,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           if ("${{ needs.artifact-integrity.result }}" -eq "success" -and
               "${{ needs.app-smoke-test.result }}" -eq "success") {
-            echo "**Stage 1: PASS** — Proceed to Stage 2 (VM-based GUI acceptance)." >> $GITHUB_STEP_SUMMARY
+            echo "**Stage 1: PASS** â€” Proceed to Stage 2 (VM-based GUI acceptance)." >> $GITHUB_STEP_SUMMARY
           } else {
-            echo "**Stage 1: FAIL** — Review artifacts above." >> $GITHUB_STEP_SUMMARY
+            echo "**Stage 1: FAIL** â€” Review artifacts above." >> $GITHUB_STEP_SUMMARY
             exit 1
           }
+
+
