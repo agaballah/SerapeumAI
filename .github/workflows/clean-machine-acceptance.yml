@@ -209,15 +209,15 @@ jobs:
       - name: Record environment before launch
         id: env_before
         run: |
-          $py = where.exe python 2>$null
-          $git = where.exe git 2>$null
-          $tess = where.exe tesseract 2>$null
-          $pdfi = where.exe pdfinfo 2>$null
+          $py     = Get-Command python     -ErrorAction SilentlyContinue
+          $git    = Get-Command git        -ErrorAction SilentlyContinue
+          $tess   = Get-Command tesseract  -ErrorAction SilentlyContinue
+          $pdfi   = Get-Command pdfinfo    -ErrorAction SilentlyContinue
           echo "python_found=$(-not [string]::IsNullOrWhiteSpace($py))" >> $env:GITHUB_OUTPUT
           echo "git_found=$(-not [string]::IsNullOrWhiteSpace($git))" >> $env:GITHUB_OUTPUT
           echo "tesseract_found=$(-not [string]::IsNullOrWhiteSpace($tess))" >> $env:GITHUB_OUTPUT
           echo "poppler_found=$(-not [string]::IsNullOrWhiteSpace($pdfi))" >> $env:GITHUB_OUTPUT
-          Write-Host "Runner environment: Python=$(-not [string]::IsNullOrWhiteSpace($py)) Git=$(-not [string]::IsNullOrWhiteSpace($git))"
+          Write-Host "Runner environment: Python=$(-not [string]::IsNullOrWhiteSpace($py)) Git=$(-not [string]::IsNullOrWhiteSpace($git)) Tesseract=$(-not [string]::IsNullOrWhiteSpace($tess)) Poppler=$(-not [string]::IsNullOrWhiteSpace($pdfi))"
 
       - name: Snapshot filesystem before launch
         run: Get-ChildItem . -Recurse -Depth 3 -ErrorAction SilentlyContinue |
@@ -340,7 +340,7 @@ jobs:
           path: |
             SerapeumTest/.serapeum/logs/
             ${{ runner.temp }}/fs-before.json
-            $${{ runner.temp }}/fs-after.json
+            ${{ runner.temp }}/fs-after.json
           retention-days: 30
 
   # ──────────────────────────────────────────────
