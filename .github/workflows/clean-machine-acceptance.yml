@@ -1,4 +1,4 @@
-﻿name: Clean-Machine Acceptance Test (Stage 1 â€” Automated)
+﻿name: Clean-Machine Acceptance Test (Stage 1 -- Automated)
 
 on:
   release:
@@ -273,7 +273,7 @@ jobs:
               Write-Error "Application exited with code $code (expected 0)"
               exit 1
             }
-            Write-Warning "Application exited before timeout â€” may have crashed"
+            Write-Warning "Application exited before timeout -- may have crashed"
           } else {
             Write-Host "Application still running (timeout exceeded 90s, likely rendered window)"
           }
@@ -362,7 +362,7 @@ jobs:
              Write-Warning "Pre-existing .serapeum directories found (runner may not be fully clean):"
              $found | ForEach-Object { Write-Warning "  $($_.FullName)" }
            } else {
-             Write-Host "No pre-existing .serapeum data â€” runner is clean"
+             Write-Host "No pre-existing .serapeum data -- runner is clean"
            }
 
       - name: Scan for application-created data
@@ -435,7 +435,7 @@ jobs:
     steps:
       - name: Report results
         run: |
-          echo "# Clean-Machine Acceptance Test â€” Stage 1 Summary" >> $GITHUB_STEP_SUMMARY
+          echo "# Clean-Machine Acceptance Test -- Stage 1 Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
@@ -444,9 +444,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           if ("${{ needs.artifact-integrity.result }}" -eq "success" -and
               "${{ needs.app-smoke-test.result }}" -eq "success") {
-            echo "**Stage 1: PASS** â€” Proceed to Stage 2 (VM-based GUI acceptance)." >> $GITHUB_STEP_SUMMARY
+            echo "**Stage 1: PASS** -- Proceed to Stage 2 (VM-based GUI acceptance)." >> $GITHUB_STEP_SUMMARY
           } else {
-            echo "**Stage 1: FAIL** â€” Review artifacts above." >> $GITHUB_STEP_SUMMARY
+            echo "**Stage 1: FAIL** -- Review artifacts above." >> $GITHUB_STEP_SUMMARY
             exit 1
           }
 
