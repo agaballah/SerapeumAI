@@ -229,7 +229,7 @@ jobs:
         run: |
            $sw = [System.Diagnostics.Stopwatch]::StartNew()
            # Capture stdout/stderr so we can diagnose silent failures
-           $outFile = Join-Path $env:RUNNER_TEMP "serapeum-app-stdout.txt"
+           $outFile = "$env:RUNNER_TEMP\serapeum-app-stdout.txt"
            $proc = Start-Process "$env:GITHUB_WORKSPACE\SerapeumTest\SerapeumAI.exe" `
              -PassThru -WindowStyle Normal `
              -RedirectStandardOutput $outFile `
@@ -288,7 +288,7 @@ jobs:
            $searchPaths = @(
              "$env:GITHUB_WORKSPACE\SerapeumTest\.serapeum\logs\serapeum.log",
              "$env:USERPROFILE\SerapeumAI\.serapeum\logs\serapeum.log",
-             Join-Path $env:LOCALAPPDATA "SerapeumAI\.serapeum\logs\serapeum.log"
+             "$env:LOCALAPPDATA\SerapeumAI\.serapeum\logs\serapeum.log"
            )
            foreach ($p in $searchPaths) {
              if (Test-Path $p) {
