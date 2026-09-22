@@ -286,8 +286,8 @@ jobs:
            $logPath  = $null
            # Search known locations where the app may write serapeum.log
            $searchPaths = @(
-             Join-Path $env:GITHUB_WORKSPACE "SerapeumTest\.serapeum\logs\serapeum.log",
-             Join-Path $env:USERPROFILE "SerapeumAI\.serapeum\logs\serapeum.log",
+             "$env:GITHUB_WORKSPACE\SerapeumTest\.serapeum\logs\serapeum.log",
+             "$env:USERPROFILE\SerapeumAI\.serapeum\logs\serapeum.log",
              Join-Path $env:LOCALAPPDATA "SerapeumAI\.serapeum\logs\serapeum.log"
            )
            foreach ($p in $searchPaths) {
@@ -331,8 +331,8 @@ jobs:
            if (-not $logPath -or -not (Test-Path $logPath)) {
              # Fallback: search again
              $candidates = @(
-               Join-Path $env:GITHUB_WORKSPACE "SerapeumTest\.serapeum\logs\serapeum.log",
-               Join-Path $env:USERPROFILE "SerapeumAI\.serapeum\logs\serapeum.log"
+               "$env:GITHUB_WORKSPACE\SerapeumTest\.serapeum\logs\serapeum.log",
+               "$env:USERPROFILE\SerapeumAI\.serapeum\logs\serapeum.log"
              )
              foreach ($c in $candidates) {
                if (Test-Path $c) { $logPath = $c; break }
